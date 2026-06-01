@@ -40,6 +40,7 @@ import {
   API_BASE,
   FundingRange,
   ProjectListQuery,
+  AdminActionRecommendation,
   MarketConfig,
   MarketStats,
   AdminDashboardSnapshot,
@@ -1485,6 +1486,56 @@ export default function App() {
     setPage(1);
   }, []);
 
+  const applyAdminRecommendation = useCallback((entry: AdminActionRecommendation) => {
+    const moveToMarket = () => {
+      setView('market');
+      setPage(1);
+    };
+    const focusRiskProject = adminDashboard.riskProjects[0];
+
+    if (entry.area === '수익 모델') {
+      applyObservedConversionRates();
+      toast('info', '추천 액션 적용', '관측 전환율을 수익 모델 가정에 반영했습니다.');
+      return;
+    }
+
+    resetFilters();
+
+    if (entry.area === '리스크 관리' && focusRiskProject) {
+      setSearchQuery(focusRiskProject.title);
+      setDebouncedSearch(focusRiskProject.title);
+      setSortMode('recent');
+      moveToMarket();
+      toast('info', '추천 액션 적용', `${focusRiskProject.title} 리스크 점검 필터를 열었습니다.`);
+      return;
+    }
+
+    if (entry.area === '퍼널 개선') {
+      setOnlyVerified(true);
+      setSortMode('funding');
+      moveToMarket();
+      toast('info', '추천 액션 적용', '검증 프로젝트를 투자 규모순으로 열어 매칭 CTA 점검 대상을 좁혔습니다.');
+      return;
+    }
+
+    if (entry.area === '활동성') {
+      setSortMode('recent');
+      moveToMarket();
+      toast('info', '추천 액션 적용', '최신 신호순으로 전환해 활동이 낮은 프로젝트를 빠르게 비교합니다.');
+      return;
+    }
+
+    if (entry.area === '인프라' || entry.area === '검증 게이트') {
+      setSortMode('recent');
+      moveToMarket();
+      toast('info', '추천 액션 적용', '최근 등록/검증 흐름으로 이동해 URL 응답 상태를 재점검합니다.');
+      return;
+    }
+
+    moveToMarket();
+    toast('info', '추천 액션 적용', '시장 워크스페이스로 이동해 추천 기준을 점검합니다.');
+  }, [adminDashboard.riskProjects, applyObservedConversionRates, resetFilters]);
+
   const loadSnapshot = useCallback(async (showLoading = false) => {
     if (showLoading) setIsRefreshing(true);
 
@@ -2833,6 +2884,14 @@ export default function App() {
                           <span className="font-black">Action:</span> {entry.nextAction}
                         </p>
                         <p className="mt-1 text-stone-400">효과 추정: {entry.expectedImpact}</p>
+                        <button
+                          type="button"
+                          onClick={() => applyAdminRecommendation(entry)}
+                          className="mt-2 inline-flex min-h-8 items-center justify-center gap-2 rounded-lg border border-cyan-300/40 px-3 text-[11px] font-black text-cyan-100 transition hover:bg-cyan-300/10"
+                        >
+                          <Radar className="h-3.5 w-3.5" />
+                          추천 적용
+                        </button>
                       </div>
                     ))}
                   </div>
