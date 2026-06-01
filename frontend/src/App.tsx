@@ -1001,6 +1001,78 @@ function getRecommendationPriorityLabel(priority: 'high' | 'medium' | 'low') {
   return '완화';
 }
 
+function getRecommendationAreaMeta(area: string) {
+  if (area === '수익 모델') {
+    return {
+      icon: DollarSign,
+      tone: 'border-emerald-300/45 bg-emerald-950/30 text-emerald-100',
+      label: '수익 가정',
+    };
+  }
+
+  if (area === '리스크 관리') {
+    return {
+      icon: ShieldCheck,
+      tone: 'border-red-300/45 bg-red-950/30 text-red-100',
+      label: '리스크 점검',
+    };
+  }
+
+  if (area === '퍼널 개선') {
+    return {
+      icon: Signal,
+      tone: 'border-sky-300/45 bg-sky-950/30 text-sky-100',
+      label: '퍼널 개선',
+    };
+  }
+
+  if (area === '활동성') {
+    return {
+      icon: Activity,
+      tone: 'border-lime-300/45 bg-lime-950/30 text-lime-100',
+      label: '활동 모니터링',
+    };
+  }
+
+  if (area === '인프라') {
+    return {
+      icon: Layers3,
+      tone: 'border-indigo-300/45 bg-indigo-950/30 text-indigo-100',
+      label: '인프라 점검',
+    };
+  }
+
+  if (area === '검증 게이트') {
+    return {
+      icon: TimerReset,
+      tone: 'border-violet-300/45 bg-violet-950/30 text-violet-100',
+      label: '검증 게이트',
+    };
+  }
+
+  return {
+    icon: Gauge,
+    tone: 'border-cyan-300/45 bg-cyan-950/30 text-cyan-100',
+    label: area,
+  };
+}
+
+const PRIORITY_COPY: Record<'high' | 'medium' | 'low', string> = {
+  high: '긴급 대응',
+  medium: '우선 조치',
+  low: '세밀 보완',
+};
+
+function getRecommendationSummary(recommendations: AdminActionRecommendation[]) {
+  return recommendations.reduce(
+    (acc, entry) => {
+      acc[entry.priority] += 1;
+      return acc;
+    },
+    { high: 0, medium: 0, low: 0 },
+  );
+}
+
 const PRIORITY_WEIGHT: Record<AdminActionRecommendation['priority'], number> = {
   high: 2,
   medium: 1,
@@ -1416,6 +1488,7 @@ export default function App() {
     () => sortAdminRecommendationsByPriority(adminDashboard.recommendations),
     [adminDashboard.recommendations],
   );
+  const recommendationSummary = useMemo(() => getRecommendationSummary(orderedAdminRecommendations), [orderedAdminRecommendations]);
 
   const revenueProjection = adminDashboard.revenue;
   const adminRevenueTargetGap = revenueProjection.targetGap;
@@ -2946,6 +3019,9 @@ export default function App() {
                   <AlertTriangle className="h-4 w-4 text-cyan-200" />
                   <div className="flex min-w-0 items-center gap-2">
                     <h3 className="font-black text-stone-100">운영 추천 액션</h3>
+                    <span className="protolive-badge rounded-full border border-stone-700/55 bg-stone-900/55 px-2 py-0.5 text-[10px] font-black tracking-[0.16em] text-stone-300">
+                      {recommendationSummary.high}/{recommendationSummary.medium}/{recommendationSummary.low} (고/중/저)
+                    </span>
                     <span className="protolive-badge rounded-full border border-cyan-300/35 bg-cyan-950/40 px-2 py-0.5 text-xs font-black text-cyan-100">
                       {orderedAdminRecommendations.length}건
                     </span>
@@ -2981,46 +3057,68 @@ export default function App() {
                   </p>
                 ) : null}
                 {orderedAdminRecommendations.length === 0 ? (
-                  <p className="rounded-lg border border-dashed border-stone-700 p-3 text-sm text-stone-500">
+                  <p className="protolive-empty rounded-lg border border-dashed border-stone-700 p-3 text-sm text-stone-400">
                     즉시 조치할 항목은 없습니다.
+                    <Sparkles className="ml-2 inline h-3.5 w-3.5 text-cyan-200" />
                   </p>
                 ) : (
-                  <div className="space-y-3">
-                    {orderedAdminRecommendations.map((entry, index) => (
-                      <div
-                        key={`${entry.area}-${index}`}
-                        className={`protolive-reco-item animate-panel-slide-in rounded-lg border p-3 text-xs ${
-                          getRecommendationTone(entry.priority)
-                        }`}
-                        style={{ animationDelay: `${index * 40}ms` }}
-                      >
-                        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-                          <p className="font-black leading-tight">
-                            [{entry.area}] {entry.title}
-                          </p>
-                          <span
-                            className={`rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] ${getRecommendationPriorityTone(
-                              entry.priority,
-                            )}`}
-                          >
-                            {getRecommendationPriorityLabel(entry.priority)}
-                          </span>
-                        </div>
-                        <p className="leading-5 text-stone-300">{entry.why}</p>
-                        <p className="mt-1 break-words text-stone-200">
-                          <span className="font-black">Action:</span> {entry.nextAction}
-                        </p>
-                        <p className="mt-1 text-stone-200">효과 추정: {entry.expectedImpact}</p>
-                        <button
-                          type="button"
-                          onClick={() => applyAdminRecommendation(entry)}
-                          className="protolive-btn mt-2 inline-flex min-h-8 items-center justify-center gap-2 rounded-lg border border-cyan-300/35 bg-sky-950/40 px-3 text-[11px] font-black text-cyan-100 transition hover:bg-cyan-300/20"
+                  <div className="protolive-reco-stack space-y-3">
+                    {orderedAdminRecommendations.map((entry, index) => {
+                      const areaMeta = getRecommendationAreaMeta(entry.area);
+                      const AreaIcon = areaMeta.icon;
+
+                      return (
+                        <div
+                          key={`${entry.area}-${index}`}
+                          className={`protolive-reco-item animate-panel-slide-in rounded-lg border p-3 text-xs ${getRecommendationTone(
+                            entry.priority,
+                          )}`}
+                          style={{ animationDelay: `${index * 40}ms` }}
                         >
-                          <Radar className="h-3.5 w-3.5" />
-                          추천 적용
-                        </button>
-                      </div>
-                    ))}
+                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[10px] font-black uppercase tracking-[0.13em] ${areaMeta.tone}`}
+                            >
+                              <AreaIcon className="h-3 w-3" />
+                              {areaMeta.label}
+                            </span>
+                            <span className="inline-flex items-center gap-1 rounded-full border border-stone-700/55 bg-stone-900/55 px-2 py-1 text-[10px] font-black text-stone-200">
+                              <Sparkles className="h-3 w-3 text-cyan-200" />
+                              {PRIORITY_COPY[entry.priority]}
+                            </span>
+                          </div>
+                          <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                            <p className="font-black leading-tight">
+                              [{entry.area}] {entry.title}
+                            </p>
+                            <span
+                              className={`rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] ${getRecommendationPriorityTone(
+                                entry.priority,
+                              )}`}
+                            >
+                              {getRecommendationPriorityLabel(entry.priority)}
+                            </span>
+                          </div>
+                          <p className="leading-5 text-stone-300">{entry.why}</p>
+                          <p className="mt-1 break-words text-stone-200">
+                            <span className="font-black">Action:</span> {entry.nextAction}
+                          </p>
+                          <p className="mt-1 text-stone-200">효과 추정: {entry.expectedImpact}</p>
+                          <button
+                            type="button"
+                            onClick={() => applyAdminRecommendation(entry)}
+                            className="protolive-btn mt-2 inline-flex min-h-8 items-center justify-center gap-2 rounded-lg border border-cyan-300/35 bg-sky-950/40 px-3 text-[11px] font-black text-cyan-100 transition hover:bg-cyan-300/20"
+                          >
+                            <Radar className="h-3.5 w-3.5" />
+                            추천 적용
+                          </button>
+                          <p className="mt-1 inline-flex items-center gap-1 text-[10px] text-stone-400">
+                            <Sparkles className="h-3 w-3" />
+                            {PRIORITY_COPY[entry.priority]} 액션으로 처리 흐름 정리
+                          </p>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
