@@ -2673,10 +2673,10 @@ export default function App() {
   }, [handleRequireInvestorOnly]);
 
   return (
-    <div className="min-h-screen bg-[oklch(14%_0.018_205)] text-stone-100">
+    <div className="protolive-shell min-h-screen bg-[oklch(14%_0.018_205)] text-stone-100">
       <ToastContainer />
 
-      <header className="sticky top-0 z-40 border-b border-cyan-900/40 bg-[oklch(14%_0.018_205)/0.92] backdrop-blur">
+      <header className="protolive-header sticky top-0 z-40 border-b border-cyan-900/40 bg-[oklch(14%_0.018_205)/0.92] backdrop-blur">
         <div className="mx-auto flex min-h-[76px] max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:flex-nowrap lg:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <div className="grid h-11 w-11 place-items-center rounded-lg bg-lime-300 text-slate-950 shadow-[0_0_0_1px_oklch(89%_0.18_125/0.25)]">
@@ -2780,10 +2780,10 @@ export default function App() {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8">
+      <main className="protolive-main mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8">
         {isAdminView ? (
           <section className="col-span-full space-y-6">
-            <div className="rounded-xl border border-cyan-900/50 bg-[oklch(18%_0.018_205)] p-5 shadow-[0_24px_80px_oklch(8%_0.02_205/0.45)]">
+            <div className="protolive-hero rounded-xl border border-cyan-900/50 bg-[oklch(18%_0.018_205)] p-5 shadow-[0_24px_80px_oklch(8%_0.02_205/0.45)]">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-300/10 px-3 py-1 text-xs font-black text-cyan-100">
@@ -2908,7 +2908,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => void applyAllAdminRecommendations()}
-                    className="inline-flex min-h-8 items-center justify-center gap-2 rounded-lg border border-cyan-300/40 px-3 text-xs font-black text-cyan-100 transition hover:bg-cyan-300/10 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="protolive-btn inline-flex min-h-8 items-center justify-center gap-2 rounded-lg border border-cyan-300/40 px-3 text-xs font-black text-cyan-100 transition hover:bg-cyan-300/10 disabled:cursor-not-allowed disabled:opacity-50"
                     disabled={orderedAdminRecommendations.length === 0}
                   >
                     <Radar className="h-3.5 w-3.5" />
@@ -5069,7 +5069,7 @@ function ProjectCard({
   const fundingPressurePercent = (project.committedAmountMax / highestCommittedAmount) * 100;
 
   return (
-    <article className="rounded-xl border border-stone-800 bg-[oklch(18%_0.018_205)] p-4 transition duration-200 motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-cyan-300/50 motion-safe:hover:shadow-[0_18px_50px_oklch(8%_0.02_205/0.5)]">
+    <article className="protolive-card rounded-xl border border-stone-800 bg-[oklch(18%_0.018_205)] p-4 transition duration-200 motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-cyan-300/50 motion-safe:hover:shadow-[0_18px_50px_oklch(8%_0.02_205/0.5)]">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
         <div className="min-w-0">
           <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -5339,7 +5339,7 @@ function Modal({
   const descriptionId = useId();
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/80 p-4 backdrop-blur-sm">
+    <div className="protolive-modal-backdrop fixed inset-0 z-50 grid place-items-center bg-slate-950/80 p-4 backdrop-blur-sm">
       <button type="button" className="absolute inset-0 cursor-default" onClick={onClose} aria-label="닫기" />
       <section
         ref={dialogRef}
@@ -5348,7 +5348,7 @@ function Modal({
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
         tabIndex={-1}
-        className="relative max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-xl border border-stone-700 bg-[oklch(16%_0.018_205)] p-5 shadow-2xl"
+        className="protolive-modal relative max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-xl border border-stone-700 bg-[oklch(16%_0.018_205)] p-5 shadow-2xl"
       >
         <div className="mb-5 flex items-start justify-between gap-3 border-b border-stone-800 pb-4">
           <div>

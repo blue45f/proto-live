@@ -8,6 +8,10 @@
   --color-proof: oklch(89% 0.18 125);
   --color-signal: oklch(83% 0.14 205);
   --color-deal: oklch(82% 0.16 78);
+  --color-coral: oklch(68% 0.22 46);
+  --color-mint: oklch(84% 0.16 170);
+  --color-sky: oklch(82% 0.17 230);
+  --color-lavender: oklch(80% 0.13 290);
 }
 
 @layer base {
@@ -27,7 +31,10 @@
     min-width: 320px;
     margin: 0;
     background:
-      linear-gradient(135deg, oklch(18% 0.025 205 / 0.9), oklch(13% 0.015 178 / 1) 48%, oklch(15% 0.018 90 / 0.85)),
+      radial-gradient(40rem 20rem at 8% 8%, color-mix(in oklch, var(--color-mint) 20%, transparent), transparent 75%),
+      radial-gradient(28rem 18rem at 95% 12%, color-mix(in oklch, var(--color-coral) 16%, transparent), transparent 78%),
+      radial-gradient(26rem 20rem at 75% 92%, color-mix(in oklch, var(--color-lavender) 16%, transparent), transparent 82%),
+      linear-gradient(130deg, oklch(18% 0.025 205 / 0.9), oklch(13% 0.015 178 / 1) 48%, oklch(15% 0.018 90 / 0.85)),
       oklch(14% 0.018 205);
     color: oklch(93% 0.01 95);
     font-family: var(--font-sans);
@@ -59,6 +66,193 @@
   ::selection {
     background: oklch(89% 0.18 125 / 0.3);
     color: oklch(98% 0.01 95);
+  }
+}
+
+.protolive-shell {
+  position: relative;
+  isolation: isolate;
+  overflow-x: clip;
+  min-height: 100vh;
+  background:
+    radial-gradient(28rem 20rem at 78% 10%, color-mix(in oklch, var(--color-sky) 14%, transparent), transparent 70%),
+    linear-gradient(140deg, oklch(18% 0.02 205 / 0.12), transparent 60%);
+}
+
+.protolive-shell::before,
+.protolive-shell::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+  filter: blur(80px);
+}
+
+.protolive-shell::before {
+  inset: -12rem -8rem auto auto;
+  width: 38rem;
+  height: 38rem;
+  background: color-mix(in oklch, var(--color-mint) 28%, transparent);
+  opacity: 0.25;
+}
+
+.protolive-shell::after {
+  inset: auto auto -16rem -12rem;
+  width: 34rem;
+  height: 34rem;
+  background: color-mix(in oklch, var(--color-lavender) 20%, transparent);
+  opacity: 0.2;
+}
+
+.protolive-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
+.protolive-header {
+  border-bottom-color: color-mix(in oklch, var(--color-sky) 25%, transparent) !important;
+  background:
+    linear-gradient(140deg, color-mix(in oklch, var(--color-panel) 65%, transparent), color-mix(in oklch, oklch(10% 0.02 205) 90%, transparent)),
+    var(--tw-gradient-to, transparent);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 12px 40px oklch(4% 0.02 205 / 0.45);
+}
+
+.protolive-main {
+  position: relative;
+}
+
+.protolive-main::before {
+  content: '';
+  position: absolute;
+  inset: -120px 0 auto 0;
+  height: 360px;
+  background:
+    linear-gradient(120deg, transparent 24%, color-mix(in oklch, var(--color-lavender) 12%, transparent) 70%, transparent),
+    linear-gradient(180deg, color-mix(in oklch, var(--color-sky) 8%, transparent), transparent 60%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.protolive-hero,
+.protolive-shell article.rounded-xl,
+.protolive-shell section.rounded-xl,
+.protolive-shell aside.rounded-xl,
+.protolive-card {
+  position: relative;
+  border: 1px solid color-mix(in oklch, var(--color-mint) 20%, transparent);
+  background:
+    linear-gradient(135deg, color-mix(in oklch, oklch(22% 0.02 205) 68%, transparent), color-mix(in oklch, oklch(14% 0.02 205) 90%, transparent)),
+    transparent;
+  box-shadow:
+    0 2px 0 oklch(100% 0.01 95 / 0.02) inset,
+    0 18px 45px oklch(0% 0 0 / 0.5);
+  overflow: hidden;
+  transition:
+    border-color 180ms var(--ease-out-expo),
+    transform 220ms var(--ease-out-expo),
+    box-shadow 220ms var(--ease-out-expo);
+}
+
+.protolive-hero::before,
+.protolive-shell article.rounded-xl::before,
+.protolive-shell section.rounded-xl::before,
+.protolive-shell aside.rounded-xl::before,
+.protolive-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 220ms var(--ease-out-expo);
+  background:
+    radial-gradient(120% 60% at 0% 0%, color-mix(in oklch, var(--color-coral) 14%, transparent), transparent 62%),
+    radial-gradient(100% 70% at 100% 100%, color-mix(in oklch, var(--color-sky) 14%, transparent), transparent 68%);
+}
+
+.protolive-hero:hover::before,
+.protolive-shell article.rounded-xl:hover::before,
+.protolive-shell section.rounded-xl:hover::before,
+.protolive-shell aside.rounded-xl:hover::before,
+.protolive-card:hover::before {
+  opacity: 0.32;
+}
+
+.protolive-shell article.rounded-xl:hover,
+.protolive-shell section.rounded-xl:hover,
+.protolive-shell aside.rounded-xl:hover,
+.protolive-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in oklch, var(--color-sky) 45%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--color-sky) 30%, transparent),
+    0 24px 52px oklch(0% 0 0 / 0.65);
+}
+
+.protolive-btn,
+.protolive-shell button.rounded-lg,
+.protolive-shell button.grid,
+.protolive-shell a.grid {
+  transition:
+    transform 180ms var(--ease-out-expo),
+    border-color 180ms var(--ease-out-expo),
+    box-shadow 180ms var(--ease-out-expo),
+    background-color 180ms var(--ease-out-expo),
+    color 180ms var(--ease-out-expo);
+}
+
+.protolive-btn:hover,
+.protolive-shell button.rounded-lg:not(:disabled):hover,
+.protolive-shell button.grid:not(:disabled):hover,
+.protolive-shell a.grid:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px color-mix(in oklch, var(--color-sky) 30%, transparent);
+}
+
+.protolive-shell button:focus-visible,
+.protolive-shell a:focus-visible {
+  outline: 2px solid color-mix(in oklch, var(--color-mint) 28%, transparent);
+  outline-offset: 3px;
+}
+
+.protolive-shell .protolive-modal-backdrop {
+  backdrop-filter: blur(8px);
+  background:
+    radial-gradient(80% 120% at 20% 20%, color-mix(in oklch, var(--color-sky) 14%, transparent), transparent 60%),
+    rgb(6 7 9 / 0.75);
+}
+
+.protolive-shell .protolive-modal {
+  border: 1px solid color-mix(in oklch, var(--color-sky) 24%, transparent);
+  background:
+    linear-gradient(150deg, color-mix(in oklch, oklch(20% 0.02 205) 78%, transparent), color-mix(in oklch, oklch(11% 0.02 205) 94%, transparent)),
+    transparent;
+  box-shadow: 0 24px 72px oklch(0% 0 0 / 0.75), 0 0 0 1px color-mix(in oklch, var(--color-mint) 12%, transparent);
+}
+
+@keyframes protolive-sheen {
+  from {
+    transform: translate3d(-20px, 0, 0);
+    opacity: 0.12;
+  }
+  to {
+    transform: translate3d(20px, 0, 0);
+    opacity: 0.24;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .protolive-main {
+    animation: subtle-pulse 11s ease-in-out infinite alternate;
+  }
+
+  .protolive-shell article.rounded-xl,
+  .protolive-shell section.rounded-xl,
+  .protolive-shell aside.rounded-xl,
+  .protolive-card {
+    background-size: 200% 200%;
+    animation: protolive-sheen 18s ease-in-out infinite alternate;
+    animation-delay: 0.5s;
   }
 }
 
