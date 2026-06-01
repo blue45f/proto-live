@@ -44,6 +44,13 @@ RATE_LIMIT_MAX_REQUESTS=120
 ```
 `backend/.env.example` 파일을 기준으로 `.env`를 복사해 사용할 수 있습니다.
 
+### 로컬 테스트 계정
+
+로컬 개발/QA 테스트 계정은 `backend/fixtures/test-accounts.json`에 정리해 두었습니다.  
+현재 앱은 비밀번호 기반 인증이 없고 이메일 입력 기반으로 역할이 구분됩니다.
+
+상세 목록은 `docs/test-accounts.md`를 참고하세요.
+
 ### 2. 프론트엔드 기동 (Vite + React + TypeScript + Tailwind v4)
 ```bash
 cd frontend

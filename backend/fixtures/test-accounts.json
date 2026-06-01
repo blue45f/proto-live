@@ -1,0 +1,44 @@
+{
+  "version": "1.0",
+  "description": "ProtoLive 로컬 테스트 계정 시드 정보",
+  "environment": "local",
+  "createdAt": "2026-06-01",
+  "accounts": [
+    {
+      "id": 1,
+      "email": "maker-a@protolive.local",
+      "password": "pass-mock-01",
+      "role": "maker",
+      "name": "테스트 메이커 A",
+      "description": "프로토타입 등록/관리 플로우 테스트용 계정",
+      "notes": "실제 비밀번호가 아닌 로컬 데모 목적 값"
+    },
+    {
+      "id": 2,
+      "email": "maker-b@protolive.local",
+      "password": "pass-mock-02",
+      "role": "maker",
+      "name": "테스트 메이커 B",
+      "description": "다중 메이커 비교 테스트용 계정",
+      "notes": "이메일 기반 중복 처리 동작 검증용"
+    },
+    {
+      "id": 3,
+      "email": "investor-a@protolive.local",
+      "password": "pass-mock-03",
+      "role": "investor",
+      "name": "테스트 투자자 A",
+      "description": "관심신호, 매칭 제안 플로우 테스트",
+      "notes": "projectId 1번 대상 투자 의향 등록용"
+    },
+    {
+      "id": 4,
+      "email": "investor-b@protolive.local",
+      "password": "pass-mock-04",
+      "role": "investor",
+      "name": "테스트 투자자 B",
+      "description": "관리 지표에 투자자 수치 분산 효과 확인용",
+      "notes": "단일 메이커 프로젝트 다수 투자자 행동 재현용"
+    }
+  ]
+}
