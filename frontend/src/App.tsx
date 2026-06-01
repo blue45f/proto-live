@@ -199,7 +199,7 @@ const REVENUE_MODEL_FIELDS: Array<{
   {
     key: 'leadCaptureFee',
     label: '리드 캡처 단가',
-      helper: '매칭·프리뷰·아웃바운드 이벤트를 리드로 가정할 때',
+      helper: '매칭·미리보기·아웃바운드 이벤트를 리드로 가정할 때',
       kind: 'currency',
     },
     {
@@ -332,13 +332,13 @@ const EMPTY_ADMIN_DASHBOARD: AdminDashboardSnapshot = {
       },
       {
         key: 'previewToMatchRate',
-        label: '프리뷰→매칭 전환',
+        label: '미리보기→매칭 전환',
         actual: 0,
         target: 12,
         gap: -12,
         unit: 'percent',
         status: 'critical',
-        comment: '프리뷰→매칭 전환이 목표 대비 12% 부족입니다.',
+        comment: '미리보기→매칭 전환이 목표 대비 12% 부족입니다.',
       },
       {
         key: 'outboundToMatchRate',
@@ -692,7 +692,7 @@ const benchmarkCopy: Record<string, { title: string; body: string }> = {
   },
   real_attention_scoring: {
     title: '주의력 점수',
-    body: '검색 조회·프리뷰·매칭 이벤트는 다음 단계 랭킹 가중치로 연결 가능한 신호를 축적합니다.',
+    body: '검색 조회·미리보기·매칭 이벤트는 다음 단계 랭킹 가중치로 연결 가능한 신호를 축적합니다.',
   },
 };
 
@@ -721,7 +721,7 @@ const proofStackLayers: Array<{
     icon: Signal,
     label: 'Signal Ledger',
     value: '행동 기록',
-    detail: '프리뷰, 새 탭, 매칭, 갱신 이벤트가 랭킹 신호로 누적됩니다.',
+    detail: '미리보기, 새 탭, 매칭, 갱신 이벤트가 랭킹 신호로 누적됩니다.',
     tone: 'border-cyan-300/25 bg-cyan-300/10 text-cyan-100',
   },
   {
@@ -741,7 +741,7 @@ const differentiationRows: Array<{
   {
     label: '런칭 디렉터리',
     usual: '노출, 투표, 댓글 중심',
-    protolive: '응답 코드와 프리뷰 가능 상태를 먼저 봅니다.',
+    protolive: '응답 코드와 미리보기 가능 상태를 먼저 봅니다.',
   },
   {
     label: '데이터룸',
@@ -768,7 +768,7 @@ const eventCopy: Record<ProjectEventType, { icon: LucideIcon; label: string; ton
   },
   preview: {
     icon: Sparkles,
-    label: '프리뷰',
+    label: '미리보기',
     tone: 'border-cyan-300/25 bg-cyan-300/10 text-cyan-100',
   },
   outbound: {
@@ -1750,9 +1750,9 @@ export default function App() {
         }
       } else {
         setApiOnline(false);
-        setLoadError('백엔드 API에 연결할 수 없습니다. 서버를 실행한 뒤 다시 시도하세요.');
+        setLoadError(`백엔드 API에 연결할 수 없습니다. 현재 요청 대상: ${API_BASE}. 서버 실행 후 다시 시도하세요.`);
         if (isAdminView) {
-          setAdminDashboardError('백엔드 API에 연결할 수 없습니다. 서버를 실행한 뒤 다시 시도하세요.');
+          setAdminDashboardError(`백엔드 API에 연결할 수 없습니다. 현재 요청 대상: ${API_BASE}. 서버 실행 후 다시 시도하세요.`);
         }
       }
 
@@ -2728,7 +2728,7 @@ export default function App() {
       toast(
         'match',
         '선별 공개 프로젝트',
-        'URL과 프리뷰는 메이커 승인 또는 매칭 요청 이후 공유하는 흐름으로 보호합니다.',
+        'URL과 미리보기는 메이커 승인 또는 매칭 요청 이후 공유하는 흐름으로 보호합니다.',
       );
       setMatchingProject(project);
       return;
@@ -2801,32 +2801,34 @@ export default function App() {
                   Live Diligence
                 </span>
               </div>
-              <p className="protolive-subtitle truncate text-xs font-medium text-stone-400">
-                {isAdminView ? '수익 모델·운영 지표를 실험하는 관리자 대시보드' : '검증된 MVP만 검토하는 실시간 투자 매칭 워크스페이스'}
+                <p className="protolive-subtitle truncate text-xs font-medium text-stone-400">
+                {isAdminView
+                  ? '프로토타입 투자 매칭 플랫폼의 수익·운영 지표를 관리하는 관리자 대시보드'
+                  : '실시간으로 라이브 웹서비스 프로토타입을 투자자와 매칭해 주는 워크스페이스'}
               </p>
             </div>
           </div>
 
           <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2 lg:flex-nowrap">
             <div className="protolive-pill-group hidden shrink-0 items-center gap-2 rounded-full border border-stone-700/80 bg-stone-900/70 px-3 py-2 text-xs font-bold lg:flex">
-              <button
-                type="button"
-                onClick={() => switchView('market')}
-                className={`protolive-pill rounded-full px-2 py-1 transition ${
-                  isAdminView ? 'text-stone-400 hover:text-stone-100' : 'bg-cyan-300 text-slate-950'
-                }`}
-              >
-                시장
-              </button>
-              <button
-                type="button"
-                onClick={() => switchView('admin')}
-                className={`protolive-pill rounded-full px-2 py-1 transition ${
-                  isAdminView ? 'bg-cyan-300 text-slate-950' : 'text-stone-400 hover:text-stone-100'
-                }`}
-              >
-                관리자
-              </button>
+                <button
+                  type="button"
+                  onClick={() => switchView('market')}
+                  className={`protolive-pill rounded-full px-2 py-1 transition ${
+                    isAdminView ? 'text-stone-400 hover:text-stone-100' : 'bg-cyan-300 text-slate-950'
+                  }`}
+                >
+                  투자 매칭 시장
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchView('admin')}
+                  className={`protolive-pill rounded-full px-2 py-1 transition ${
+                    isAdminView ? 'bg-cyan-300 text-slate-950' : 'text-stone-400 hover:text-stone-100'
+                  }`}
+                >
+                  운영 대시보드
+                </button>
             </div>
             <div
               className={`protolive-status hidden shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold xl:flex ${
@@ -2906,14 +2908,14 @@ export default function App() {
                 <div>
                   <p className="protolive-badge mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-300/10 px-3 py-1 text-xs font-black text-cyan-100">
                     <DollarSign className="h-3.5 w-3.5" />
-                    Revenue Model 시뮬레이션 모드
+                    투자 매칭 수익 모델 모드
                   </p>
                   <h2 className="protolive-hero-title text-2xl font-black tracking-tight text-stone-50 sm:text-3xl">
-                    수익 가정을 바꿔 보면서 운영 정책을 설계하세요.
+                    투자 딜 성사율을 높이는 운영 정책을 수익 가정 기반으로 설계하세요.
                   </h2>
                   <p className="protolive-subtitle mt-3 max-w-[70ch] text-sm leading-6 text-stone-300">
-                    유저 수, 검증률, 현재 시장 신호를 바탕으로 월/연 매출을 빠르게 계산해
-                    정책 의사결정에 쓰는 내부 용 대시보드입니다.
+                    투자자 유입, 매칭 전환, 투자 의향 단계를 기준으로 월/연 매출과
+                    딜 파이프라인 성과를 즉시 계산해 의사결정에 쓰는 내부 운영 대시보드입니다.
                   </p>
                 </div>
                 <div className="protolive-mini-tile rounded-lg border border-stone-700/70 bg-stone-950/55 p-3 text-xs text-stone-400">
@@ -3360,12 +3362,12 @@ export default function App() {
                 </div>
                 <div className="grid gap-3">
                   <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">프리뷰→매칭</p>
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">미리보기→매칭</p>
                     <p className="mt-1 text-2xl font-black text-stone-50">
                       {formatRate(adminDashboard.conversionFunnel.previewToMatchRate)}
                     </p>
                     <p className="mt-2 text-xs text-stone-500">
-                      매칭 수치 {adminDashboard.conversionFunnel.matchCount}건 / 프리뷰 {adminDashboard.conversionFunnel.previewCount}건
+                      매칭 수치 {adminDashboard.conversionFunnel.matchCount}건 / 미리보기 {adminDashboard.conversionFunnel.previewCount}건
                     </p>
                   </div>
                   <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
@@ -3438,7 +3440,7 @@ export default function App() {
                   <h3 className="font-black text-stone-100">이벤트 타입 구성</h3>
                 </div>
                 <div className="space-y-2">
-                  {[['create', '등록', adminDashboard.eventTotals.create], ['preview', '프리뷰', adminDashboard.eventTotals.preview],
+                  {[['create', '등록', adminDashboard.eventTotals.create], ['preview', '미리보기', adminDashboard.eventTotals.preview],
                     ['outbound', '외부열람', adminDashboard.eventTotals.outbound], ['match', '매칭', adminDashboard.eventTotals.match],
                     ['refresh', '갱신', adminDashboard.eventTotals.refresh]].map(([type, label, count]) => (
                     <div key={type} className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-2">
@@ -3575,7 +3577,7 @@ export default function App() {
                         <div className="min-w-0">
                           <p className="truncate text-sm font-black text-stone-100">{entry.title}</p>
                           <p className="mt-1 text-xs text-stone-500">
-                            매칭/투자가입 {entry.matchCount}/{entry.investorCount} · 시그널 {entry.signalScore} · {entry.accessMode}
+                            매칭/투자가입 {entry.matchCount}/{entry.investorCount} · 투자 신호 {entry.signalScore} · {entry.accessMode}
                           </p>
                         </div>
                         <p className="text-right text-sm font-black text-lime-200">
@@ -3607,7 +3609,7 @@ export default function App() {
                         <div className="min-w-0">
                           <p className="truncate text-sm font-black text-stone-100">{entry.title}</p>
                           <p className="mt-1 text-xs text-stone-500">
-                            신호 {entry.signalScore} · 매칭/투자가입 {entry.matchCount}/{entry.investorCount}
+                            투자 신호 {entry.signalScore} · 매칭/투자가입 {entry.matchCount}/{entry.investorCount}
                           </p>
                         </div>
                         <p className="text-right text-sm font-black text-cyan-200">
@@ -3701,19 +3703,33 @@ export default function App() {
         <>
           <section className="space-y-6">
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-            <section className="overflow-hidden rounded-xl border border-cyan-900/50 bg-[linear-gradient(135deg,oklch(19%_0.024_205),oklch(15%_0.02_170)_52%,oklch(17%_0.022_88))] p-5 shadow-[0_24px_80px_oklch(8%_0.02_205/0.45)]">
+              <section className="overflow-hidden rounded-xl border border-cyan-900/50 bg-[linear-gradient(135deg,oklch(19%_0.024_205),oklch(15%_0.02_170)_52%,oklch(17%_0.022_88))] p-5 shadow-[0_24px_80px_oklch(8%_0.02_205/0.45)]">
               <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                 <div className="max-w-3xl">
                   <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-300/10 px-3 py-1 text-xs font-bold text-cyan-100">
                     <Radar className="h-3.5 w-3.5" />
-                    Proof-first market system
+                    프로토타입 투자 매칭 시장
                   </p>
                   <h2 className="text-2xl font-black tracking-tight text-stone-50 sm:text-3xl">
-                    작동 증거가 딜 플로우를 여는 시장
+                    라이브 프로토타입이 투자로 연결되는 시장
                   </h2>
                   <p className="mt-3 max-w-[72ch] text-sm leading-6 text-stone-300">
-                    제품 디렉터리, 데이터룸, 투자자 CRM 사이에 비어 있는 구간을 라이브 URL 검증과 보호형 프리뷰, 행동 신호, 구조화된 투자 의향으로 연결합니다.
+                    실제 작동하는 웹서비스 프로토타입을 투자자에게 가장 빨리 보여주고, 보호형 미리보기와 행동 신호, 구조화된 투자 의향 데이터로 매칭을 촉진합니다.
                   </p>
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                    <div className="protolive-mini-tile rounded-lg border border-cyan-300/30 bg-cyan-300/10 px-3 py-2">
+                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100">메이커</p>
+                      <p className="text-sm font-black text-stone-50">라이브 URL + 액세스 권한</p>
+                    </div>
+                    <div className="protolive-mini-tile rounded-lg border border-lime-300/35 bg-lime-300/10 px-3 py-2">
+                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-lime-100">투자자</p>
+                      <p className="text-sm font-black text-stone-50">미리보기·행동 신호 확인</p>
+                    </div>
+                    <div className="protolive-mini-tile rounded-lg border border-amber-300/35 bg-amber-300/10 px-3 py-2 sm:col-span-2 xl:col-span-1">
+                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-amber-100">운영/분석</p>
+                      <p className="text-sm font-black text-stone-50">매칭 실적·수익 시뮬레이션</p>
+                    </div>
+                  </div>
                 </div>
                 <div className="rounded-lg border border-stone-700/70 bg-stone-950/55 p-3 text-xs text-stone-400">
                   <div className="flex items-center gap-2 font-bold text-stone-200">
@@ -3796,7 +3812,7 @@ export default function App() {
                 </div>
                 <div className="flex rounded-lg border border-stone-700 bg-stone-950/60 p-1">
                   {[
-                    ['signal', 'Signal'],
+                    ['signal', '매칭 시그널순'],
                     ['recent', '최근 신호'],
                     ['created', '등록순'],
                     ['funding', '투자규모'],
@@ -4207,7 +4223,7 @@ export default function App() {
                 </div>
               </div>
               <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.015_205)] p-3">
-                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">프로젝트당 관심 신호</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">프로젝트당 매칭 신호</p>
                 <p className="mt-1 text-lg font-black text-stone-50">{averageSignalDensity}</p>
                 <p className="mt-2 text-xs text-stone-500">이상적으로는 프로젝트 노출 품질을 높이는 지표입니다.</p>
               </div>
@@ -4225,11 +4241,11 @@ export default function App() {
           <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
             <div className="mb-4 flex items-center gap-2">
               <Gauge className="h-4 w-4 text-lime-200" />
-              <h3 className="font-black text-stone-100">Signal Leaderboard</h3>
+              <h3 className="font-black text-stone-100">투자자 매칭 랭킹</h3>
             </div>
             {stats.topSignals.length === 0 ? (
               <p className="text-sm leading-6 text-stone-400">
-                프리뷰, 새 탭 열기, 투자 의향이 쌓이면 실시간 우선순위가 계산됩니다.
+                미리보기, 새 탭 열람, 투자 의향이 쌓이면 실시간 매칭 우선순위가 계산됩니다.
               </p>
             ) : (
               <div className="space-y-3">
@@ -4264,7 +4280,7 @@ export default function App() {
           <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
             <div className="mb-4 flex items-center gap-2">
               <Signal className="h-4 w-4 text-cyan-200" />
-              <h3 className="font-black text-stone-100">Live Signal Stack</h3>
+              <h3 className="font-black text-stone-100">라이브 투자 신호 스택</h3>
             </div>
             <div className="space-y-3">
               {config.benchmarkSignals.map((signal) => {
@@ -4343,13 +4359,13 @@ export default function App() {
             type="button"
             className="absolute inset-0 cursor-default"
             onClick={closePreview}
-            aria-label="프리뷰 닫기"
+            aria-label="프로젝트 미리보기 닫기"
           />
           <section
             ref={previewDialogRef}
             role="dialog"
             aria-modal="true"
-            aria-label="라이브 프리뷰"
+            aria-label="라이브 프로젝트 미리보기"
             tabIndex={-1}
             className="absolute right-0 top-0 flex h-full w-full flex-col border-l border-stone-700 bg-[oklch(13%_0.016_205)] shadow-2xl lg:w-[72vw] xl:w-[62vw] motion-safe:animate-panel-slide-in"
           >
@@ -4359,7 +4375,7 @@ export default function App() {
                 <p className="truncate text-xs text-stone-500">{previewProject.liveUrl}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <span className="inline-flex min-h-7 items-center gap-1 rounded-full border border-lime-300/35 bg-lime-950/50 px-2 py-1 text-[11px] font-black text-lime-100">
-                    Signal {previewProject.signalScore ?? 0}
+                    매칭 시그널 {previewProject.signalScore ?? 0}
                   </span>
                   <span className="inline-flex min-h-7 items-center gap-1 rounded-full border border-stone-700 px-2 py-1 text-[11px] font-black text-stone-300">
                     {previewProject.validation.success ? '검증 통과' : '검증 실패'}
@@ -4380,7 +4396,7 @@ export default function App() {
                     setIframeLoading(true);
                   }}
                   className="grid min-h-10 min-w-10 place-items-center rounded-lg border border-stone-700 text-stone-300 hover:border-cyan-300/40 hover:text-cyan-100"
-                  aria-label="프리뷰 새로고침"
+                  aria-label="프로젝트 미리보기 새로고침"
                 >
                   <RefreshCw className="h-4 w-4" />
                 </button>
@@ -4474,9 +4490,7 @@ export default function App() {
         >
           <form onSubmit={handleSubmitMatch} className="space-y-4">
             <div className="rounded-lg border border-stone-800 bg-stone-950/50 p-3">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-200">
-                Verified target
-              </p>
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-200">투자자 검증 포인트</p>
               <p className="mt-1 text-sm leading-6 text-stone-300">{matchingProject.description}</p>
             </div>
             <label className="block">
@@ -4494,7 +4508,7 @@ export default function App() {
               </select>
             </label>
             <label className="block">
-              <span className="mb-2 block text-xs font-black text-stone-300">메이커에게 보낼 메시지</span>
+              <span className="mb-2 block text-xs font-black text-stone-300">메이커를 설득할 메시지</span>
               <textarea
                 required
                 maxLength={700}
@@ -4585,11 +4599,11 @@ export default function App() {
                       {
                         id: 'screened' as ProjectAccessMode,
                         label: '선별 공개',
-                        description: 'URL과 프리뷰를 매칭 요청 뒤 공유합니다.',
+                        description: 'URL과 미리보기를 매칭 요청 뒤 공유합니다.',
                       },
                       {
                         id: 'open' as ProjectAccessMode,
-                        label: '공개 프리뷰',
+                        label: '공개 미리보기',
                         description: '목록에서 바로 라이브 URL을 열람할 수 있습니다.',
                       },
                     ]
@@ -4792,7 +4806,7 @@ export default function App() {
 
 function Metric({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-stone-800 bg-[oklch(16%_0.016_205)] p-3">
+    <div className="protolive-mini-tile rounded-lg border border-stone-800 bg-[oklch(16%_0.016_205)] p-3">
       <Icon className="mb-3 h-4 w-4 text-lime-200" />
       <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">{label}</p>
       <p className="mt-1 break-words text-lg font-black text-stone-50">{value}</p>
@@ -4805,8 +4819,8 @@ function ProofStackStrip() {
     <div className="mt-6 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
       {proofStackLayers.map((layer, index) => {
         const Icon = layer.icon;
-        return (
-          <div key={layer.label} className={`rounded-lg border p-3 ${layer.tone}`}>
+                return (
+          <div key={layer.label} className={`protolive-mini-tile rounded-lg border p-3 ${layer.tone}`}>
             <div className="mb-3 flex items-center justify-between gap-3">
               <span className="text-[11px] font-black uppercase tracking-[0.14em] opacity-80">
                 {String(index + 1).padStart(2, '0')}
@@ -4825,14 +4839,14 @@ function ProofStackStrip() {
 
 function DifferentiationPanel() {
   return (
-    <aside className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+    <aside className="protolive-panel rounded-xl border border-stone-800 bg-stone-950/65 p-4">
       <div className="mb-4 flex items-center gap-2">
         <Layers3 className="h-4 w-4 text-amber-200" />
         <h3 className="font-black text-stone-100">차별화 레이어</h3>
       </div>
       <div className="space-y-2">
         {differentiationRows.map((row) => (
-          <div key={row.label} className="rounded-lg border border-stone-800 bg-[oklch(15%_0.015_205)] p-3">
+          <div key={row.label} className="protolive-reco-item rounded-lg border border-stone-800 bg-[oklch(15%_0.015_205)] p-3">
             <p className="text-xs font-black text-cyan-100">{row.label}</p>
             <p className="mt-2 text-xs leading-5 text-stone-500">일반: {row.usual}</p>
             <p className="mt-1 text-xs leading-5 text-stone-200">ProtoLive: {row.protolive}</p>
@@ -4864,7 +4878,7 @@ function ProofKpiRail({
         value={stats.averageResponseMs === null ? 'N/A' : `${stats.averageResponseMs}ms`}
       />
       <Metric icon={ShieldCheck} label="선별 공개" value={`${protectedProjectCount}`} />
-      <Metric icon={Globe2} label="공개 프리뷰" value={`${publicProjectCount}`} />
+      <Metric icon={Globe2} label="공개 미리보기" value={`${publicProjectCount}`} />
       <Metric
         icon={Zap}
         label="최고 응답"
@@ -4998,46 +5012,48 @@ function ProjectDiligencePanel({
     project.committedAmountMax > 0
       ? `${formatWon(project.committedAmountMin)} ~ ${formatWon(project.committedAmountMax)}`
       : '아직 구조화된 의향 없음';
-  const exposureLabel = isProtected ? '선별 공개, URL 마스킹' : '공개 프리뷰, 새 탭 열람 가능';
+  const exposureLabel = isProtected ? '선별 공개, URL 마스킹' : '공개 미리보기, 새 탭 열람 가능';
   const proofRows = [
     {
       icon: Globe2,
-      label: 'URL Proof',
+      label: '라이브 링크 검증',
       value: project.validation.success ? `HTTP ${project.validation.status ?? 'OK'}` : '검증 필요',
       detail: isProtected ? '공개 목록에서는 원본 URL을 숨기고 접근 요청으로 전환합니다.' : project.validation.finalUrl ?? project.liveUrl,
     },
     {
       icon: TimerReset,
-      label: 'Response',
+      label: '응답 속도',
       value: project.validation.responseTimeMs ? `${project.validation.responseTimeMs}ms` : responseTone.label,
       detail: `최근 검증 ${formatRelativeTime(project.validation.checkedAt)}`,
     },
     {
       icon: ShieldCheck,
-      label: 'Exposure',
+      label: '공개 방식',
       value: exposureLabel,
-      detail: isProtected ? '투자자는 의향 메시지를 남긴 뒤 상세 접근을 요청합니다.' : '프리뷰와 새 탭 행동이 실시간 신호로 기록됩니다.',
+      detail: isProtected
+        ? '투자자는 의향 메시지를 남긴 뒤 상세 접근을 요청합니다.'
+        : '미리보기와 새 탭 행동이 실시간 매칭 신호로 기록됩니다.',
     },
     {
       icon: Signal,
-      label: 'Signal Rank',
+      label: '매칭 순위',
       value: signalRank === null ? `${project.signalScore ?? 0}점` : `#${signalRank} · ${project.signalScore ?? 0}점`,
       detail: `${signalQuality.label} 상태, 최근 활동 ${formatRelativeTime(latestEventAt ?? undefined)}`,
     },
   ];
   const decisionNotes = [
     project.validation.success
-      ? `검증 통과: 투자자는 작동 여부 확인보다 제품 흐름과 시장 반응에 시간을 쓸 수 있습니다.`
-      : `검증 보류: URL 응답 또는 보안 정책을 먼저 확인해야 합니다.`,
+      ? '검증 통과: 투자자가 작동 여부보다 제품 흐름과 시장 반응을 바로 검토할 수 있습니다.'
+      : '검증 보류: URL 응답 또는 보안 정책을 먼저 확인해야 합니다.',
     isProtected
-      ? `보호 흐름: 원본 URL은 숨기고 매칭 요청과 메시지로 접근 맥락을 남깁니다.`
-      : `공개 흐름: 프리뷰와 새 탭 열람을 바로 허용하고 행동 데이터를 랭킹 신호로 누적합니다.`,
+      ? '보호 흐름: 원본 URL은 숨기고 매칭 요청 메시지로 접근 맥락을 기록해 매칭 신뢰도를 높입니다.'
+      : '공개 흐름: 미리보기와 새 탭 열람을 바로 허용하고 행동 데이터를 매칭 신호로 누적합니다.',
     project.matchCount > 0
       ? `투자 의향: ${project.matchCount}건, 최대 ${highestIntent}까지 구조화된 관심이 잡혔습니다.`
-      : `투자 의향: 아직 기록된 매칭이 없어 첫 제안 메시지 유도가 우선입니다.`,
+      : '투자 의향: 아직 기록된 매칭이 없어 첫 제안 메시지 유도가 우선입니다.',
     totalEvents > 0
-      ? `행동 신호: 총 ${totalEvents}건, 프리뷰 ${eventCounts.preview}건, 매칭 ${eventCounts.match}건입니다.`
-      : `행동 신호: 아직 활동이 없어 첫 프리뷰와 외부 열람을 만드는 운영 액션이 필요합니다.`,
+      ? `행동 신호: 총 ${totalEvents}건, 미리보기 ${eventCounts.preview}건, 매칭 ${eventCounts.match}건입니다.`
+      : '행동 신호: 아직 활동이 없어 첫 미리보기와 외부 열람을 만드는 운영 액션이 필요합니다.',
   ];
 
   return (
@@ -5062,7 +5078,7 @@ function ProjectDiligencePanel({
             <div className="min-w-0">
               <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2.5 py-1 text-[11px] font-black text-cyan-100">
                 <Radar className="h-3.5 w-3.5" />
-                실사 리포트
+                투자 매칭 실사 리포트
               </p>
               <h2 id={titleId} className="truncate text-xl font-black text-stone-50">
                 {project.title}
@@ -5189,7 +5205,7 @@ function ProjectDiligencePanel({
                     className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-cyan-300/35 px-3 text-xs font-black text-cyan-100 hover:bg-cyan-300/10"
                   >
                     {isProtected ? <ShieldCheck className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
-                    {isProtected ? '접근 요청' : '라이브 프리뷰'}
+                    {isProtected ? '투자자 접근 요청' : '프로젝트 미리보기'}
                   </button>
                   <button
                     type="button"
@@ -5299,7 +5315,7 @@ function ProjectCard({
               <span className="text-stone-100">{project.signalScore ?? 0}</span>
             </div>
             <p className="text-xs text-stone-500">
-              매칭 투자 유입: {project.eventSummary?.counts.match ?? 0} · 프리뷰: {project.eventSummary?.counts.preview ?? 0}
+              매칭 투자 유입: {project.eventSummary?.counts.match ?? 0} · 미리보기: {project.eventSummary?.counts.preview ?? 0}
             </p>
           </div>
         </div>
@@ -5308,7 +5324,7 @@ function ProjectCard({
           <div className="grid grid-cols-2 gap-2 text-xs">
             <div className="rounded-lg border border-lime-300/20 bg-lime-300/10 p-3">
               <p className="font-black text-lime-100">{project.signalScore ?? 0}</p>
-              <p className="mt-1 text-lime-100/70">Signal</p>
+              <p className="mt-1 text-lime-100/70">매칭 신호</p>
             </div>
             <div className="rounded-lg border border-stone-800 bg-stone-950/55 p-3">
               <p className="font-black text-stone-100">{project.matchCount}</p>
@@ -5316,7 +5332,7 @@ function ProjectCard({
             </div>
             <div className="rounded-lg border border-stone-800 bg-stone-950/55 p-3">
               <p className="font-black text-stone-100">{formatWon(project.committedAmountMax)}</p>
-              <p className="mt-1 text-stone-500">상단 금액</p>
+              <p className="mt-1 text-stone-500">최대 매칭 금액</p>
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-stone-800">
                 <div
                   className="h-full rounded-full bg-amber-300/80"
@@ -5326,7 +5342,7 @@ function ProjectCard({
             </div>
             <div className="rounded-lg border border-stone-800 bg-stone-950/55 p-3">
               <p className="font-black text-stone-100">{project.eventSummary?.total ?? 0}</p>
-              <p className="mt-1 text-stone-500">관심 신호</p>
+              <p className="mt-1 text-stone-500">매칭 신호</p>
             </div>
           </div>
           <div className="grid gap-2">
@@ -5334,10 +5350,10 @@ function ProjectCard({
               type="button"
               onClick={onDiligence}
               className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-cyan-300/35 px-3 text-xs font-black text-cyan-100 transition hover:bg-cyan-300/10"
-              aria-label={`${project.title} 실사 요약 열기`}
+              aria-label={`${project.title} 매칭 요약 열기`}
             >
               <Radar className="h-4 w-4" />
-              실사 요약
+              매칭 요약
             </button>
             <button
               type="button"
@@ -5362,7 +5378,7 @@ function ProjectCard({
               }`}
             >
               {isProtected ? <ShieldCheck className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
-              {isProtected ? '선별 접근 요청' : '라이브 프리뷰'}
+              {isProtected ? '투자자 접근 요청' : '프로젝트 미리보기'}
             </button>
             <div className="grid grid-cols-3 gap-2">
               {isProtected ? (
@@ -5370,8 +5386,8 @@ function ProjectCard({
                   type="button"
                   onClick={onMatch}
                   className="grid min-h-10 place-items-center rounded-lg border border-stone-700 text-amber-100 transition hover:border-amber-300/40 hover:bg-amber-300/10"
-                  aria-label={`${project.title} 접근 요청`}
-                  title="접근 요청"
+                  aria-label={`${project.title} 투자자 접근 요청`}
+                  title="투자자 접근 요청"
                 >
                   <ShieldCheck className="h-4 w-4" />
                 </button>
@@ -5383,8 +5399,8 @@ function ProjectCard({
                   referrerPolicy="no-referrer"
                   onClick={onOutbound}
                   className="grid min-h-10 place-items-center rounded-lg border border-stone-700 text-stone-300 transition hover:border-lime-300/40 hover:text-lime-100"
-                  aria-label={`${project.title} 새 탭 열기`}
-                  title="새 탭 열기"
+                  aria-label={`${project.title} 새 탭 미리보기`}
+                  title="새 탭 미리보기"
                 >
                   <ExternalLink className="h-4 w-4" />
                 </a>

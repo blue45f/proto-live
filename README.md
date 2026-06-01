@@ -31,6 +31,11 @@ npm run seed:test-accounts
 npm run seed:test-data
 ```
 
+원클릭 데모 재설정(테스트 계정+프로젝트+제안+이벤트 동기화)도 가능합니다:
+```bash
+npm run seed:demo-data
+```
+
 로컬 테스트 중 쌓인 임시 이벤트/프로젝트를 지우고 기준 샘플 상태로 되돌리려면:
 ```bash
 npm run seed:test-data -- --reset

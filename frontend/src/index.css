@@ -121,6 +121,20 @@
     radial-gradient(circle at 86% 0%, color-mix(in oklch, var(--color-mint) 22%, transparent), transparent 52%),
     linear-gradient(130deg, color-mix(in oklch, oklch(22% 0.02 205) 72%, transparent), color-mix(in oklch, oklch(14% 0.02 205) 90%, transparent)),
     var(--tw-gradient-stops, transparent);
+  position: relative;
+  overflow: hidden;
+}
+
+.protolive-shell .protolive-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(110deg, transparent 68%, color-mix(in oklch, var(--color-mint) 20%, transparent)),
+    radial-gradient(110% 55% at 80% 0%, color-mix(in oklch, var(--color-coral) 16%, transparent), transparent 70%);
+  mix-blend-mode: screen;
+  opacity: 0.35;
 }
 
 .protolive-shell .protolive-mini-tile,
@@ -134,6 +148,28 @@
 .protolive-shell .protolive-mini-tile {
   border-color: color-mix(in oklch, var(--color-sky) 18%, transparent);
   box-shadow: 0 6px 18px color-mix(in oklch, var(--color-sky) 10%, transparent);
+  position: relative;
+  overflow: hidden;
+}
+
+.protolive-shell .protolive-mini-tile::after,
+.protolive-shell .protolive-reco-item::after,
+.protolive-shell .protolive-status::after,
+.protolive-shell .protolive-badge::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(125deg, transparent 52%, color-mix(in oklch, white 10%, transparent));
+  opacity: 0;
+  transition: opacity 220ms var(--ease-out-expo);
+}
+
+.protolive-shell .protolive-mini-tile:hover::after,
+.protolive-shell .protolive-reco-item:hover::after,
+.protolive-shell .protolive-status:hover::after,
+.protolive-shell .protolive-badge:hover::after {
+  opacity: 0.4;
 }
 
 .protolive-shell .protolive-reco-item {

@@ -24,19 +24,28 @@ async function bootstrap() {
     }),
   );
 
-  const corsOrigins = (process.env.CORS_ORIGINS ?? [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:5174',
-    'http://127.0.0.1:5174',
-  ].join(','))
+  const corsOrigins = (process.env.CORS_ORIGINS ?? '')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
 
+  const isLocalFrontendOrigin = (origin: string) => {
+    try {
+      const parsed = new URL(origin);
+      return parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || parsed.hostname.endsWith('.localhost');
+    } catch {
+      return false;
+    }
+  };
+
   // CORS 설정 - Vite React 프론트엔드에서 NestJS 백엔드로의 요청을 허용
   app.enableCors({
-    origin: corsOrigins,
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (corsOrigins.includes(origin)) return callback(null, true);
+      if (isLocalFrontendOrigin(origin)) return callback(null, true);
+      return callback(new Error(`Blocked by CORS: ${origin}`), false);
+    },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });

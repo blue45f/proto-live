@@ -299,9 +299,23 @@ interface ApiErrorBody {
 
 type ApiErrorResponse = AxiosError<ApiErrorBody>;
 
-export const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3003/api').replace(
-  /\/$/,
-  '',
+const DEFAULT_API_PORT = 3003;
+
+function sanitizeApiBase(raw: string): string {
+  return raw.trim().replace(/\/$/, '');
+}
+
+function getBrowserOriginApiBase() {
+  const protocol = typeof window !== 'undefined' && window.location?.protocol ? window.location.protocol : 'http:';
+  const host = typeof window !== 'undefined' && window.location?.hostname ? window.location.hostname : 'localhost';
+
+  return sanitizeApiBase(`${protocol}//${host}:${DEFAULT_API_PORT}/api`);
+}
+
+export const API_BASE = sanitizeApiBase(import.meta.env.VITE_API_BASE_URL || getBrowserOriginApiBase());
+
+export const API_BASE_FALLBACKS = Array.from(
+  new Set([API_BASE, 'http://localhost:3003/api', 'http://127.0.0.1:3003/api'].map(sanitizeApiBase)),
 );
 
 const client = axios.create({
