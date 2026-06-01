@@ -87,6 +87,9 @@ type RevenueModelConfig = {
 
 const ADMIN_REVENUE_CONFIG_STORAGE_KEY = 'protolive:admin-revenue:v1';
 const ADMIN_REVENUE_SCENARIO_STORAGE_KEY = 'protolive:admin-revenue-scenarios:v1';
+const ADMIN_REVENUE_TARGET_STORAGE_KEY = 'protolive:admin-revenue-target:v1';
+
+const DEFAULT_REVENUE_TARGET = 2500000;
 
 const DEFAULT_REVENUE_CONFIG: RevenueModelConfig = {
   makerMonthlyFee: 25000,
@@ -391,6 +394,12 @@ const EMPTY_ADMIN_DASHBOARD: AdminDashboardSnapshot = {
         annualRevenue: 0,
       },
     ],
+    targetGap: {
+      targetMonthlyRevenue: DEFAULT_REVENUE_TARGET,
+      shortfall: 0,
+      achievedRate: 0,
+      drivers: [],
+    },
   },
   lastUpdatedAt: new Date(0).toISOString(),
 };
@@ -535,6 +544,24 @@ function readAdminScenarioMultipliers(): number[] {
     return normalizeScenarioMultipliers(parsed);
   } catch {
     return [...DEFAULT_SCENARIO_MULTIPLIERS];
+  }
+}
+
+function readAdminRevenueTarget(): number {
+  if (typeof window === 'undefined') {
+    return DEFAULT_REVENUE_TARGET;
+  }
+
+  try {
+    const raw = localStorage.getItem(ADMIN_REVENUE_TARGET_STORAGE_KEY);
+    if (!raw) {
+      return DEFAULT_REVENUE_TARGET;
+    }
+
+    const parsed = JSON.parse(raw);
+    return safePositiveNumber((parsed as { targetMonthlyRevenue?: unknown }).targetMonthlyRevenue, DEFAULT_REVENUE_TARGET);
+  } catch {
+    return DEFAULT_REVENUE_TARGET;
   }
 }
 
@@ -779,6 +806,10 @@ function formatRate(value: number) {
   return `${value.toFixed(DECIMAL_DIGITS)}%`;
 }
 
+function formatDriverValue(value: number, unit: 'currency' | 'percent') {
+  return unit === 'percent' ? formatRate(value) : formatCurrency(value);
+}
+
 function percentChange(previousValue: number, currentValue: number) {
   if (previousValue <= 0) {
     return 0;
@@ -891,6 +922,9 @@ export default function App() {
   const [adminRevenueConfig, setAdminRevenueConfig] = useState<RevenueModelConfig>(
     readAdminRevenueConfig,
   );
+  const [adminRevenueTargetMonthly, setAdminRevenueTargetMonthly] = useState(readAdminRevenueTarget);
+  const [debouncedAdminRevenueTargetMonthly, setDebouncedAdminRevenueTargetMonthly] =
+    useState(adminRevenueTargetMonthly);
   const [adminScenarioMultipliers, setAdminScenarioMultipliers] = useState<number[]>(readAdminScenarioMultipliers);
   const [debouncedAdminRevenueConfig, setDebouncedAdminRevenueConfig] = useState<RevenueModelConfig>(adminRevenueConfig);
   const [debouncedScenarioMultipliers, setDebouncedScenarioMultipliers] =
@@ -1041,7 +1075,8 @@ export default function App() {
   const adminRevenueProjectionParams = useMemo(() => ({
     ...debouncedAdminRevenueConfig,
     scenarioMultipliers: debouncedScenarioMultipliers,
-  }), [debouncedAdminRevenueConfig, debouncedScenarioMultipliers]);
+    targetMonthlyRevenue: debouncedAdminRevenueTargetMonthly,
+  }), [debouncedAdminRevenueConfig, debouncedAdminRevenueTargetMonthly, debouncedScenarioMultipliers]);
 
   const activeFilters = useMemo(() => {
     const filters: Array<{ id: string; label: string; onClear: () => void }> = [];
@@ -1169,6 +1204,8 @@ export default function App() {
   const isAdminDashboardAvailable = adminDashboard.lastUpdatedAt !== EMPTY_ADMIN_DASHBOARD.lastUpdatedAt;
 
   const revenueProjection = adminDashboard.revenue;
+  const adminRevenueTargetGap = revenueProjection.targetGap;
+  const targetGapRate = clampRate(adminRevenueTargetGap.achievedRate, 0, 100);
 
   const adminTrendMetrics = useMemo(() => {
     const trend = adminDashboard.eventTrend14d;
@@ -1387,10 +1424,11 @@ export default function App() {
     const timer = window.setTimeout(() => {
       setDebouncedAdminRevenueConfig(adminRevenueConfig);
       setDebouncedScenarioMultipliers(adminScenarioMultipliers);
+      setDebouncedAdminRevenueTargetMonthly(adminRevenueTargetMonthly);
     }, 280);
 
     return () => window.clearTimeout(timer);
-  }, [adminRevenueConfig, adminScenarioMultipliers]);
+  }, [adminRevenueConfig, adminRevenueTargetMonthly, adminScenarioMultipliers]);
 
   useEffect(() => {
     localStorage.setItem('protolive:favorites', JSON.stringify(Array.from(favoriteProjectIds)));
@@ -1414,6 +1452,17 @@ export default function App() {
       JSON.stringify(adminScenarioMultipliers),
     );
   }, [adminScenarioMultipliers]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    localStorage.setItem(
+      ADMIN_REVENUE_TARGET_STORAGE_KEY,
+      JSON.stringify({ targetMonthlyRevenue: adminRevenueTargetMonthly }),
+    );
+  }, [adminRevenueTargetMonthly]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -1583,6 +1632,13 @@ export default function App() {
       ...current,
       [key]: normalizeAmountInput(parsed),
     }));
+  }, []);
+
+  const updateRevenueTargetInput = useCallback((rawValue: string) => {
+    const parsed = Number.parseFloat(rawValue);
+    setAdminRevenueTargetMonthly((current) =>
+      Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : current,
+    );
   }, []);
 
   const updateScenarioMultiplier = useCallback((index: number, rawValue: string) => {
@@ -1765,6 +1821,9 @@ export default function App() {
           ['요약', '기준 월 매출', snapshot.derivedProjection.totalMonthlyRevenue],
           ['요약', '기준 연 매출', snapshot.derivedProjection.annualRevenue],
           ['요약', '수익 건강도', adminRevenueHealthScore],
+          ['요약', '목표 월 매출', snapshot.derivedProjection.targetGap.targetMonthlyRevenue],
+          ['요약', '목표 달성률', `${snapshot.derivedProjection.targetGap.achievedRate}%`],
+          ['요약', '목표 달성 부족분', snapshot.derivedProjection.targetGap.shortfall],
           ['요약', '투자자 LTV', snapshot.derivedProjection.investorLtvEstimate],
           ['요약', '투자자 Payback', snapshot.derivedProjection.investorPaybackMonths],
           ['요약', '메이커 Payback', snapshot.derivedProjection.makerPaybackMonths],
@@ -1797,6 +1856,19 @@ export default function App() {
             '벤치마크',
             entry.label,
             `${entry.actual} / ${entry.target} / ${entry.gap} / ${entry.status}`,
+          ]);
+        });
+
+        snapshot.derivedProjection.targetGap.drivers.forEach((driver) => {
+          rows.push([
+            '목표 달성 제안',
+            `${driver.label} (현행: ${formatDriverValue(driver.currentValue, driver.unit)} / 1단위효과: ${formatCurrency(
+              driver.impactPerUnit,
+            )} / 필요 증분: ${formatDriverValue(driver.requiredDelta, driver.unit)})`,
+            `${formatDriverValue(driver.requiredValue, driver.unit)} (현재 기여 ${formatDriverValue(
+              driver.currentContribution,
+              'currency',
+            )} / 달성 필요)`,
           ]);
         });
 
@@ -2488,6 +2560,72 @@ export default function App() {
                   <h3 className="font-black text-stone-100">월간 수익 지표</h3>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-4">
+                  <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
+                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">목표 월매출</p>
+                    <label className="mt-2 block text-xs">
+                      <span className="font-black text-stone-300">목표값(월)</span>
+                      <input
+                        type="number"
+                        min={0}
+                        step={100000}
+                        value={adminRevenueTargetMonthly}
+                        onChange={(event) => {
+                          updateRevenueTargetInput(event.target.value);
+                        }}
+                        className="mt-2 w-full rounded bg-stone-900 border border-stone-700 px-3 py-2 text-xs font-black text-stone-100"
+                      />
+                    </label>
+                    <div className="mt-3 rounded-lg border border-stone-700/80 p-2">
+                      <p className="text-xs text-stone-300">
+                        현재 {formatCurrency(revenueProjection.totalMonthlyRevenue)} / 목표{' '}
+                        {formatCurrency(adminRevenueProjectionParams.targetMonthlyRevenue ?? 0)}
+                      </p>
+                      <p className="mt-1 text-sm font-black text-stone-100">
+                        달성률 {formatRate(targetGapRate)}
+                      </p>
+                      <p className="mt-1 text-xs text-stone-400">
+                        부족분 {formatCurrency(adminRevenueTargetGap.shortfall)}
+                      </p>
+                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-stone-900">
+                        <div
+                          className={`h-full rounded-full ${
+                            adminRevenueTargetGap.shortfall > 0
+                              ? 'bg-gradient-to-r from-amber-300 to-red-300'
+                              : 'bg-gradient-to-r from-cyan-300 to-lime-200'
+                          }`}
+                          style={{ width: `${targetGapRate}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">달성 제안 (상위 3)</p>
+                      {adminRevenueTargetGap.drivers.length === 0 ? (
+                        <p className="rounded-lg border border-dashed border-stone-700 p-2 text-[11px] text-stone-500">
+                          현재 수치로 계산 가능한 제안이 없습니다.
+                        </p>
+                      ) : (
+                        adminRevenueTargetGap.drivers.map((driver) => (
+                          <div
+                            key={driver.key}
+                            className="rounded-lg border border-stone-700 bg-stone-950/55 p-2 text-[11px]"
+                          >
+                            <p className="font-black text-stone-100">{driver.label}</p>
+                            <p className="mt-1 text-stone-300">
+                              현재 {formatDriverValue(driver.currentValue, driver.unit)} · 기여도{' '}
+                              {formatCurrency(driver.currentContribution)}
+                            </p>
+                            <p className="mt-1 text-stone-300">
+                              1단위 개선 시 +{formatCurrency(driver.impactPerUnit)} (필요 증분:{' '}
+                              {formatDriverValue(driver.requiredDelta, driver.unit)})
+                            </p>
+                            <p className="mt-1 text-stone-200">
+                              달성 목표: {formatDriverValue(driver.requiredValue, driver.unit)}
+                            </p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
                   <div className={`rounded-lg border p-3 text-xs ${adminRevenueHealthTone}`}>
                     <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">수익 건강도</p>
                     <p className="mt-1 text-lg font-black text-stone-50">{adminRevenueHealthScore} / 100</p>

@@ -487,6 +487,7 @@ test('getAdminRevenueProjection applies formulas and overrides assumptions', asy
       investorAcquisitionCost: 80000,
       makerAcquisitionCost: 120000,
       estimatedMonthlyChurnRate: 10,
+      targetMonthlyRevenue: 2000,
       scenarioMultipliers: [0.5, 1.0, 1.4],
     });
 
@@ -507,6 +508,10 @@ test('getAdminRevenueProjection applies formulas and overrides assumptions', asy
     assert.equal(overrideProjection.assumptions.investorAcquisitionCost, 80000);
     assert.equal(overrideProjection.assumptions.estimatedMonthlyChurnRate, 10);
     assert.equal(overrideProjection.assumptions.successFeeRate, 10);
+    assert.equal(overrideProjection.targetGap.targetMonthlyRevenue, 2000);
+    assert.equal(overrideProjection.targetGap.shortfall, 940);
+    assert.equal(overrideProjection.targetGap.achievedRate, 53);
+    assert.equal(overrideProjection.targetGap.drivers.length, 3);
 
     const defaultProjection = service.getAdminRevenueProjection();
     assert.equal(defaultProjection.scenarios.length, 4);
@@ -555,6 +560,8 @@ test('getAdminDashboard includes revenue projection payload', async () => {
     assert.equal(dashboardProjection.monthlyLeadRevenue, 32000);
     assert.equal(dashboardProjection.totalMonthlyRevenue, 49821);
     assert.equal(dashboardProjection.annualRevenue, 597852);
+    assert.equal(dashboardProjection.targetGap.targetMonthlyRevenue, 2500000);
+    assert.equal(Array.isArray(dashboardProjection.targetGap.drivers), true);
     assert.equal(dashboardProjection.benchmarkGaps.every((entry) => ['good', 'warning', 'critical'].includes(entry.status)), true);
     assert.equal(dashboardProjection.scenarios[0].label, '보수');
     assert.equal(dashboardProjection.scenarios[0].multiplier, 0.8);

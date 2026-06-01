@@ -162,6 +162,24 @@ export interface AdminRevenueScenario {
   annualRevenue: number;
 }
 
+export interface AdminRevenueTargetDriver {
+  key: string;
+  label: string;
+  currentValue: number;
+  unit: 'currency' | 'percent';
+  currentContribution: number;
+  impactPerUnit: number;
+  requiredDelta: number;
+  requiredValue: number;
+}
+
+export interface AdminRevenueTargetGap {
+  targetMonthlyRevenue: number;
+  shortfall: number;
+  achievedRate: number;
+  drivers: AdminRevenueTargetDriver[];
+}
+
 export interface AdminRevenueProjection {
   assumptions: AdminRevenueAssumption;
   monthlyMakerPlanRevenue: number;
@@ -179,6 +197,7 @@ export interface AdminRevenueProjection {
   investorPaybackMonths: number;
   benchmarkGaps: AdminRevenueBenchmark[];
   scenarios: AdminRevenueScenario[];
+  targetGap: AdminRevenueTargetGap;
 }
 
 export interface AdminDashboardMetrics {

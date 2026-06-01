@@ -25,6 +25,8 @@ import {
   AdminRevenueBenchmark,
   AdminRevenueProjection,
   AdminRevenueScenario,
+  AdminRevenueTargetDriver,
+  AdminRevenueTargetGap,
   ProjectsState,
   User,
   ValidationSnapshot,
@@ -52,6 +54,7 @@ export interface ProjectListPage {
 @Injectable()
 export class ProjectsService {
   private readonly defaultScenarioMultipliers = [0.75, 1, 1.25, 1.5];
+  private readonly defaultMonthlyRevenueTarget = 2500000;
   private readonly logger = new Logger(ProjectsService.name);
   private readonly store = new JsonProjectsStore();
   private users: User[];
@@ -76,7 +79,10 @@ export class ProjectsService {
   }
 
   getAdminRevenueProjection(
-    overrides: Partial<AdminRevenueAssumption> & { scenarioMultipliers?: number[] } = {},
+    overrides: Partial<AdminRevenueAssumption> & {
+      scenarioMultipliers?: number[];
+      targetMonthlyRevenue?: number;
+    } = {},
   ): AdminRevenueProjection {
     const totalProjects = this.projects.length;
     const verifiedProjects = this.projects.filter((project) => project.validation.success).length;
@@ -96,6 +102,7 @@ export class ProjectsService {
         ...overrides,
       },
       scenarioMultipliers: overrides.scenarioMultipliers,
+      targetMonthlyRevenue: overrides.targetMonthlyRevenue,
     });
   }
 
@@ -123,6 +130,7 @@ export class ProjectsService {
     conversionFunnel: AdminFunnelMetric;
     assumptions: AdminRevenueAssumption;
     scenarioMultipliers?: number[];
+    targetMonthlyRevenue?: number;
   }): AdminRevenueProjection {
     const assumption = this.normalizeRevenueAssumptions(params.assumptions);
     const denominators = {
@@ -200,7 +208,7 @@ export class ProjectsService {
         key: 'monthlyRevenue',
         label: '월 수익',
         actual: totalMonthlyRevenue,
-        target: 2500000,
+        target: params.targetMonthlyRevenue ?? this.defaultMonthlyRevenueTarget,
         unit: 'currency' as const,
       },
       {
@@ -238,6 +246,23 @@ export class ProjectsService {
       multipliers: this.resolveScenarioMultipliers(params.scenarioMultipliers),
     });
 
+    const targetGap = this.buildRevenueTargetGap({
+      targetMonthlyRevenue: params.targetMonthlyRevenue ?? this.defaultMonthlyRevenueTarget,
+      totalMonthlyRevenue,
+      totalProjects: params.totalProjects,
+      totalInvestors: params.totalInvestors,
+      totalSignals: params.totalSignals,
+      averageCommittedPerInvestor,
+      verifiedProjectShare,
+      makerMonthlyFee: assumption.makerMonthlyFee,
+      investorMonthlyFee: assumption.investorMonthlyFee,
+      leadCaptureFee: assumption.leadCaptureFee,
+      makerConversionRate: assumption.makerConversionRate,
+      investorConversionRate: assumption.investorConversionRate,
+      closeLeadRate: assumption.closeLeadRate,
+      successFeeRate: assumption.successFeeRate,
+    });
+
     return {
       assumptions: assumption,
       monthlyMakerPlanRevenue,
@@ -255,6 +280,7 @@ export class ProjectsService {
       investorPaybackMonths,
       benchmarkGaps,
       scenarios,
+      targetGap,
     };
   }
 
@@ -1254,6 +1280,181 @@ export class ProjectsService {
           annualRevenue: scenario.monthlyRevenue * 12,
         };
       });
+  }
+
+  private buildRevenueTargetGap(params: {
+    targetMonthlyRevenue: number;
+    totalMonthlyRevenue: number;
+    totalProjects: number;
+    totalInvestors: number;
+    totalSignals: number;
+    averageCommittedPerInvestor: number;
+    verifiedProjectShare: number;
+    makerMonthlyFee: number;
+    investorMonthlyFee: number;
+    leadCaptureFee: number;
+    makerConversionRate: number;
+    investorConversionRate: number;
+    closeLeadRate: number;
+    successFeeRate: number;
+  }): AdminRevenueTargetGap {
+    const targetMonthlyRevenue = Math.max(0, Math.floor(params.targetMonthlyRevenue));
+    const shortfall = Math.max(0, targetMonthlyRevenue - params.totalMonthlyRevenue);
+    const achievedRate =
+      targetMonthlyRevenue === 0
+        ? 100
+        : this.roundRate(Math.max(0, Math.min(100, (params.totalMonthlyRevenue / targetMonthlyRevenue) * 100)));
+
+    return {
+      targetMonthlyRevenue,
+      shortfall: this.roundMoney(shortfall),
+      achievedRate,
+      drivers: this.buildRevenueTargetDrivers({
+        shortfall,
+        totalProjects: Math.max(1, params.totalProjects),
+        totalInvestors: Math.max(1, params.totalInvestors),
+        totalSignals: Math.max(1, params.totalSignals),
+        averageCommittedPerInvestor: Math.max(0, params.averageCommittedPerInvestor),
+        verifiedProjectShare: params.verifiedProjectShare,
+        makerMonthlyFee: params.makerMonthlyFee,
+        investorMonthlyFee: params.investorMonthlyFee,
+        leadCaptureFee: params.leadCaptureFee,
+        makerConversionRate: params.makerConversionRate,
+        investorConversionRate: params.investorConversionRate,
+        closeLeadRate: params.closeLeadRate,
+        successFeeRate: params.successFeeRate,
+      }),
+    };
+  }
+
+  private buildRevenueTargetDrivers(params: {
+    shortfall: number;
+    totalProjects: number;
+    totalInvestors: number;
+    totalSignals: number;
+    averageCommittedPerInvestor: number;
+    verifiedProjectShare: number;
+    makerMonthlyFee: number;
+    investorMonthlyFee: number;
+    leadCaptureFee: number;
+    makerConversionRate: number;
+    investorConversionRate: number;
+    closeLeadRate: number;
+    successFeeRate: number;
+  }): AdminRevenueTargetDriver[] {
+    const baseRates = {
+      makerMonthlyPlan: (params.totalProjects * params.verifiedProjectShare * (params.makerConversionRate / 100)),
+      investorMonthlyPlan: (params.totalInvestors * (params.investorConversionRate / 100)),
+      leadCapture: params.totalSignals,
+    };
+
+    const candidates: Array<{
+      key: string;
+      label: string;
+      currentValue: number;
+      unit: 'currency' | 'percent';
+      currentContribution: number;
+      impactPerUnit: number;
+    }> = [
+      {
+        key: 'makerMonthlyFee',
+        label: '메이커 월 정액',
+        currentValue: params.makerMonthlyFee,
+        unit: 'currency',
+        currentContribution: Math.max(0, Math.round(baseRates.makerMonthlyPlan * params.makerMonthlyFee)),
+        impactPerUnit: Math.max(0, baseRates.makerMonthlyPlan),
+      },
+      {
+        key: 'investorMonthlyFee',
+        label: '투자자 월 정액',
+        currentValue: params.investorMonthlyFee,
+        unit: 'currency',
+        currentContribution: Math.max(0, Math.round(baseRates.investorMonthlyPlan * params.investorMonthlyFee)),
+        impactPerUnit: Math.max(0, baseRates.investorMonthlyPlan),
+      },
+      {
+        key: 'leadCaptureFee',
+        label: '리드 캡처 단가',
+        currentValue: params.leadCaptureFee,
+        unit: 'currency',
+        currentContribution: Math.max(0, baseRates.leadCapture * params.leadCaptureFee),
+        impactPerUnit: Math.max(0, baseRates.leadCapture),
+      },
+      {
+        key: 'makerConversionRate',
+        label: '메이커 전환율 (퍼센트 포인트)',
+        currentValue: params.makerConversionRate,
+        unit: 'percent',
+        currentContribution: Math.max(0, Math.round(baseRates.makerMonthlyPlan * params.makerMonthlyFee / 100)),
+        impactPerUnit: Math.max(0, baseRates.makerMonthlyPlan * params.makerMonthlyFee / 100),
+      },
+      {
+        key: 'investorConversionRate',
+        label: '투자자 전환율 (퍼센트 포인트)',
+        currentValue: params.investorConversionRate,
+        unit: 'percent',
+        currentContribution: Math.max(0, Math.round(baseRates.investorMonthlyPlan * params.investorMonthlyFee / 100)),
+        impactPerUnit: Math.max(0, baseRates.investorMonthlyPlan * params.investorMonthlyFee / 100),
+      },
+      {
+        key: 'closeLeadRate',
+        label: '리드 전환율 (퍼센트 포인트)',
+        currentValue: params.closeLeadRate,
+        unit: 'percent',
+        currentContribution: Math.max(
+          0,
+          Math.round(params.totalInvestors * params.averageCommittedPerInvestor * (params.successFeeRate / 100) * (params.closeLeadRate / 100)),
+        ),
+        impactPerUnit: Math.max(0, params.totalInvestors * params.averageCommittedPerInvestor * (params.successFeeRate / 100) / 100),
+      },
+      {
+        key: 'successFeeRate',
+        label: '수수료율 (퍼센트 포인트)',
+        currentValue: params.successFeeRate,
+        unit: 'percent',
+        currentContribution: Math.max(
+          0,
+          Math.round(params.totalInvestors * params.averageCommittedPerInvestor * (params.closeLeadRate / 100) * (params.successFeeRate / 100)),
+        ),
+        impactPerUnit: Math.max(0, params.totalInvestors * params.averageCommittedPerInvestor * (params.closeLeadRate / 100) / 100),
+      },
+    ];
+
+    const sorted = candidates
+      .map((candidate) => {
+        const requiredDelta =
+          candidate.impactPerUnit <= 0 || params.shortfall <= 0
+            ? 0
+            : Math.ceil(params.shortfall / candidate.impactPerUnit);
+
+        const normalizedRequiredDelta = this.toPositiveInteger(requiredDelta, 0);
+        const normalizedCurrentValue =
+          candidate.unit === 'percent'
+            ? this.roundRate(candidate.currentValue)
+            : this.toPositiveInteger(candidate.currentValue, 0);
+        const normalizedRequiredValue =
+          candidate.unit === 'percent'
+            ? this.roundRate(Math.min(100, candidate.currentValue + requiredDelta))
+            : Math.max(0, candidate.currentValue + requiredDelta);
+
+        return {
+          key: candidate.key,
+          label: candidate.label,
+          currentValue: normalizedCurrentValue,
+          unit: candidate.unit,
+          currentContribution: this.roundMoney(candidate.currentContribution),
+          impactPerUnit: this.roundRate(candidate.impactPerUnit),
+          requiredDelta: normalizedRequiredDelta,
+          requiredValue: normalizedRequiredValue,
+        };
+      })
+      .sort((a, b) => {
+        const scoreA = a.impactPerUnit === 0 ? -1 : a.impactPerUnit;
+        const scoreB = b.impactPerUnit === 0 ? -1 : b.impactPerUnit;
+        return scoreB - scoreA;
+      });
+
+    return sorted.slice(0, 3);
   }
 
   private resolveScenarioMultipliers(requestedMultipliers?: number[]) {

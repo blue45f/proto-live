@@ -108,6 +108,12 @@ export class AdminRevenueProjectionQueryDto {
   @Max(99.99, { message: '월간 이탈률은 99.99 이하여야 합니다.' })
   estimatedMonthlyChurnRate?: number;
 
+  @Transform(({ value }) => parseNumberOrUndefined(value))
+  @IsOptional()
+  @IsNumber({ allowNaN: false, allowInfinity: false }, { message: '목표 월매출은 숫자여야 합니다.' })
+  @Min(0, { message: '목표 월매출은 0 이상이어야 합니다.' })
+  targetMonthlyRevenue?: number;
+
   @Transform(({ value }) => parseScenarioMultipliers(value))
   @IsOptional()
   @IsArray({ message: '시나리오 배율은 배열이어야 합니다.' })
