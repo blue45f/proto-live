@@ -41,7 +41,9 @@ def main() -> None:
             content = page.content()
             assert "ProtoLive 데모" not in content
 
-            page.get_by_role("button", name=re.compile("프로토타입 등록")).click()
+            register_button = page.get_by_role("button", name=re.compile("프로토타입 등록"))
+            expect(register_button).to_be_enabled(timeout=30000)
+            register_button.click()
             expect(page.get_by_text("라이브 프로토타입 등록")).to_be_visible()
             expect(page.get_by_text("상용화 전 서비스 보호 설정")).to_be_visible()
             expect(page.locator("button", has_text="선별 공개").first).to_be_visible()

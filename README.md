@@ -19,6 +19,7 @@ BACKEND_PORT=3008 FRONTEND_PORT=4178 VITE_API_BASE_URL=http://localhost:3008/api
 ```
 
 `npm run dev`는 기본적으로 백엔드 `3003`, 프론트 `5174`를 사용합니다.
+`npm run dev` 실행 시 백엔드에서는 현재 프론트 포트를 포함해 기본 `CORS_ORIGINS`를 자동 보정해 커스텀 포트에서도 API가 동작하도록 처리합니다.
 
 테스트 계정 시드 생성이 필요한 경우:
 ```bash

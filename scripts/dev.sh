@@ -6,6 +6,7 @@ frontend_pid=""
 backend_port="${BACKEND_PORT:-3003}"
 frontend_port="${FRONTEND_PORT:-5174}"
 frontend_api_base="${VITE_API_BASE_URL:-http://localhost:${backend_port}/api}"
+backend_cors_origins="${CORS_ORIGINS:-"http://localhost:${frontend_port},http://127.0.0.1:${frontend_port},http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174"}"
 
 cleanup() {
   local pids=("$backend_pid" "$frontend_pid")
@@ -25,7 +26,7 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-PORT="$backend_port" npm --prefix backend run start:dev &
+PORT="$backend_port" CORS_ORIGINS="$backend_cors_origins" npm --prefix backend run start:dev &
 backend_pid=$!
 
 VITE_API_BASE_URL="$frontend_api_base" npm --prefix frontend run dev -- --port "$frontend_port" &
