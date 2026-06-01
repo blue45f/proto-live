@@ -31,12 +31,17 @@ npm run seed:test-accounts
 npm run seed:test-data
 ```
 
+로컬 테스트 중 쌓인 임시 이벤트/프로젝트를 지우고 기준 샘플 상태로 되돌리려면:
+```bash
+npm run seed:test-data -- --reset
+```
+
 변경 없이 미리 보기만 하려면:
 ```bash
 npm run seed:test-accounts -- --dry-run
 ```
 
-`seed:test-accounts`는 `backend/fixtures/test-accounts.json`의 계정을, `seed:test-data`는 `backend/fixtures/test-data.json`의 계정+프로젝트+제안+이벤트를 기준으로 로컬 스토어 사용자(`PROJECT_STORE_PATH`)를 반영합니다.
+`seed:test-accounts`는 `backend/fixtures/test-accounts.json`의 계정을, `seed:test-data`는 `backend/fixtures/test-data.json`의 계정+프로젝트+제안+이벤트를 기준으로 로컬 스토어 사용자(`PROJECT_STORE_PATH`)를 반영합니다. `seed:test-data -- --reset`은 기존 로컬 스토어를 기준 샘플 데이터만 남도록 재생성합니다.
 
 백엔드가 `http://localhost:3003/api` 에서 동작하고, 프론트엔드가 `http://localhost:5174`에서 실행됩니다.
 
@@ -78,6 +83,7 @@ RATE_LIMIT_MAX_REQUESTS=120
 
 상세 목록은 `docs/test-accounts.md`를 참고하세요.
 관리자 화면은 `?view=admin` 또는 `/admin` 경로로 진입할 수 있습니다.
+유사 서비스 대비 차별화 기획은 `docs/differentiation-strategy.md`에 정리되어 있습니다.
 
 ### 2. 프론트엔드 기동 (Vite + React + TypeScript + Tailwind v4)
 ```bash

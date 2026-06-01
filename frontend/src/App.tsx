@@ -695,6 +695,70 @@ const benchmarkCopy: Record<string, { title: string; body: string }> = {
   },
 };
 
+const proofStackLayers: Array<{
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  detail: string;
+  tone: string;
+}> = [
+  {
+    icon: Globe2,
+    label: 'Live URL Gate',
+    value: '서버 검증',
+    detail: '제출 URL은 공인망 HTTP/HTTPS 응답을 통과해야 노출됩니다.',
+    tone: 'border-lime-300/25 bg-lime-300/10 text-lime-100',
+  },
+  {
+    icon: ShieldCheck,
+    label: 'Screened Preview',
+    value: '기본 보호',
+    detail: '선별 공개 프로젝트는 URL과 iframe을 매칭 요청 흐름으로 전환합니다.',
+    tone: 'border-amber-300/25 bg-amber-300/10 text-amber-100',
+  },
+  {
+    icon: Signal,
+    label: 'Signal Ledger',
+    value: '행동 기록',
+    detail: '프리뷰, 새 탭, 매칭, 갱신 이벤트가 랭킹 신호로 누적됩니다.',
+    tone: 'border-cyan-300/25 bg-cyan-300/10 text-cyan-100',
+  },
+  {
+    icon: Briefcase,
+    label: 'Intent Capture',
+    value: '금액 구간',
+    detail: '투자 의향은 메시지와 금액 범위로 구조화되어 바로 집계됩니다.',
+    tone: 'border-orange-300/25 bg-orange-300/10 text-orange-100',
+  },
+];
+
+const differentiationRows: Array<{
+  label: string;
+  usual: string;
+  protolive: string;
+}> = [
+  {
+    label: '런칭 디렉터리',
+    usual: '노출, 투표, 댓글 중심',
+    protolive: '응답 코드와 프리뷰 가능 상태를 먼저 봅니다.',
+  },
+  {
+    label: '데이터룸',
+    usual: '문서 열람과 페이지 분석 중심',
+    protolive: '작동 중인 제품 URL과 접근 보호를 같은 레일에서 다룹니다.',
+  },
+  {
+    label: '투자자 CRM',
+    usual: '연락처, 파이프라인, 업데이트 중심',
+    protolive: '관심 행동을 금액 의향과 프로젝트 신호로 연결합니다.',
+  },
+  {
+    label: '회사 DB',
+    usual: '정적 프로필과 외부 데이터 검색 중심',
+    protolive: '최신 검증 시간, 응답 속도, 매칭 이벤트가 화면을 갱신합니다.',
+  },
+];
+
 const eventCopy: Record<ProjectEventType, { icon: LucideIcon; label: string; tone: string }> = {
   create: {
     icon: Plus,
@@ -1902,6 +1966,22 @@ export default function App() {
     return Math.round((stats.totalSignals / stats.totalProjects) * 10) / 10;
   }, [stats.totalSignals, stats.totalProjects]);
 
+  const protectedProjectCount = useMemo(
+    () => projects.filter((project) => project.accessMode === 'screened').length,
+    [projects],
+  );
+
+  const publicProjectCount = useMemo(
+    () => projects.filter((project) => project.accessMode === 'open').length,
+    [projects],
+  );
+
+  const fastestResponseProject = useMemo(() => {
+    return [...projects]
+      .filter((project) => typeof project.validation.responseTimeMs === 'number')
+      .sort((a, b) => (a.validation.responseTimeMs ?? Number.MAX_SAFE_INTEGER) - (b.validation.responseTimeMs ?? Number.MAX_SAFE_INTEGER))[0] ?? null;
+  }, [projects]);
+
   const copyFilterLink = useCallback(async () => {
     if (typeof window === 'undefined') {
       return;
@@ -2472,7 +2552,7 @@ export default function App() {
       <ToastContainer />
 
       <header className="sticky top-0 z-40 border-b border-cyan-900/40 bg-[oklch(14%_0.018_205)/0.92] backdrop-blur">
-        <div className="mx-auto flex min-h-[76px] max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+        <div className="mx-auto flex min-h-[76px] max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:flex-nowrap lg:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <div className="grid h-11 w-11 place-items-center rounded-lg bg-lime-300 text-slate-950 shadow-[0_0_0_1px_oklch(89%_0.18_125/0.25)]">
               <Zap className="h-5 w-5" />
@@ -2490,8 +2570,8 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="hidden items-center gap-2 rounded-full border border-stone-700/80 bg-stone-900/70 px-3 py-2 text-xs font-bold md:flex">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2 lg:flex-nowrap">
+            <div className="hidden shrink-0 items-center gap-2 rounded-full border border-stone-700/80 bg-stone-900/70 px-3 py-2 text-xs font-bold lg:flex">
               <button
                 type="button"
                 onClick={() => switchView('market')}
@@ -2512,7 +2592,7 @@ export default function App() {
               </button>
             </div>
             <div
-              className={`hidden items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold md:flex ${
+              className={`hidden shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold xl:flex ${
                 apiOnline
                   ? 'border-lime-400/30 bg-lime-300/10 text-lime-200'
                   : 'border-red-400/30 bg-red-500/10 text-red-200'
@@ -2522,15 +2602,15 @@ export default function App() {
               {apiOnline ? 'API Online' : 'API Offline'}
               </div>
               {isAuthenticated ? (
-                <div className="hidden items-center gap-2 rounded-full border border-stone-700/80 bg-stone-900/70 px-3 py-2 text-xs font-black md:flex">
-                  <span className="hidden md:inline">{session?.name}</span>
-                  <span className={`rounded-full border px-2 py-0.5 ${canAccessAdmin ? 'border-lime-300/40 text-lime-200' : 'border-amber-300/40 text-amber-100'}`}>
+                <div className="hidden shrink-0 items-center gap-2 rounded-full border border-stone-700/80 bg-stone-900/70 px-3 py-2 text-xs font-black lg:flex">
+                  <span className="hidden max-w-28 truncate xl:inline">{session?.name}</span>
+                  <span className={`shrink-0 rounded-full border px-2 py-0.5 ${canAccessAdmin ? 'border-lime-300/40 text-lime-200' : 'border-amber-300/40 text-amber-100'}`}>
                     {session ? resolveRoleLabel(session.role) : ''}
                   </span>
                   <button
                     type="button"
                     onClick={() => handleLogout()}
-                    className="rounded-full border border-stone-600/70 px-2 py-0.5 text-stone-300 transition hover:border-red-300/60 hover:text-red-100"
+                    className="shrink-0 whitespace-nowrap rounded-full border border-stone-600/70 px-2 py-0.5 text-stone-300 transition hover:border-red-300/60 hover:text-red-100"
                     aria-label="로그아웃"
                   >
                     로그아웃
@@ -2563,12 +2643,12 @@ export default function App() {
               disabled={!apiOnline || config.categories.length === 0}
               aria-label="프로토타입 등록"
               title="프로토타입 등록 (⌘/Ctrl + N)"
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-lime-300 px-4 text-sm font-black text-slate-950 transition hover:bg-lime-200 active:translate-y-px disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-stone-400"
+              className="inline-flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-lime-300 px-3 text-sm font-black text-slate-950 transition hover:bg-lime-200 active:translate-y-px disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-stone-400 sm:px-4"
             >
               <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">프로토타입 등록</span>
+              <span className="hidden lg:inline">프로토타입 등록</span>
             </button>
-            <span className="hidden text-[10px] text-stone-500 sm:block">
+            <span className="hidden shrink-0 text-[10px] text-stone-500 2xl:block">
               단축키: / 검색 · ⌘/Ctrl + N 등록 · ⌘/Ctrl + R 갱신
             </span>
           </div>
@@ -2722,7 +2802,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="grid gap-4 xl:grid-cols-3">
+            <div className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
               <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -2823,82 +2903,88 @@ export default function App() {
                   <ChartBarBig className="h-4 w-4 text-cyan-200" />
                   <h3 className="font-black text-stone-100">월간 수익 지표</h3>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-4">
-                  <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3 md:col-span-2 xl:col-span-3">
                     <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">목표 월매출</p>
-                    <label className="mt-2 block text-xs">
-                      <span className="font-black text-stone-300">목표값(월)</span>
-                      <input
-                        type="number"
-                        min={0}
-                        step={100000}
-                        value={adminRevenueTargetMonthly}
-                        onChange={(event) => {
-                          updateRevenueTargetInput(event.target.value);
-                        }}
-                        className="mt-2 w-full rounded bg-stone-900 border border-stone-700 px-3 py-2 text-xs font-black text-stone-100"
-                      />
-                    </label>
-                    <div className="mt-3 rounded-lg border border-stone-700/80 p-2">
-                      <p className="text-xs text-stone-300">
-                        현재 {formatCurrency(revenueProjection.totalMonthlyRevenue)} / 목표{' '}
-                        {formatCurrency(adminRevenueProjectionParams.targetMonthlyRevenue ?? 0)}
-                      </p>
-                      <p className="mt-1 text-sm font-black text-stone-100">
-                        달성률 {formatRate(targetGapRate)}
-                      </p>
-                      <p className="mt-1 text-xs text-stone-400">
-                        부족분 {formatCurrency(adminRevenueTargetGap.shortfall)}
-                      </p>
-                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-stone-900">
-                        <div
-                          className={`h-full rounded-full ${
-                            adminRevenueTargetGap.shortfall > 0
-                              ? 'bg-gradient-to-r from-amber-300 to-red-300'
-                              : 'bg-gradient-to-r from-cyan-300 to-lime-200'
-                          }`}
-                          style={{ width: `${targetGapRate}%` }}
-                        />
+                    <div className="mt-2 grid gap-3 lg:grid-cols-[280px_minmax(0,1fr)]">
+                      <div className="space-y-3">
+                        <label className="block text-xs">
+                          <span className="font-black text-stone-300">목표값(월)</span>
+                          <input
+                            type="number"
+                            min={0}
+                            step={100000}
+                            value={adminRevenueTargetMonthly}
+                            onChange={(event) => {
+                              updateRevenueTargetInput(event.target.value);
+                            }}
+                            className="mt-2 w-full rounded bg-stone-900 border border-stone-700 px-3 py-2 text-xs font-black text-stone-100"
+                          />
+                        </label>
+                        <div className="rounded-lg border border-stone-700/80 p-2">
+                          <p className="text-xs text-stone-300">
+                            현재 {formatCurrency(revenueProjection.totalMonthlyRevenue)} / 목표{' '}
+                            {formatCurrency(adminRevenueProjectionParams.targetMonthlyRevenue ?? 0)}
+                          </p>
+                          <p className="mt-1 text-sm font-black text-stone-100">
+                            달성률 {formatRate(targetGapRate)}
+                          </p>
+                          <p className="mt-1 text-xs text-stone-400">
+                            부족분 {formatCurrency(adminRevenueTargetGap.shortfall)}
+                          </p>
+                          <div className="mt-2 h-2 overflow-hidden rounded-full bg-stone-900">
+                            <div
+                              className={`h-full rounded-full ${
+                                adminRevenueTargetGap.shortfall > 0
+                                  ? 'bg-gradient-to-r from-amber-300 to-red-300'
+                                  : 'bg-gradient-to-r from-cyan-300 to-lime-200'
+                              }`}
+                              style={{ width: `${targetGapRate}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">달성 제안 (상위 3)</p>
+                        {adminRevenueTargetGap.drivers.length === 0 ? (
+                          <p className="rounded-lg border border-dashed border-stone-700 p-2 text-[11px] text-stone-500">
+                            현재 수치로 계산 가능한 제안이 없습니다.
+                          </p>
+                        ) : (
+                          <div className="grid gap-2 lg:grid-cols-3">
+                            {adminRevenueTargetGap.drivers.map((driver) => (
+                              <div
+                                key={driver.key}
+                                className="rounded-lg border border-stone-700 bg-stone-950/55 p-2 text-[11px]"
+                              >
+                                <p className="font-black text-stone-100">{driver.label}</p>
+                                <p className="mt-1 text-stone-300">
+                                  액션 제안: {getDriverActionHint(driver.key)}
+                                </p>
+                                <p className="mt-1 text-stone-300">
+                                  현재 {formatDriverValue(driver.currentValue, driver.unit)} · 기여도{' '}
+                                  {formatCurrency(driver.currentContribution)}
+                                </p>
+                                <p className="mt-1 text-stone-300">
+                                  1단위 개선 시 +{formatCurrency(driver.impactPerUnit)} (필요 증분:{' '}
+                                  {formatDriverValue(driver.requiredDelta, driver.unit)})
+                                </p>
+                                <p className="mt-1 text-stone-200">
+                                  달성 목표: {formatDriverValue(driver.requiredValue, driver.unit)}
+                                </p>
+                                <p className="mt-1 text-stone-400">
+                                  획득비용 {formatCurrency(driver.acquisitionCostPerUnit)} / 회수 {formatPaybackValue(driver.estimatedPaybackMonths)}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <div className="mt-3 space-y-2">
-                      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">달성 제안 (상위 3)</p>
-                      {adminRevenueTargetGap.drivers.length === 0 ? (
-                        <p className="rounded-lg border border-dashed border-stone-700 p-2 text-[11px] text-stone-500">
-                          현재 수치로 계산 가능한 제안이 없습니다.
-                        </p>
-                      ) : (
-                        adminRevenueTargetGap.drivers.map((driver) => (
-                          <div
-                            key={driver.key}
-                            className="rounded-lg border border-stone-700 bg-stone-950/55 p-2 text-[11px]"
-                          >
-                            <p className="font-black text-stone-100">{driver.label}</p>
-                            <p className="mt-1 text-stone-300">
-                              액션 제안: {getDriverActionHint(driver.key)}
-                            </p>
-                            <p className="mt-1 text-stone-300">
-                              현재 {formatDriverValue(driver.currentValue, driver.unit)} · 기여도{' '}
-                              {formatCurrency(driver.currentContribution)}
-                            </p>
-                            <p className="mt-1 text-stone-300">
-                              1단위 개선 시 +{formatCurrency(driver.impactPerUnit)} (필요 증분:{' '}
-                              {formatDriverValue(driver.requiredDelta, driver.unit)})
-                            </p>
-                            <p className="mt-1 text-stone-200">
-                              달성 목표: {formatDriverValue(driver.requiredValue, driver.unit)}
-                            </p>
-                            <p className="mt-1 text-stone-400">
-                              획득비용 {formatCurrency(driver.acquisitionCostPerUnit)} / 회수 {formatPaybackValue(driver.estimatedPaybackMonths)}
-                            </p>
-                          </div>
-                        ))
-                      )}
-                    </div>
                   </div>
-                  <div className={`rounded-lg border p-3 text-xs ${adminRevenueHealthTone}`}>
+                  <div className={`min-w-0 rounded-lg border p-3 text-xs ${adminRevenueHealthTone}`}>
                     <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">수익 건강도</p>
-                    <p className="mt-1 text-lg font-black text-stone-50">{adminRevenueHealthScore} / 100</p>
+                    <p className="mt-1 break-words text-lg font-black text-stone-50">{adminRevenueHealthScore} / 100</p>
                     <p className="mt-1">
                       {adminRevenueHealthScore >= 80
                         ? '건전'
@@ -2913,29 +2999,29 @@ export default function App() {
                       />
                     </div>
                   </div>
-                  <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
+                  <div className="min-w-0 rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
                     <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">월 누적 추정</p>
-                    <p className="mt-1 text-lg font-black text-stone-50">{formatCurrency(revenueProjection.totalMonthlyRevenue)}</p>
+                    <p className="mt-1 break-words text-lg font-black text-stone-50">{formatCurrency(revenueProjection.totalMonthlyRevenue)}</p>
                   </div>
-                  <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
+                  <div className="min-w-0 rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
                     <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">연환산 추정</p>
-                    <p className="mt-1 text-lg font-black text-stone-50">{formatCurrency(revenueProjection.annualRevenue)}</p>
+                    <p className="mt-1 break-words text-lg font-black text-stone-50">{formatCurrency(revenueProjection.annualRevenue)}</p>
                   </div>
-                  <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
+                  <div className="min-w-0 rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
                     <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">검증 프로젝트 비중</p>
-                    <p className="mt-1 text-lg font-black text-stone-50">
+                    <p className="mt-1 break-words text-lg font-black text-stone-50">
                       {formatRate(revenueProjection.verifiedProjectShare * 100)}
                     </p>
                     <p className="mt-1 text-[11px] text-stone-500">목표 68%</p>
                   </div>
-                  <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
+                  <div className="min-w-0 rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
                     <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">ARPU / ARPPU</p>
-                    <p className="mt-1 text-sm font-black text-stone-50">{formatCurrency(revenueProjection.arpu)} / {formatCurrency(revenueProjection.arppu)}</p>
+                    <p className="mt-1 break-words text-sm font-black leading-5 text-stone-50">{formatCurrency(revenueProjection.arpu)} / {formatCurrency(revenueProjection.arppu)}</p>
                     <p className="mt-1 text-[11px] text-stone-500">목표 50,000원 / 500,000원</p>
                   </div>
-                  <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
+                  <div className="min-w-0 rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
                     <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">투자자 LTV & Payback</p>
-                    <p className="mt-1 text-lg font-black text-stone-50">
+                    <p className="mt-1 break-words text-lg font-black leading-6 text-stone-50">
                       {formatCurrency(revenueProjection.investorLtvEstimate)} · {revenueProjection.investorPaybackMonths}개월
                     </p>
                     <p className="mt-1 text-[11px] text-stone-500">메이커 {revenueProjection.makerPaybackMonths}개월</p>
@@ -3292,20 +3378,19 @@ export default function App() {
         ) : (
         <>
           <section className="space-y-6">
-          <div className="grid gap-4 lg:grid-cols-[1.45fr_0.55fr]">
-            <div className="rounded-xl border border-cyan-900/50 bg-[oklch(18%_0.018_205)] p-5 shadow-[0_24px_80px_oklch(8%_0.02_205/0.45)]">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="max-w-2xl">
+          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+            <section className="overflow-hidden rounded-xl border border-cyan-900/50 bg-[linear-gradient(135deg,oklch(19%_0.024_205),oklch(15%_0.02_170)_52%,oklch(17%_0.022_88))] p-5 shadow-[0_24px_80px_oklch(8%_0.02_205/0.45)]">
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div className="max-w-3xl">
                   <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-300/10 px-3 py-1 text-xs font-bold text-cyan-100">
                     <Radar className="h-3.5 w-3.5" />
-                    Benchmark 적용: 데모 우선 탐색, 라이브 신호, 구조화된 딜 플로우
+                    Proof-first market system
                   </p>
                   <h2 className="text-2xl font-black tracking-tight text-stone-50 sm:text-3xl">
-                    슬라이드가 아니라 응답하는 제품을 봅니다.
+                    작동 증거가 딜 플로우를 여는 시장
                   </h2>
-                  <p className="mt-3 max-w-[68ch] text-sm leading-6 text-stone-300">
-                    등록 URL은 백엔드가 직접 공인망 응답을 확인하고, 투자자는 상태 코드와 응답 시간,
-                    프리뷰, 매칭 의향을 한 화면에서 검토합니다.
+                  <p className="mt-3 max-w-[72ch] text-sm leading-6 text-stone-300">
+                    제품 디렉터리, 데이터룸, 투자자 CRM 사이에 비어 있는 구간을 라이브 URL 검증과 보호형 프리뷰, 행동 신호, 구조화된 투자 의향으로 연결합니다.
                   </p>
                 </div>
                 <div className="rounded-lg border border-stone-700/70 bg-stone-950/55 p-3 text-xs text-stone-400">
@@ -3316,21 +3401,18 @@ export default function App() {
                   <p className="mt-1">{formatRelativeTime(stats.lastUpdatedAt)}</p>
                 </div>
               </div>
-            </div>
+              <ProofStackStrip />
+            </section>
 
-            <div className="grid grid-cols-2 gap-3 rounded-xl border border-stone-800 bg-stone-950/60 p-4">
-              <Metric icon={ShieldCheck} label="검증 프로젝트" value={`${stats.verifiedProjects}/${stats.totalProjects}`} />
-              <Metric icon={Gauge} label="검증률" value={`${stats.verificationRate}%`} />
-              <Metric
-                icon={TimerReset}
-                label="평균 응답"
-                value={stats.averageResponseMs === null ? 'N/A' : `${stats.averageResponseMs}ms`}
-              />
-              <Metric icon={Briefcase} label="총 투자자" value={String(stats.totalInvestors)} />
-              <Metric icon={Briefcase} label="매칭 규모" value={formatWon(stats.totalCommittedAmount)} />
-              <Metric icon={Signal} label="관심 신호" value={`${stats.totalSignals}`} />
-            </div>
+            <DifferentiationPanel />
           </div>
+
+          <ProofKpiRail
+            stats={stats}
+            protectedProjectCount={protectedProjectCount}
+            publicProjectCount={publicProjectCount}
+            fastestResponseProject={fastestResponseProject}
+          />
 
           {!apiOnline && !isInitialLoading && (
             <div className="rounded-xl border border-red-400/25 bg-red-950/30 p-4 text-sm text-red-100">
@@ -4366,6 +4448,80 @@ function Metric({ icon: Icon, label, value }: { icon: LucideIcon; label: string;
       <Icon className="mb-3 h-4 w-4 text-lime-200" />
       <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">{label}</p>
       <p className="mt-1 break-words text-lg font-black text-stone-50">{value}</p>
+    </div>
+  );
+}
+
+function ProofStackStrip() {
+  return (
+    <div className="mt-6 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+      {proofStackLayers.map((layer, index) => {
+        const Icon = layer.icon;
+        return (
+          <div key={layer.label} className={`rounded-lg border p-3 ${layer.tone}`}>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <span className="text-[11px] font-black uppercase tracking-[0.14em] opacity-80">
+                {String(index + 1).padStart(2, '0')}
+              </span>
+              <Icon className="h-4 w-4" />
+            </div>
+            <p className="text-sm font-black text-stone-50">{layer.label}</p>
+            <p className="mt-1 text-xs font-black">{layer.value}</p>
+            <p className="mt-2 text-xs leading-5 text-stone-300">{layer.detail}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function DifferentiationPanel() {
+  return (
+    <aside className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+      <div className="mb-4 flex items-center gap-2">
+        <Layers3 className="h-4 w-4 text-amber-200" />
+        <h3 className="font-black text-stone-100">차별화 레이어</h3>
+      </div>
+      <div className="space-y-2">
+        {differentiationRows.map((row) => (
+          <div key={row.label} className="rounded-lg border border-stone-800 bg-[oklch(15%_0.015_205)] p-3">
+            <p className="text-xs font-black text-cyan-100">{row.label}</p>
+            <p className="mt-2 text-xs leading-5 text-stone-500">일반: {row.usual}</p>
+            <p className="mt-1 text-xs leading-5 text-stone-200">ProtoLive: {row.protolive}</p>
+          </div>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+function ProofKpiRail({
+  stats,
+  protectedProjectCount,
+  publicProjectCount,
+  fastestResponseProject,
+}: {
+  stats: MarketStats;
+  protectedProjectCount: number;
+  publicProjectCount: number;
+  fastestResponseProject: Project | null;
+}) {
+  return (
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+      <Metric icon={ShieldCheck} label="검증 프로젝트" value={`${stats.verifiedProjects}/${stats.totalProjects}`} />
+      <Metric icon={Gauge} label="검증률" value={`${stats.verificationRate}%`} />
+      <Metric
+        icon={TimerReset}
+        label="평균 응답"
+        value={stats.averageResponseMs === null ? 'N/A' : `${stats.averageResponseMs}ms`}
+      />
+      <Metric icon={ShieldCheck} label="선별 공개" value={`${protectedProjectCount}`} />
+      <Metric icon={Globe2} label="공개 프리뷰" value={`${publicProjectCount}`} />
+      <Metric
+        icon={Zap}
+        label="최고 응답"
+        value={fastestResponseProject?.validation.responseTimeMs ? `${fastestResponseProject.validation.responseTimeMs}ms` : 'N/A'}
+      />
     </div>
   );
 }

@@ -327,6 +327,24 @@ export async function fetchAdminDashboard() {
 export async function fetchAdminRevenueProjection(config: AdminRevenueProjectionRequest) {
   const response = await client.get<AdminRevenueProjection>('/projects/admin-revenue-projection', {
     params: config,
+    paramsSerializer: (params) => {
+      const searchParams = new URLSearchParams();
+
+      Object.entries(params).forEach(([key, value]) => {
+        if (value === undefined || value === null) {
+          return;
+        }
+
+        if (Array.isArray(value)) {
+          searchParams.set(key, value.join(','));
+          return;
+        }
+
+        searchParams.set(key, String(value));
+      });
+
+      return searchParams.toString();
+    },
   });
   return response.data;
 }
