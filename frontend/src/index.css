@@ -118,6 +118,24 @@
   }
 }
 
+@keyframes panel-slide-in {
+  from {
+    opacity: 0;
+    transform: translate3d(32px, 0, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@layer utilities {
+  .animate-panel-slide-in {
+    animation: panel-slide-in 240ms var(--ease-out-expo) both;
+  }
+}
+
 .animate-toast-in {
   animation: toast-in 220ms var(--ease-out-expo) both;
 }
