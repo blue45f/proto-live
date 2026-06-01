@@ -8,6 +8,8 @@ import {
   BadgeCheck,
   BarChart3,
   Briefcase,
+  ChevronDown,
+  ChevronUp,
   CheckCircle2,
   Clock3,
   ExternalLink,
@@ -380,6 +382,16 @@ export default function App() {
   const [fundingRangeId, setFundingRangeId] = useState('');
   const [matchMessage, setMatchMessage] = useState('');
   const [isSendingMatch, setIsSendingMatch] = useState(false);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(() => {
+    return (
+      (filterPreset.accessMode !== 'All' && filterPreset.accessMode !== undefined) ||
+      (filterPreset.onlyVerified ?? false) ||
+      (filterPreset.favorites ?? false) ||
+      (filterPreset.minSignal ?? 0) > 0 ||
+      (filterPreset.minFundingAmount ?? 0) > 0 ||
+      (filterPreset.maxFundingAmount ?? 0) > 0
+    );
+  });
   const isFilterInitialized = useRef(false);
   const previewDialogRef = useRef<HTMLElement>(null);
   const matchModalRef = useRef<HTMLElement>(null);
@@ -1237,7 +1249,7 @@ export default function App() {
 
           <div className="rounded-xl border border-stone-800 bg-[oklch(17%_0.018_205)] p-4">
             <div className="space-y-3">
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {categoryOptions.map((item) => (
                   <button
                     key={item}
@@ -1255,6 +1267,14 @@ export default function App() {
                     {item}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedFilters((value) => !value)}
+                  className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 text-xs font-black text-stone-300 hover:border-cyan-300/50 hover:text-cyan-100"
+                >
+                  {showAdvancedFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  {showAdvancedFilters ? '고급 필터 닫기' : '고급 필터 열기'}
+                </button>
               </div>
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="relative w-full lg:w-[360px]">
@@ -1295,153 +1315,166 @@ export default function App() {
                   ))}
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {accessModeOptions.map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => {
-                      setSelectedAccessMode(item);
-                      setPage(1);
-                    }}
-                    className={`min-h-10 rounded-lg border px-3 text-xs font-black transition ${
-                      selectedAccessMode === item
-                        ? 'border-cyan-300/50 bg-cyan-300 text-slate-950'
-                        : 'border-stone-700 bg-stone-950/50 text-stone-300 hover:border-cyan-300/40 hover:text-cyan-100'
-                    }`}
-                  >
-                    {item}
-                  </button>
-                ))}
-              </div>
-              <div className="space-y-2">
-                <p className="text-xs font-black text-stone-300">투자금 프리셋</p>
-                <div className="flex flex-wrap gap-2">
-                  {config.fundingRanges.map((range) => (
+              {showAdvancedFilters && (
+                <>
+                  <div className="flex flex-wrap gap-2">
+                    {accessModeOptions.map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => {
+                          setSelectedAccessMode(item);
+                          setPage(1);
+                        }}
+                        className={`min-h-10 rounded-lg border px-3 text-xs font-black transition ${
+                          selectedAccessMode === item
+                            ? 'border-cyan-300/50 bg-cyan-300 text-slate-950'
+                            : 'border-stone-700 bg-stone-950/50 text-stone-300 hover:border-cyan-300/40 hover:text-cyan-100'
+                        }`}
+                      >
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs font-black text-stone-300">투자금 프리셋</p>
+                    <div className="flex flex-wrap gap-2">
+                      {config.fundingRanges.map((range) => (
+                        <button
+                          key={range.id}
+                          type="button"
+                          onClick={() => applyFundingRange(range)}
+                          className={`min-h-8 rounded-full border px-3 py-1 text-[11px] font-black transition ${
+                            range.minAmount === minFundingAmount && range.maxAmount === maxFundingAmount
+                              ? 'border-cyan-300/70 bg-cyan-300/20 text-cyan-100'
+                              : 'border-stone-700 bg-stone-950/50 text-stone-300 hover:border-cyan-300/40'
+                          }`}
+                        >
+                          {range.label}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMinFundingAmount(0);
+                          setMaxFundingAmount(0);
+                          setPage(1);
+                        }}
+                        className="min-h-8 rounded-full border border-stone-700 bg-stone-950/50 px-3 py-1 text-[11px] font-black text-stone-300 hover:border-cyan-300/40"
+                      >
+                        수동 직접입력
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 text-xs font-black text-stone-300">
+                    <label className="inline-flex items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2 text-xs">
+                      <input
+                        type="checkbox"
+                        checked={onlyVerified}
+                        onChange={(event) => {
+                          setOnlyVerified(event.target.checked);
+                          setPage(1);
+                        }}
+                      />
+                      <span>검증된 프로젝트만</span>
+                    </label>
+                    <label className="inline-flex items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2">
+                      최소 시그널
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={minSignal}
+                        onChange={(event) => {
+                          const next = Number(event.target.value);
+                          setMinSignal(Number.isFinite(next) ? Math.max(0, Math.floor(next)) : 0);
+                          setPage(1);
+                        }}
+                        className="ml-1 w-20 rounded bg-stone-950 border border-stone-700 px-2 py-1 text-right text-xs font-black text-stone-100 outline-none"
+                      />
+                    </label>
+                    <label className="inline-flex items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2">
+                      최소 투자금
+                      <input
+                        type="number"
+                        min={0}
+                        step={1000000}
+                        value={minFundingAmount}
+                        onChange={(event) => {
+                          const next = Number(event.target.value);
+                          setMinFundingAmount(Number.isFinite(next) ? Math.max(0, Math.floor(next)) : 0);
+                          setPage(1);
+                        }}
+                        className="ml-1 w-28 rounded bg-stone-950 border border-stone-700 px-2 py-1 text-right text-xs font-black text-stone-100 outline-none"
+                      />
+                    </label>
+                    <label className="inline-flex items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2">
+                      최대 투자금
+                      <input
+                        type="number"
+                        min={0}
+                        step={1000000}
+                        value={maxFundingAmount}
+                        onChange={(event) => {
+                          const next = Number(event.target.value);
+                          setMaxFundingAmount(Number.isFinite(next) ? Math.max(0, Math.floor(next)) : 0);
+                          setPage(1);
+                        }}
+                        className="ml-1 w-28 rounded bg-stone-950 border border-stone-700 px-2 py-1 text-right text-xs font-black text-stone-100 outline-none"
+                      />
+                    </label>
                     <button
-                      key={range.id}
                       type="button"
-                      onClick={() => applyFundingRange(range)}
-                      className={`min-h-8 rounded-full border px-3 py-1 text-[11px] font-black transition ${
-                        range.minAmount === minFundingAmount && range.maxAmount === maxFundingAmount
-                          ? 'border-cyan-300/70 bg-cyan-300/20 text-cyan-100'
-                          : 'border-stone-700 bg-stone-950/50 text-stone-300 hover:border-cyan-300/40'
+                      onClick={() => {
+                        setShowFavoritesOnly((value) => !value);
+                        setPage(1);
+                      }}
+                      className={`inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 ${
+                        showFavoritesOnly
+                          ? 'border-amber-300/60 bg-amber-300/20 text-amber-100'
+                          : 'border-stone-700 bg-stone-950/55 text-stone-300'
                       }`}
                     >
-                      {range.label}
+                      <Star
+                        className={`h-4 w-4 ${
+                          showFavoritesOnly ? 'fill-amber-100 text-amber-100' : 'text-stone-300'
+                        }`}
+                      />
+                      즐겨찾기만
                     </button>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMinFundingAmount(0);
-                      setMaxFundingAmount(0);
-                      setPage(1);
-                    }}
-                    className="min-h-8 rounded-full border border-stone-700 bg-stone-950/50 px-3 py-1 text-[11px] font-black text-stone-300 hover:border-cyan-300/40"
+                    <label className="inline-flex min-w-[120px] items-center justify-between gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2">
+                      <span>페이지</span>
+                      <select
+                        value={pageSize}
+                        onChange={(event) => {
+                          const next = Number(event.target.value);
+                          setPageSize(Number.isFinite(next) ? next : 12);
+                          setPage(1);
+                        }}
+                        className="rounded border border-stone-700 bg-stone-900/80 px-2 py-1 text-xs font-black text-stone-100"
+                      >
+                        {[12, 24, 36, 60, 100].map((size) => (
+                          <option key={size} value={size}>
+                            {size}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <p
+                    className={`text-xs font-black ${hasFundingRangeError ? 'text-red-300' : 'text-stone-500'}`}
                   >
-                    수동 직접입력
-                  </button>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-3 text-xs font-black text-stone-300">
-                <label className="inline-flex items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2 text-xs">
-                  <input
-                    type="checkbox"
-                    checked={onlyVerified}
-                    onChange={(event) => {
-                      setOnlyVerified(event.target.checked);
-                      setPage(1);
-                    }}
-                  />
-                  <span>검증된 프로젝트만</span>
-                </label>
-                <label className="inline-flex items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2">
-                  최소 시그널
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    value={minSignal}
-                    onChange={(event) => {
-                      const next = Number(event.target.value);
-                      setMinSignal(Number.isFinite(next) ? Math.max(0, Math.floor(next)) : 0);
-                      setPage(1);
-                    }}
-                    className="ml-1 w-20 rounded bg-stone-950 border border-stone-700 px-2 py-1 text-right text-xs font-black text-stone-100 outline-none"
-                  />
-                </label>
-                <label className="inline-flex items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2">
-                  최소 투자금
-                  <input
-                    type="number"
-                    min={0}
-                    step={1000000}
-                    value={minFundingAmount}
-                    onChange={(event) => {
-                      const next = Number(event.target.value);
-                      setMinFundingAmount(Number.isFinite(next) ? Math.max(0, Math.floor(next)) : 0);
-                      setPage(1);
-                    }}
-                    className="ml-1 w-28 rounded bg-stone-950 border border-stone-700 px-2 py-1 text-right text-xs font-black text-stone-100 outline-none"
-                  />
-                </label>
-                <label className="inline-flex items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2">
-                  최대 투자금
-                  <input
-                    type="number"
-                    min={0}
-                    step={1000000}
-                    value={maxFundingAmount}
-                    onChange={(event) => {
-                      const next = Number(event.target.value);
-                      setMaxFundingAmount(Number.isFinite(next) ? Math.max(0, Math.floor(next)) : 0);
-                      setPage(1);
-                    }}
-                    className="ml-1 w-28 rounded bg-stone-950 border border-stone-700 px-2 py-1 text-right text-xs font-black text-stone-100 outline-none"
-                  />
-                </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowFavoritesOnly((value) => !value);
-                    setPage(1);
-                  }}
-                  className={`inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 ${
-                    showFavoritesOnly
-                      ? 'border-amber-300/60 bg-amber-300/20 text-amber-100'
-                      : 'border-stone-700 bg-stone-950/55 text-stone-300'
-                  }`}
-                >
-                  <Star className={`h-4 w-4 ${showFavoritesOnly ? 'fill-amber-100 text-amber-100' : 'text-stone-300'}`} />
-                  즐겨찾기만
-                </button>
-                <label className="inline-flex min-w-[120px] items-center justify-between gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2">
-                  <span>페이지</span>
-                  <select
-                    value={pageSize}
-                    onChange={(event) => {
-                      const next = Number(event.target.value);
-                      setPageSize(Number.isFinite(next) ? next : 12);
-                      setPage(1);
-                    }}
-                    className="rounded border border-stone-700 bg-stone-900/80 px-2 py-1 text-xs font-black text-stone-100"
-                  >
-                    {[12, 24, 36, 60, 100].map((size) => (
-                      <option key={size} value={size}>
-                        {size}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <p
-                className={`text-xs font-black ${hasFundingRangeError ? 'text-red-300' : 'text-stone-500'}`}
-              >
-                {hasFundingRangeError
-                  ? '최소 투자금보다 최대 투자금을 크게 입력해야 합니다.'
-                  : '최소/최대 투자금은 각각 개별 입력 후 결합해 검색됩니다.'}
-              </p>
+                    {hasFundingRangeError
+                      ? '최소 투자금보다 최대 투자금을 크게 입력해야 합니다.'
+                      : '최소/최대 투자금은 각각 개별 입력 후 결합해 검색됩니다.'}
+                  </p>
+                </>
+              )}
+              {!showAdvancedFilters && (
+                <p className="text-xs font-black text-stone-400">
+                  고급 필터를 닫았습니다. 열린 상태에서 공개범위/투자금/조건 필터를 조정할 수 있습니다.
+                </p>
+              )}
               {activeFilters.length > 0 && (
                 <div className="rounded-lg border border-stone-700 bg-stone-950/45 p-3">
                   <div className="mb-2 flex items-center justify-between">
