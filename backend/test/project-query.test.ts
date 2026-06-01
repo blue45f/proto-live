@@ -425,3 +425,133 @@ test('getAdminDashboard returns health, risks, and action recommendations', asyn
     assert.equal(dashboard.topMatchProjects[0].id, 1);
   });
 });
+
+test('getAdminRevenueProjection applies formulas and overrides assumptions', async () => {
+  await withSeededService((state) => {
+    state.users.push({ id: 1, email: 'maker@protolive.local', role: 'maker' });
+    state.projects.push(
+      {
+        id: 1,
+        userId: 1,
+        title: 'Revenue Alpha',
+        description: 'Alpha revenue scenario',
+        liveUrl: 'https://alpha.example.com',
+        category: 'AI & SaaS' as ProjectCategory,
+        accessMode: 'open' as ProjectAccessMode,
+        protectionNoticeAccepted: true,
+        investorCount: 2,
+        matchCount: 1,
+        committedAmountMin: 150,
+        committedAmountMax: 3000,
+        validation: { success: true, status: 200, message: 'ok', checkedAt: '2026-06-01T00:00:00.000Z', finalUrl: 'https://alpha.example.com', responseTimeMs: 120 },
+        createdAt: new Date('2026-06-01T12:00:00.000Z'),
+      },
+      {
+        id: 2,
+        userId: 1,
+        title: 'Revenue Beta',
+        description: 'Beta revenue scenario',
+        liveUrl: 'https://beta.example.com',
+        category: 'FinTech' as ProjectCategory,
+        accessMode: 'open' as ProjectAccessMode,
+        protectionNoticeAccepted: true,
+        investorCount: 0,
+        matchCount: 0,
+        committedAmountMin: 0,
+        committedAmountMax: 0,
+        validation: { success: false, status: 500, message: 'down', checkedAt: '2026-06-01T00:00:00.000Z', finalUrl: 'https://beta.example.com', responseTimeMs: 2000 },
+        createdAt: new Date('2026-06-01T11:00:00.000Z'),
+      },
+    );
+
+    state.events.push(
+      { id: 1, projectId: 1, type: 'preview', createdAt: new Date('2026-06-01T12:10:00.000Z') },
+      { id: 2, projectId: 1, type: 'outbound', createdAt: new Date('2026-06-01T12:11:00.000Z') },
+      { id: 3, projectId: 2, type: 'preview', createdAt: new Date('2026-06-01T12:12:00.000Z') },
+      { id: 4, projectId: 1, type: 'match', createdAt: new Date('2026-06-01T12:13:00.000Z') },
+    );
+
+    state.nextUserId = 2;
+    state.nextProjectId = 3;
+    state.nextProposalId = 1;
+    state.nextEventId = 5;
+  }, async (service) => {
+    const overrideProjection = service.getAdminRevenueProjection({
+      makerMonthlyFee: 1000,
+      investorMonthlyFee: 500,
+      leadCaptureFee: 100,
+      makerConversionRate: 10,
+      investorConversionRate: 50,
+      closeLeadRate: 20,
+      successFeeRate: 10,
+      investorAcquisitionCost: 80000,
+      makerAcquisitionCost: 120000,
+      estimatedMonthlyChurnRate: 10,
+    });
+
+    assert.equal(overrideProjection.monthlyMakerPlanRevenue, 100);
+    assert.equal(overrideProjection.monthlyInvestorPlanRevenue, 500);
+    assert.equal(overrideProjection.monthlyLeadRevenue, 400);
+    assert.equal(overrideProjection.monthlyTransactionRevenue, 60);
+    assert.equal(overrideProjection.totalMonthlyRevenue, 1060);
+    assert.equal(overrideProjection.annualRevenue, 12720);
+    assert.equal(overrideProjection.averageCommittedPerInvestor, 1500);
+    assert.equal(overrideProjection.benchmarkGaps.length, 6);
+    assert.equal(overrideProjection.scenarios.length, 4);
+    assert.equal(overrideProjection.assumptions.makerConversionRate, 10);
+    assert.equal(overrideProjection.assumptions.investorAcquisitionCost, 80000);
+    assert.equal(overrideProjection.assumptions.estimatedMonthlyChurnRate, 10);
+
+    const defaultProjection = service.getAdminRevenueProjection();
+    assert.equal(defaultProjection.scenarios.length, 4);
+    assert.equal(defaultProjection.monthlyMakerPlanRevenue > overrideProjection.monthlyMakerPlanRevenue, true);
+  });
+});
+
+test('getAdminDashboard includes revenue projection payload', async () => {
+  await withSeededService((state) => {
+    state.users.push({ id: 1, email: 'maker@protolive.local', role: 'maker' });
+    state.projects.push({
+      id: 1,
+      userId: 1,
+      title: 'Dashboard Revenue',
+      description: 'Used by admin dashboard',
+      liveUrl: 'https://dashboard.example.com',
+      category: 'AI & SaaS' as ProjectCategory,
+      accessMode: 'open' as ProjectAccessMode,
+      protectionNoticeAccepted: true,
+      investorCount: 5,
+      matchCount: 1,
+      committedAmountMin: 0,
+      committedAmountMax: 5000,
+      validation: { success: true, status: 200, message: 'ok', checkedAt: '2026-06-01T00:00:00.000Z', finalUrl: 'https://dashboard.example.com', responseTimeMs: 200 },
+      createdAt: new Date('2026-06-01T12:00:00.000Z'),
+    });
+
+    state.events.push(
+      { id: 1, projectId: 1, type: 'create', createdAt: new Date('2026-06-01T12:10:00.000Z') },
+      { id: 2, projectId: 1, type: 'preview', createdAt: new Date('2026-06-01T12:11:00.000Z') },
+      { id: 3, projectId: 1, type: 'outbound', createdAt: new Date('2026-06-01T12:12:00.000Z') },
+      { id: 4, projectId: 1, type: 'match', createdAt: new Date('2026-06-01T12:13:00.000Z') },
+    );
+
+    state.nextUserId = 2;
+    state.nextProjectId = 2;
+    state.nextProposalId = 1;
+    state.nextEventId = 5;
+  }, async (service) => {
+    const dashboard = service.getAdminDashboard();
+    const dashboardProjection = dashboard.revenue;
+
+    assert.equal(dashboardProjection.assumptions.makerMonthlyFee, 25000);
+    assert.equal(dashboardProjection.monthlyMakerPlanRevenue, 4500);
+    assert.equal(dashboardProjection.monthlyInvestorPlanRevenue, 13300);
+    assert.equal(dashboardProjection.monthlyLeadRevenue, 32000);
+    assert.equal(dashboardProjection.totalMonthlyRevenue, 49821);
+    assert.equal(dashboardProjection.annualRevenue, 597852);
+    assert.equal(dashboardProjection.benchmarkGaps.every((entry) => ['good', 'warning', 'critical'].includes(entry.status)), true);
+    assert.equal(dashboardProjection.scenarios[0].label, '보수');
+    assert.equal(dashboardProjection.scenarios[0].multiplier, 0.8);
+    assert.equal(dashboardProjection.scenarios[1].multiplier, 1);
+  });
+});
