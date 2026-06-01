@@ -202,6 +202,10 @@ export interface AdminRevenueProjection {
   scenarios: AdminRevenueScenario[];
 }
 
+export interface AdminRevenueProjectionRequest extends AdminRevenueAssumption {
+  scenarioMultipliers?: number[];
+}
+
 export interface AdminActionRecommendation {
   priority: 'high' | 'medium' | 'low';
   area: string;
@@ -298,7 +302,7 @@ export async function fetchAdminDashboard() {
   return response.data;
 }
 
-export async function fetchAdminRevenueProjection(config: AdminRevenueAssumption) {
+export async function fetchAdminRevenueProjection(config: AdminRevenueProjectionRequest) {
   const response = await client.get<AdminRevenueProjection>('/projects/admin-revenue-projection', {
     params: config,
   });

@@ -86,6 +86,7 @@ type RevenueModelConfig = {
 };
 
 const ADMIN_REVENUE_CONFIG_STORAGE_KEY = 'protolive:admin-revenue:v1';
+const ADMIN_REVENUE_SCENARIO_STORAGE_KEY = 'protolive:admin-revenue-scenarios:v1';
 
 const DEFAULT_REVENUE_CONFIG: RevenueModelConfig = {
   makerMonthlyFee: 25000,
@@ -99,6 +100,8 @@ const DEFAULT_REVENUE_CONFIG: RevenueModelConfig = {
   makerAcquisitionCost: 280000,
   estimatedMonthlyChurnRate: 12,
 };
+
+const DEFAULT_SCENARIO_MULTIPLIERS: number[] = [0.75, 1, 1.25, 1.5];
 
 const ADMIN_DASHBOARD_POLL_INTERVAL_MS = 30000;
 const ADMIN_DASHBOARD_TREND_KEY_DAYS = 14;
@@ -154,6 +157,8 @@ const REVENUE_PRESETS: Array<{ id: string; name: string; label: string; descript
 const MIN_REVENUE_RATE = 0;
 const MAX_REVENUE_RATE = 100;
 const DECIMAL_DIGITS = 1;
+const MIN_SCENARIO_MULTIPLIER = 0.05;
+const MAX_SCENARIO_MULTIPLIER = 5;
 
 type RevenueModelFieldKind = 'currency' | 'percent';
 
@@ -489,6 +494,50 @@ function readAdminRevenueConfig(): RevenueModelConfig {
   }
 }
 
+function normalizeScenarioMultipliers(values: unknown): number[] {
+  const fallback = [...DEFAULT_SCENARIO_MULTIPLIERS];
+  if (!Array.isArray(values)) {
+    return fallback;
+  }
+
+  const parsed = values
+    .map((value) => (typeof value === 'number' ? value : Number.parseFloat(String(value))))
+    .filter((value) => Number.isFinite(value))
+    .map((value) => {
+      return Math.max(MIN_SCENARIO_MULTIPLIER, Math.min(MAX_SCENARIO_MULTIPLIER, value));
+    })
+    .map((value) => Math.round(value * 100) / 100);
+
+  if (parsed.length === 0) {
+    return fallback;
+  }
+
+  const unique = Array.from(new Set(parsed));
+  if (unique.length === 0) {
+    return fallback;
+  }
+
+  return unique.sort((a, b) => a - b);
+}
+
+function readAdminScenarioMultipliers(): number[] {
+  if (typeof window === 'undefined') {
+    return [...DEFAULT_SCENARIO_MULTIPLIERS];
+  }
+
+  try {
+    const raw = localStorage.getItem(ADMIN_REVENUE_SCENARIO_STORAGE_KEY);
+    if (!raw) {
+      return [...DEFAULT_SCENARIO_MULTIPLIERS];
+    }
+
+    const parsed = JSON.parse(raw) as unknown;
+    return normalizeScenarioMultipliers(parsed);
+  } catch {
+    return [...DEFAULT_SCENARIO_MULTIPLIERS];
+  }
+}
+
 function safePositiveNumber(value: unknown, fallback: number) {
   if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
     return Math.floor(value);
@@ -759,6 +808,12 @@ function normalizeAmountInput(value: number) {
   return Math.max(0, Math.floor(value));
 }
 
+function normalizeScenarioInputValue(value: number) {
+  if (!Number.isFinite(value)) return 1;
+  const clamped = Math.max(MIN_SCENARIO_MULTIPLIER, Math.min(MAX_SCENARIO_MULTIPLIER, value));
+  return Math.round(clamped * 100) / 100;
+}
+
 function readInitialView(): AppView {
   if (typeof window === 'undefined') {
     return 'market';
@@ -836,6 +891,10 @@ export default function App() {
   const [adminRevenueConfig, setAdminRevenueConfig] = useState<RevenueModelConfig>(
     readAdminRevenueConfig,
   );
+  const [adminScenarioMultipliers, setAdminScenarioMultipliers] = useState<number[]>(readAdminScenarioMultipliers);
+  const [debouncedAdminRevenueConfig, setDebouncedAdminRevenueConfig] = useState<RevenueModelConfig>(adminRevenueConfig);
+  const [debouncedScenarioMultipliers, setDebouncedScenarioMultipliers] =
+    useState<number[]>(adminScenarioMultipliers);
   const [investingProjectIds, setInvestingProjectIds] = useState(new Set<number>());
 
   const [searchQuery, setSearchQuery] = useState(filterPreset.q ?? '');
@@ -978,6 +1037,11 @@ export default function App() {
     page,
     pageSize,
   ]);
+
+  const adminRevenueProjectionParams = useMemo(() => ({
+    ...debouncedAdminRevenueConfig,
+    scenarioMultipliers: debouncedScenarioMultipliers,
+  }), [debouncedAdminRevenueConfig, debouncedScenarioMultipliers]);
 
   const activeFilters = useMemo(() => {
     const filters: Array<{ id: string; label: string; onClear: () => void }> = [];
@@ -1125,6 +1189,28 @@ export default function App() {
     };
   }, [adminDashboard]);
 
+  const adminRevenueHealthScore = useMemo(() => {
+    const scores = revenueProjection.benchmarkGaps.map((entry) => {
+      if (entry.status === 'good') return 100;
+      if (entry.status === 'warning') return 65;
+      return 30;
+    });
+
+    if (scores.length === 0) {
+      return 0;
+    }
+
+    const average = scores.reduce((sum, value) => sum + value, 0) / scores.length;
+    return Math.round(average);
+  }, [revenueProjection]);
+
+  const adminRevenueHealthTone =
+    adminRevenueHealthScore >= 80
+      ? 'border-lime-300/45 bg-lime-950/20 text-lime-100'
+      : adminRevenueHealthScore >= 60
+        ? 'border-amber-300/45 bg-amber-950/20 text-amber-100'
+        : 'border-red-300/45 bg-red-950/20 text-red-100';
+
   const applyFundingRange = useCallback((range: FundingRange) => {
     setMinFundingAmount(range.minAmount);
     setMaxFundingAmount(range.maxAmount);
@@ -1220,7 +1306,7 @@ export default function App() {
       } else {
         const [dashboardPayload, revenueProjection] = await Promise.all([
           fetchAdminDashboard(),
-          fetchAdminRevenueProjection(adminRevenueConfig),
+          fetchAdminRevenueProjection(adminRevenueProjectionParams),
         ]);
 
         setAdminDashboard({
@@ -1260,7 +1346,7 @@ export default function App() {
       setIsInitialLoading(false);
       setIsRefreshing(false);
     }
-  }, [adminRevenueConfig, fundingRangeId, isAdminView, projectQuery]);
+  }, [adminRevenueProjectionParams, fundingRangeId, isAdminView, projectQuery]);
 
   const loadProjectEvents = useCallback(async (projectId: number) => {
     setIsPreviewEventsLoading(true);
@@ -1298,6 +1384,15 @@ export default function App() {
   }, [searchQuery]);
 
   useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedAdminRevenueConfig(adminRevenueConfig);
+      setDebouncedScenarioMultipliers(adminScenarioMultipliers);
+    }, 280);
+
+    return () => window.clearTimeout(timer);
+  }, [adminRevenueConfig, adminScenarioMultipliers]);
+
+  useEffect(() => {
     localStorage.setItem('protolive:favorites', JSON.stringify(Array.from(favoriteProjectIds)));
   }, [favoriteProjectIds]);
 
@@ -1308,6 +1403,17 @@ export default function App() {
 
     localStorage.setItem(ADMIN_REVENUE_CONFIG_STORAGE_KEY, JSON.stringify(adminRevenueConfig));
   }, [adminRevenueConfig]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    localStorage.setItem(
+      ADMIN_REVENUE_SCENARIO_STORAGE_KEY,
+      JSON.stringify(adminScenarioMultipliers),
+    );
+  }, [adminScenarioMultipliers]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -1479,6 +1585,23 @@ export default function App() {
     }));
   }, []);
 
+  const updateScenarioMultiplier = useCallback((index: number, rawValue: string) => {
+    const parsed = Number.parseFloat(rawValue);
+    setAdminScenarioMultipliers((current) => {
+      const next = [...current];
+      next[index] = normalizeScenarioInputValue(Number.isFinite(parsed) ? parsed : current[index]);
+      if (next[index] <= 0) {
+        return current;
+      }
+      return next;
+    });
+  }, []);
+
+  const resetAdminScenarioMultipliers = useCallback(() => {
+    setAdminScenarioMultipliers([...DEFAULT_SCENARIO_MULTIPLIERS]);
+    toast('info', '시나리오 초기화', '시나리오 배율을 기본 값으로 되돌렸습니다.');
+  }, []);
+
   const activeFilterCount = activeFilters.length;
 
   const signalRankByProjectId = useMemo(() => {
@@ -1529,11 +1652,15 @@ export default function App() {
     }
   }, []);
 
-  const copyAdminRevenueSnapshot = useCallback(async () => {
-    const snapshot = {
+  const buildAdminRevenueSnapshot = useCallback(() => {
+    return {
       timestamp: new Date().toISOString(),
       view: 'admin',
       revenueConfig: adminRevenueConfig,
+      scenarioMultipliers: adminScenarioMultipliers,
+      query: {
+        ...adminRevenueProjectionParams,
+      },
       derivedProjection: revenueProjection,
       filters: {
         q: debouncedSearch,
@@ -1563,22 +1690,17 @@ export default function App() {
         totalSignals: stats.totalSignals,
       },
     };
-
-    try {
-      await navigator.clipboard.writeText(JSON.stringify(snapshot, null, 2));
-      toast('success', '수익 가정 저장', '현재 관리자 수익 모델/지표 스냅샷이 클립보드에 복사되었습니다.');
-    } catch {
-      toast('error', '복사 실패', '클립보드 권한을 확인하고 다시 시도하세요.');
-    }
   }, [
     adminDashboard.conversionFunnel,
     adminDashboard.eventTotals,
-    adminDashboard.topMatchProjects,
     adminDashboard.health,
     adminDashboard.recommendations,
-    adminDashboard.revenue,
     adminDashboard.riskProjects,
+    adminDashboard.revenue,
+    adminDashboard.topMatchProjects,
     adminRevenueConfig,
+    adminRevenueProjectionParams,
+    adminScenarioMultipliers,
     debouncedSearch,
     isAdminView,
     maxFundingAmount,
@@ -1594,6 +1716,99 @@ export default function App() {
     stats.totalSignals,
     stats.verifiedProjects,
   ]);
+
+  const copyAdminRevenueSnapshot = useCallback(async () => {
+    const snapshot = buildAdminRevenueSnapshot();
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(snapshot, null, 2));
+      toast('success', '수익 가정 저장', '현재 관리자 수익 모델/지표 스냅샷이 클립보드에 복사되었습니다.');
+    } catch {
+      toast('error', '복사 실패', '클립보드 권한을 확인하고 다시 시도하세요.');
+    }
+  }, [buildAdminRevenueSnapshot]);
+
+  const downloadText = useCallback((filename: string, content: string, type: string) => {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  }, []);
+
+  const escapeCsvValue = (value: unknown) => {
+    const escaped = String(value ?? '')
+      .replace(/"/g, '""')
+      .replace(/\r?\n/g, ' ');
+    return `"${escaped}"`;
+  };
+
+  const exportAdminRevenueReport = useCallback((format: 'json' | 'csv') => {
+    try {
+      const timestamp = new Date().toISOString();
+      const fileBase = `protolive-admin-revenue-${timestamp.replace(/[:.]/g, '-')}`;
+      const snapshot = buildAdminRevenueSnapshot();
+
+      if (format === 'json') {
+        downloadText(
+          `${fileBase}.json`,
+          JSON.stringify(snapshot, null, 2),
+          'application/json;charset=utf-8',
+        );
+      } else {
+        const rows = [
+          ['섹션', '항목', '값'],
+          ['요약', '기준 월 매출', snapshot.derivedProjection.totalMonthlyRevenue],
+          ['요약', '기준 연 매출', snapshot.derivedProjection.annualRevenue],
+          ['요약', '수익 건강도', adminRevenueHealthScore],
+          ['요약', '투자자 LTV', snapshot.derivedProjection.investorLtvEstimate],
+          ['요약', '투자자 Payback', snapshot.derivedProjection.investorPaybackMonths],
+          ['요약', '메이커 Payback', snapshot.derivedProjection.makerPaybackMonths],
+          ['가정', '메이커 월 정액', snapshot.revenueConfig.makerMonthlyFee],
+          ['가정', '투자자 월 정액', snapshot.revenueConfig.investorMonthlyFee],
+          ['가정', '리드 캡처 단가', snapshot.revenueConfig.leadCaptureFee],
+          ['가정', '메이커 전환율', snapshot.revenueConfig.makerConversionRate],
+          ['가정', '투자자 전환율', snapshot.revenueConfig.investorConversionRate],
+          ['가정', '리드 전환율', snapshot.revenueConfig.closeLeadRate],
+          ['가정', '수수료율', snapshot.revenueConfig.successFeeRate],
+          ['가정', '메이커 CAC', snapshot.revenueConfig.makerAcquisitionCost],
+          ['가정', '투자자 CAC', snapshot.revenueConfig.investorAcquisitionCost],
+          ['가정', '월 이탈률', snapshot.revenueConfig.estimatedMonthlyChurnRate],
+        ];
+
+        snapshot.scenarioMultipliers.forEach((multiplier) => {
+          rows.push(['시나리오 배율', `x${multiplier}`, multiplier]);
+        });
+
+        snapshot.derivedProjection.scenarios.forEach((entry) => {
+          rows.push([
+            '시나리오',
+            entry.label,
+            `${entry.multiplier}x / ${entry.monthlyRevenue} / ${entry.annualRevenue}`,
+          ]);
+        });
+
+        snapshot.derivedProjection.benchmarkGaps.forEach((entry) => {
+          rows.push([
+            '벤치마크',
+            entry.label,
+            `${entry.actual} / ${entry.target} / ${entry.gap} / ${entry.status}`,
+          ]);
+        });
+
+        const csv = rows.map((row) => row.map((item) => escapeCsvValue(item)).join(',')).join('\n');
+        downloadText(`${fileBase}.csv`, csv, 'text/csv;charset=utf-8');
+      }
+
+      toast('success', '보고서 내보내기', `관리자 보고서를 ${format.toUpperCase()} 형식으로 저장했습니다.`);
+    } catch {
+      toast('error', '보고서 내보내기 실패', '브라우저 다운로드 권한을 확인하세요.');
+    }
+  }, [adminRevenueHealthScore, buildAdminRevenueSnapshot, downloadText]);
 
   const handleRefreshAll = useCallback(async () => {
     if (!apiOnline || isRefreshing) {
@@ -2178,13 +2393,29 @@ export default function App() {
                     <TrendingUp className="h-4 w-4 text-lime-200" />
                     <h3 className="font-black text-stone-100">프로젝션 기본 가정</h3>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => void copyAdminRevenueSnapshot()}
-                    className="inline-flex min-h-8 items-center gap-2 rounded-lg border border-cyan-300/50 bg-cyan-300/10 px-3 text-xs font-black text-cyan-100"
-                  >
-                    스냅샷 복사
-                  </button>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void copyAdminRevenueSnapshot()}
+                      className="inline-flex min-h-8 items-center gap-2 rounded-lg border border-cyan-300/50 bg-cyan-300/10 px-3 text-xs font-black text-cyan-100"
+                    >
+                      스냅샷 복사
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => exportAdminRevenueReport('json')}
+                      className="inline-flex min-h-8 items-center gap-2 rounded-lg border border-stone-700 px-3 text-xs font-black text-stone-100"
+                    >
+                      JSON 내보내기
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => exportAdminRevenueReport('csv')}
+                      className="inline-flex min-h-8 items-center gap-2 rounded-lg border border-stone-700 px-3 text-xs font-black text-stone-100"
+                    >
+                      CSV 내보내기
+                    </button>
+                  </div>
                 </div>
                 <div className="mb-3 rounded-lg border border-stone-700 bg-stone-950/55 p-3 text-xs">
                   <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-400">운영 데이터 반영</p>
@@ -2218,6 +2449,37 @@ export default function App() {
                     </button>
                   ))}
                 </div>
+                <div className="mt-4 rounded-lg border border-stone-700 bg-stone-950/55 p-3 text-xs">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <p className="font-black uppercase tracking-[0.14em] text-stone-400">시나리오 배율</p>
+                    <button
+                      type="button"
+                      onClick={resetAdminScenarioMultipliers}
+                      className="rounded-lg border border-stone-700 px-2 py-1 text-[10px] font-black text-stone-300"
+                    >
+                      기본값
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    {adminScenarioMultipliers.map((multiplier, index) => (
+                      <label key={index} className="block rounded-lg border border-stone-600 bg-stone-900/40 p-2">
+                        <span className="mb-1 block text-stone-300">x{index + 1}</span>
+                        <input
+                          type="number"
+                          min={MIN_SCENARIO_MULTIPLIER}
+                          max={MAX_SCENARIO_MULTIPLIER}
+                          step={0.05}
+                          value={multiplier}
+                          onChange={(event) => updateScenarioMultiplier(index, event.target.value)}
+                          className="w-full rounded border border-stone-700 bg-stone-900 px-2 py-1 text-xs font-black text-stone-100"
+                        />
+                        <p className="mt-1 truncate text-[10px] text-stone-500">
+                          월매출 x {multiplier}
+                        </p>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
@@ -2225,7 +2487,24 @@ export default function App() {
                   <ChartBarBig className="h-4 w-4 text-cyan-200" />
                   <h3 className="font-black text-stone-100">월간 수익 지표</h3>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-4">
+                  <div className={`rounded-lg border p-3 text-xs ${adminRevenueHealthTone}`}>
+                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">수익 건강도</p>
+                    <p className="mt-1 text-lg font-black text-stone-50">{adminRevenueHealthScore} / 100</p>
+                    <p className="mt-1">
+                      {adminRevenueHealthScore >= 80
+                        ? '건전'
+                        : adminRevenueHealthScore >= 60
+                          ? '주의'
+                          : '위험'}
+                    </p>
+                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-stone-900">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-lime-200"
+                        style={{ width: `${adminRevenueHealthScore}%` }}
+                      />
+                    </div>
+                  </div>
                   <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
                     <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">월 누적 추정</p>
                     <p className="mt-1 text-lg font-black text-stone-50">{formatCurrency(revenueProjection.totalMonthlyRevenue)}</p>
