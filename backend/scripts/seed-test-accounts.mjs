@@ -4,6 +4,9 @@ import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from '
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+const args = new Set(process.argv.slice(2));
+const isDryRun = args.has('--dry-run');
+
 const ROOT = process.cwd();
 const ROOT_BACKEND_DIR = join(ROOT, 'backend');
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
@@ -158,6 +161,12 @@ function main() {
 
   if (seeded.length === 0) {
     console.log(`테스트 계정 중 추가/변경 항목이 없습니다. (${beforeCount}명 유지)`);
+    return;
+  }
+
+  if (isDryRun) {
+    console.log(`드라이 런 실행: 파일이 변경되지 않습니다.`);
+    console.log(`예상 변경 사용자 수: ${seeded.length}`);
     return;
   }
 

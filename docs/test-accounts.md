@@ -7,6 +7,11 @@
 npm run seed:test-accounts
 ```
 
+실데이터 반영 없이 예정 변경만 확인:
+```bash
+npm run seed:test-accounts -- --dry-run
+```
+
 `backend/fixtures/test-accounts.json`에 있는 계정은 `backend/data/protolive-store.json`(혹은 `PROJECT_STORE_PATH`) 사용자 목록에 반영됩니다.
 
 ## 파일 위치

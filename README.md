@@ -17,6 +17,11 @@ npm run dev
 npm run seed:test-accounts
 ```
 
+변경 없이 미리 보기만 하려면:
+```bash
+npm run seed:test-accounts -- --dry-run
+```
+
 시드는 `backend/fixtures/test-accounts.json`의 계정을 기준으로 로컬 스토어 사용자(`PROJECT_STORE_PATH`)에 반영합니다.
 
 백엔드가 `http://localhost:3003/api` 에서 동작하고, 프론트엔드가 `http://localhost:5174`에서 실행됩니다.
