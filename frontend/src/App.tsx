@@ -6,11 +6,14 @@ import {
   AlertTriangle,
   ArrowUpRight,
   BadgeCheck,
+  CalendarClock,
   BarChart3,
+  ChartBarBig,
   Briefcase,
   ChevronDown,
   ChevronUp,
   CheckCircle2,
+  TrendingUp,
   Clock3,
   ExternalLink,
   Gauge,
@@ -30,6 +33,7 @@ import {
   TimerReset,
   X,
   Zap,
+  Users,
 } from 'lucide-react';
 import {
   API_BASE,
@@ -224,20 +228,20 @@ function readFilterPreset(): RawFilterSnapshot {
 
 const benchmarkCopy: Record<string, { title: string; body: string }> = {
   live_demo_required: {
-    title: 'Live demo gate',
-    body: '등록 전 공인 URL 검증을 통과한 제품만 노출합니다.',
+    title: '실시간 데모 게이트',
+    body: '공인망 URL 검증을 통과한 제품만 시장에 노출되어, 검증된 프로젝트만 탐색 대상으로 남습니다.',
   },
   verification_telemetry: {
-    title: 'Verification telemetry',
-    body: '응답 코드, 지연 시간, 확인 시각을 투자 판단 신호로 보여줍니다.',
+    title: '검증 텔레메트리',
+    body: '응답 코드, 응답 시간, 검사 시각을 투자 판단 신호로 노출해 상태 인식을 빠르게 유지합니다.',
   },
   investor_intent_capture: {
-    title: 'Structured intent',
-    body: '관심 표현을 금액 구간과 메시지로 기록해 매칭 지표로 환산합니다.',
+    title: '의향 구조화',
+    body: '관심 표현을 금액 구간과 메시지로 기록해 매칭 수치·매칭 의향으로 바로 환산합니다.',
   },
   real_attention_scoring: {
-    title: 'Attention signal ready',
-    body: '탐색, 프리뷰, 매칭 이벤트를 향후 랭킹 신호로 확장할 수 있습니다.',
+    title: '주의력 점수',
+    body: '검색 조회·프리뷰·매칭 이벤트는 다음 단계 랭킹 가중치로 연결 가능한 신호를 축적합니다.',
   },
 };
 
@@ -268,6 +272,76 @@ const eventCopy: Record<ProjectEventType, { icon: LucideIcon; label: string; ton
     tone: 'border-stone-500/30 bg-stone-800/50 text-stone-200',
   },
 };
+
+function getResponseTimeTone(responseTimeMs?: number) {
+  if (typeof responseTimeMs !== 'number') {
+    return {
+      label: '미측정',
+      tone: 'border-stone-700/70 bg-stone-900/55 text-stone-300',
+    };
+  }
+
+  if (responseTimeMs <= 300) {
+    return {
+      label: '빠름',
+      tone: 'border-lime-300/25 bg-lime-300/10 text-lime-200',
+    };
+  }
+
+  if (responseTimeMs <= 1000) {
+    return {
+      label: '보통',
+      tone: 'border-cyan-300/25 bg-cyan-300/10 text-cyan-100',
+    };
+  }
+
+  if (responseTimeMs <= 2000) {
+    return {
+      label: '느림',
+      tone: 'border-amber-300/25 bg-amber-300/10 text-amber-100',
+    };
+  }
+
+  return {
+    label: '매우 느림',
+    tone: 'border-red-300/25 bg-red-500/10 text-red-200',
+  };
+}
+
+function getSignalQuality(score?: number) {
+  if (typeof score !== 'number') {
+    return {
+      label: '초기',
+      tone: 'border-stone-700/70 bg-stone-900/55 text-stone-300',
+    };
+  }
+
+  if (score >= 90) {
+    return {
+      label: '상위 10%',
+      tone: 'border-lime-300/35 bg-lime-300/10 text-lime-100',
+    };
+  }
+
+  if (score >= 70) {
+    return {
+      label: '핫',
+      tone: 'border-cyan-300/35 bg-cyan-300/10 text-cyan-100',
+    };
+  }
+
+  if (score >= 45) {
+    return {
+      label: '주목',
+      tone: 'border-amber-300/35 bg-amber-300/10 text-amber-100',
+    };
+  }
+
+  return {
+    label: '모니터',
+    tone: 'border-stone-700/70 bg-stone-900/55 text-stone-300',
+  };
+}
 
 function formatWon(amount: number) {
   if (amount <= 0) return '₩0';
@@ -820,6 +894,40 @@ export default function App() {
 
   const activeFilterCount = activeFilters.length;
 
+  const signalRankByProjectId = useMemo(() => {
+    const sorted = [...projects]
+      .filter((project) => project.validation !== undefined)
+      .sort((a, b) => {
+        const aScore = a.signalScore ?? 0;
+        const bScore = b.signalScore ?? 0;
+        if (bScore !== aScore) {
+          return bScore - aScore;
+        }
+
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+
+    const rankById = new Map<number, number>();
+    sorted.forEach((project, index) => {
+      rankById.set(project.id, index + 1);
+    });
+
+    return rankById;
+  }, [projects]);
+
+  const highestCommittedAmount = useMemo(() => {
+    if (projects.length === 0) {
+      return 1;
+    }
+
+    return Math.max(1, ...projects.map((project) => project.committedAmountMax));
+  }, [projects]);
+
+  const averageSignalDensity = useMemo(() => {
+    if (stats.totalProjects <= 0) return 0;
+    return Math.round((stats.totalSignals / stats.totalProjects) * 10) / 10;
+  }, [stats.totalSignals, stats.totalProjects]);
+
   const copyFilterLink = useCallback(async () => {
     if (typeof window === 'undefined') {
       return;
@@ -1330,6 +1438,8 @@ export default function App() {
                     <button
                       key={value}
                       type="button"
+                      aria-label={`${label} 정렬 적용`}
+                      aria-pressed={sortMode === value}
                       onClick={() => {
                         setSortMode(value as typeof sortMode);
                         setPage(1);
@@ -1345,45 +1455,62 @@ export default function App() {
                   ))}
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSortMode('signal');
-                    setPage(1);
-                  }}
-                  className="inline-flex min-h-8 items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 text-xs font-black text-stone-300 transition hover:border-cyan-300/50 hover:text-cyan-100"
-                >
-                  상위 시그널 집중
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSortMode('recent');
-                    setOnlyVerified(false);
-                    setMinSignal(0);
-                    setPage(1);
-                  }}
-                  className="inline-flex min-h-8 items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 text-xs font-black text-stone-300 transition hover:border-cyan-300/50 hover:text-cyan-100"
-                >
-                  최근 반응 우선
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSortMode('funding');
-                    setPage(1);
-                  }}
-                  className="inline-flex min-h-8 items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 text-xs font-black text-stone-300 transition hover:border-cyan-300/50 hover:text-cyan-100"
-                >
-                  투자규모 많은 순
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOnlyVerified((current) => !current);
-                    setPage(1);
-                  }}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    aria-pressed={sortMode === 'signal'}
+                    onClick={() => {
+                      setSortMode('signal');
+                      setPage(1);
+                    }}
+                    className={`inline-flex min-h-8 items-center gap-2 rounded-lg border px-3 text-xs font-black transition ${
+                      sortMode === 'signal'
+                        ? 'border-cyan-300/70 bg-cyan-300/20 text-cyan-100'
+                        : 'border-stone-700 bg-stone-950/55 text-stone-300 hover:border-cyan-300/50 hover:text-cyan-100'
+                    }`}
+                  >
+                    상위 시그널 집중
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={sortMode === 'recent' && !onlyVerified && minSignal === 0}
+                    onClick={() => {
+                      setSortMode('recent');
+                      setOnlyVerified(false);
+                      setMinSignal(0);
+                      setPage(1);
+                    }}
+                    className={`inline-flex min-h-8 items-center gap-2 rounded-lg border px-3 text-xs font-black transition ${
+                      sortMode === 'recent' && !onlyVerified && minSignal === 0
+                        ? 'border-cyan-300/70 bg-cyan-300/20 text-cyan-100'
+                        : 'border-stone-700 bg-stone-950/55 text-stone-300 hover:border-cyan-300/50 hover:text-cyan-100'
+                    }`}
+                  >
+                    최근 반응 우선
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={sortMode === 'funding'}
+                    onClick={() => {
+                      setSortMode('funding');
+                      setPage(1);
+                    }}
+                    className={`inline-flex min-h-8 items-center gap-2 rounded-lg border px-3 text-xs font-black transition ${
+                      sortMode === 'funding'
+                        ? 'border-cyan-300/70 bg-cyan-300/20 text-cyan-100'
+                        : 'border-stone-700 bg-stone-950/55 text-stone-300 hover:border-cyan-300/50 hover:text-cyan-100'
+                    }`}
+                  >
+                    투자규모 많은 순
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={onlyVerified}
+                    aria-label={onlyVerified ? '검증만 보기 토글 해제' : '검증만 보기 토글'}
+                    onClick={() => {
+                      setOnlyVerified((current) => !current);
+                      setPage(1);
+                    }}
                   className={`inline-flex min-h-8 items-center gap-2 rounded-lg border px-3 text-xs font-black transition ${
                     onlyVerified
                       ? 'border-lime-300/70 bg-lime-300/20 text-lime-100'
@@ -1394,6 +1521,8 @@ export default function App() {
                 </button>
                 <button
                   type="button"
+                  aria-pressed={showFavoritesOnly}
+                  aria-label={showFavoritesOnly ? '즐겨찾기만 보기 해제' : '즐겨찾기만 보기 적용'}
                   onClick={() => {
                     if (favoriteProjectCount > 0) {
                       setShowFavoritesOnly((value) => !value);
@@ -1659,13 +1788,20 @@ export default function App() {
           {isInitialLoading ? (
             <ProjectSkeleton />
           ) : visibleProjects.length === 0 ? (
-            <EmptyState apiOnline={apiOnline} onCreate={() => setIsSubmitOpen(true)} />
+            <EmptyState
+              apiOnline={apiOnline}
+              onCreate={() => setIsSubmitOpen(true)}
+              onResetFilters={resetFilters}
+              hasActiveFilters={activeFilterCount > 0}
+            />
           ) : (
             <div className="grid gap-4">
               {visibleProjects.map((project) => (
                 <ProjectCard
                   key={project.id}
                   project={project}
+                  signalRank={signalRankByProjectId.get(project.id) ?? null}
+                  highestCommittedAmount={highestCommittedAmount}
                   onPreview={() => void handleOpenPreview(project)}
                   onMatch={() => setMatchingProject(project)}
                   onRefresh={() => void handleRefreshProject(project)}
@@ -1680,6 +1816,44 @@ export default function App() {
 
         <aside className="space-y-4">
           <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+            <div className="mb-4 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <ChartBarBig className="h-4 w-4 text-cyan-200" />
+                <h3 className="font-black text-stone-100">시장 건강도</h3>
+              </div>
+              <span className="inline-flex items-center gap-1 rounded-full border border-stone-700 bg-stone-900/70 px-2 py-1 text-[10px] font-black text-stone-300">
+                <CalendarClock className="h-3 w-3" />
+                {formatRelativeTime(stats.lastUpdatedAt)} 갱신
+              </span>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.015_205)] p-3">
+                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">검증률</p>
+                <p className="mt-1 text-lg font-black text-stone-50">{stats.verificationRate}%</p>
+                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-stone-800">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-lime-300 to-cyan-300 transition-[width] duration-500"
+                    style={{ width: `${Math.max(0, Math.min(100, stats.verificationRate))}%` }}
+                  />
+                </div>
+              </div>
+              <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.015_205)] p-3">
+                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">프로젝트당 관심 신호</p>
+                <p className="mt-1 text-lg font-black text-stone-50">{averageSignalDensity}</p>
+                <p className="mt-2 text-xs text-stone-500">이상적으로는 프로젝트 노출 품질을 높이는 지표입니다.</p>
+              </div>
+              <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.015_205)] p-3 sm:col-span-2">
+                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">실시간 활동</p>
+                <p className="mt-2 text-sm leading-6 text-stone-200">
+                  누적 이벤트: <span className="text-cyan-200">{stats.totalSignals}</span> ·
+                  등록 프로젝트: <span className="inline-flex items-center gap-1 text-lime-200"><Users className="h-3.5 w-3.5" />{stats.totalProjects}</span> ·
+                  투자가능 후보: <span className="text-amber-200">{stats.totalInvestors}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
             <div className="mb-4 flex items-center gap-2">
               <Gauge className="h-4 w-4 text-lime-200" />
               <h3 className="font-black text-stone-100">Signal Leaderboard</h3>
@@ -1691,14 +1865,24 @@ export default function App() {
             ) : (
               <div className="space-y-3">
                 {stats.topSignals.map((item, index) => (
-                  <div key={item.id} className="rounded-lg border border-stone-800 bg-[oklch(16%_0.016_205)] p-3">
+                  <div
+                    key={item.id}
+                    className="rounded-lg border border-stone-800 bg-[oklch(16%_0.016_205)] p-3 transition hover:border-cyan-300/45"
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-[11px] font-black text-lime-200">#{index + 1} · {item.category}</p>
+                        <p className="text-[11px] font-black text-lime-200">
+                          #{index + 1} · {item.category}
+                        </p>
                         <p className="mt-1 truncate text-sm font-black text-stone-100">{item.title}</p>
                         <p className="mt-1 text-xs text-stone-500">{formatRelativeTime(item.latestEventAt ?? undefined)}</p>
+                        <p className="mt-1 inline-flex items-center gap-2 text-[11px] font-black text-stone-400">
+                          <TrendingUp className="h-3 w-3" />
+                          라이브 활동 점유 우선 반영
+                        </p>
                       </div>
-                      <span className="rounded-lg bg-lime-300 px-2 py-1 text-xs font-black text-slate-950">
+                      <span className="inline-flex items-center gap-2 rounded-lg bg-lime-300 px-2 py-1 text-xs font-black text-slate-950">
+                        <Signal className="h-3 w-3" />
                         {item.signalScore}
                       </span>
                     </div>
@@ -1771,12 +1955,23 @@ export default function App() {
             aria-modal="true"
             aria-label="라이브 프리뷰"
             tabIndex={-1}
-            className="absolute right-0 top-0 flex h-full w-full flex-col border-l border-stone-700 bg-[oklch(13%_0.016_205)] shadow-2xl lg:w-[72vw] xl:w-[62vw]"
+            className="absolute right-0 top-0 flex h-full w-full flex-col border-l border-stone-700 bg-[oklch(13%_0.016_205)] shadow-2xl lg:w-[72vw] xl:w-[62vw] motion-safe:animate-panel-slide-in"
           >
-            <div className="flex min-h-16 items-center justify-between gap-3 border-b border-stone-800 px-4">
+            <div className="flex min-h-16 items-start justify-between gap-3 border-b border-stone-800 px-4 py-3">
               <div className="min-w-0">
                 <p className="truncate text-sm font-black text-stone-100">{previewProject.title}</p>
                 <p className="truncate text-xs text-stone-500">{previewProject.liveUrl}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex min-h-7 items-center gap-1 rounded-full border border-lime-300/35 bg-lime-950/50 px-2 py-1 text-[11px] font-black text-lime-100">
+                    Signal {previewProject.signalScore ?? 0}
+                  </span>
+                  <span className="inline-flex min-h-7 items-center gap-1 rounded-full border border-stone-700 px-2 py-1 text-[11px] font-black text-stone-300">
+                    {previewProject.validation.success ? '검증 통과' : '검증 실패'}
+                  </span>
+                  <span className="inline-flex min-h-7 items-center gap-1 rounded-full border border-stone-700 px-2 py-1 text-[11px] font-black text-stone-300">
+                    최근 활동 {previewProject.eventSummary?.total ?? 0}건
+                  </span>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 {iframeLoading && <Loader2 className="h-4 w-4 animate-spin text-cyan-200" />}
@@ -2150,6 +2345,7 @@ function SignalTimeline({
     },
     { create: 0, preview: 0, outbound: 0, match: 0, refresh: 0 },
   );
+  const totalEvents = events.length;
 
   return (
     <aside id={titleId} className={`${className} min-h-0 border-l border-stone-800 bg-[oklch(15%_0.016_205)]`}>
@@ -2198,6 +2394,11 @@ function SignalTimeline({
                 </div>
               );
             })}
+            {events.length > 20 && (
+              <p className="pt-1 text-center text-xs text-stone-500">
+                최근 20건만 표시됩니다 · 총 {totalEvents}건
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -2207,6 +2408,8 @@ function SignalTimeline({
 
 function ProjectCard({
   project,
+  signalRank,
+  highestCommittedAmount,
   onPreview,
   onMatch,
   onRefresh,
@@ -2215,6 +2418,8 @@ function ProjectCard({
   isFavorite,
 }: {
   project: Project;
+  signalRank: number | null;
+  highestCommittedAmount: number;
   onPreview: () => void;
   onMatch: () => void;
   onRefresh: () => void;
@@ -2223,12 +2428,22 @@ function ProjectCard({
   isFavorite: boolean;
 }) {
   const isProtected = project.accessMode === 'screened';
+  const signalQuality = getSignalQuality(project.signalScore);
+  const responseTone = getResponseTimeTone(project.validation.responseTimeMs);
+  const signalRankText = signalRank === null ? null : `#${signalRank}`;
+  const signalTrendWidth = ((project.signalScore ?? 0) / 100) * 100;
+  const fundingPressurePercent = (project.committedAmountMax / highestCommittedAmount) * 100;
 
   return (
-    <article className="rounded-xl border border-stone-800 bg-[oklch(18%_0.018_205)] p-4 transition hover:border-cyan-300/35">
+    <article className="rounded-xl border border-stone-800 bg-[oklch(18%_0.018_205)] p-4 transition duration-200 motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-cyan-300/50 motion-safe:hover:shadow-[0_18px_50px_oklch(8%_0.02_205/0.5)]">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
         <div className="min-w-0">
           <div className="mb-3 flex flex-wrap items-center gap-2">
+            {signalRankText && (
+              <span className="inline-flex min-h-8 items-center justify-center rounded-lg border border-cyan-300/35 bg-cyan-950/70 px-2.5 text-[11px] font-black text-cyan-100">
+                {signalRankText} 랭크
+              </span>
+            )}
             <span className="inline-flex min-h-8 items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/60 px-2.5 text-xs font-bold text-stone-300">
               <Layers3 className="h-3.5 w-3.5 text-cyan-200" />
               {project.category}
@@ -2237,12 +2452,17 @@ function ProjectCard({
               {project.validation.success ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
               {project.validation.success ? `HTTP ${project.validation.status ?? 'OK'}` : 'Needs check'}
             </span>
-            {project.validation.responseTimeMs && (
-              <span className="inline-flex min-h-8 items-center gap-2 rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-2.5 text-xs font-black text-cyan-100">
-                <TimerReset className="h-3.5 w-3.5" />
-                {project.validation.responseTimeMs}ms
-              </span>
-            )}
+            <span
+              className={`inline-flex min-h-8 items-center gap-2 rounded-lg border px-2.5 text-xs font-black ${responseTone.tone}`}
+            >
+              <TimerReset className="h-3.5 w-3.5" />
+              {project.validation.responseTimeMs ? `${project.validation.responseTimeMs}ms` : responseTone.label}
+            </span>
+            <span
+              className={`inline-flex min-h-8 items-center gap-2 rounded-lg border px-2.5 text-[11px] font-black ${signalQuality.tone}`}
+            >
+              {signalQuality.label}
+            </span>
             {isProtected && (
               <span className="inline-flex min-h-8 items-center gap-2 rounded-lg border border-amber-300/30 bg-amber-300/10 px-2.5 text-xs font-black text-amber-100">
                 <ShieldCheck className="h-3.5 w-3.5" />
@@ -2257,6 +2477,21 @@ function ProjectCard({
           <div className="mt-4 flex min-w-0 items-center gap-2 text-xs text-stone-500">
             <Globe2 className="h-4 w-4 flex-shrink-0 text-stone-400" />
             <span className="truncate font-mono">{project.validation.finalUrl ?? project.liveUrl}</span>
+          </div>
+          <div className="mt-4 space-y-2">
+            <div className="h-1.5 overflow-hidden rounded-full bg-stone-800">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-cyan-200/80 to-lime-200/80"
+                style={{ width: `${Math.max(1, Math.min(100, signalTrendWidth))}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-[11px] font-black text-stone-400">
+              <span>신호 강도</span>
+              <span className="text-stone-100">{project.signalScore ?? 0}</span>
+            </div>
+            <p className="text-xs text-stone-500">
+              매칭 투자 유입: {project.eventSummary?.counts.match ?? 0} · 프리뷰: {project.eventSummary?.counts.preview ?? 0}
+            </p>
           </div>
         </div>
 
@@ -2273,6 +2508,12 @@ function ProjectCard({
             <div className="rounded-lg border border-stone-800 bg-stone-950/55 p-3">
               <p className="font-black text-stone-100">{formatWon(project.committedAmountMax)}</p>
               <p className="mt-1 text-stone-500">상단 금액</p>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-stone-800">
+                <div
+                  className="h-full rounded-full bg-amber-300/80"
+                  style={{ width: `${Math.max(0, Math.min(100, fundingPressurePercent))}%` }}
+                />
+              </div>
             </div>
             <div className="rounded-lg border border-stone-800 bg-stone-950/55 p-3">
               <p className="font-black text-stone-100">{project.eventSummary?.total ?? 0}</p>
@@ -2356,7 +2597,17 @@ function ProjectCard({
   );
 }
 
-function EmptyState({ apiOnline, onCreate }: { apiOnline: boolean; onCreate: () => void }) {
+function EmptyState({
+  apiOnline,
+  onCreate,
+  onResetFilters,
+  hasActiveFilters,
+}: {
+  apiOnline: boolean;
+  onCreate: () => void;
+  onResetFilters: () => void;
+  hasActiveFilters: boolean;
+}) {
   return (
     <div className="rounded-xl border border-dashed border-stone-700 bg-stone-950/50 p-8 text-center">
       <div className="mx-auto grid h-14 w-14 place-items-center rounded-lg bg-lime-300 text-slate-950">
@@ -2367,6 +2618,15 @@ function EmptyState({ apiOnline, onCreate }: { apiOnline: boolean; onCreate: () 
         샘플 데이터를 보여주지 않습니다. 백엔드 API에 실제 제출된 프로젝트만 노출해 투자자가 가짜
         신호와 실제 신호를 혼동하지 않도록 했습니다.
       </p>
+      {hasActiveFilters ? (
+        <p className="mx-auto mt-3 max-w-xl text-xs leading-6 text-stone-500">
+          현재 조건으로 조회 가능한 항목이 없습니다. 조건을 넓히거나 필터를 초기화하면 더 많은 프로젝트를 확인할 수 있습니다.
+        </p>
+      ) : (
+        <p className="mx-auto mt-3 max-w-xl text-xs leading-6 text-stone-500">
+          API 연결이 정상인 상태에서 등록된 프로젝트가 있으면 실시간 검증 대시보드에서 즉시 확인할 수 있습니다.
+        </p>
+      )}
       <button
         type="button"
         onClick={onCreate}
@@ -2376,6 +2636,16 @@ function EmptyState({ apiOnline, onCreate }: { apiOnline: boolean; onCreate: () 
         <Plus className="h-4 w-4" />
         첫 프로젝트 검증 등록
       </button>
+      {hasActiveFilters && (
+        <button
+          type="button"
+          onClick={onResetFilters}
+          className="ml-2 inline-flex min-h-11 items-center gap-2 rounded-lg border border-stone-700 px-4 text-sm font-black text-stone-300 transition hover:border-stone-500"
+        >
+          <X className="h-4 w-4" />
+          필터 초기화
+        </button>
+      )}
     </div>
   );
 }
