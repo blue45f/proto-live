@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const args = new Set(process.argv.slice(2));
 const isDryRun = args.has('--dry-run');
+const isReset = args.has('--reset');
 
 const ROOT = process.cwd();
 const ROOT_BACKEND_DIR = join(ROOT, 'backend');
@@ -34,6 +35,19 @@ const DEFAULT_STATE = {
   nextProposalId: 1,
   nextEventId: 1,
 };
+
+function createDefaultState() {
+  return {
+    users: [],
+    projects: [],
+    proposals: [],
+    events: [],
+    nextUserId: DEFAULT_STATE.nextUserId,
+    nextProjectId: DEFAULT_STATE.nextProjectId,
+    nextProposalId: DEFAULT_STATE.nextProposalId,
+    nextEventId: DEFAULT_STATE.nextEventId,
+  };
+}
 
 const ALLOWED_ROLES = new Set(['maker', 'investor']);
 const ALLOWED_ACCESS_MODES = new Set(['screened', 'open']);
@@ -116,7 +130,7 @@ function safeReadJson(filePath) {
 function loadStoreState() {
   const parsed = safeReadJson(STORE_PATH);
   if (!parsed || typeof parsed !== 'object' || parsed === null) {
-    return { ...DEFAULT_STATE };
+    return createDefaultState();
   }
 
   return {
@@ -486,24 +500,26 @@ function seed(state, fixtureState) {
 
 function main() {
   const fixtureState = loadFixture(FIXTURE_PATH);
-  const beforeState = loadStoreState();
+  const beforeState = isReset ? createDefaultState() : loadStoreState();
   const summary = seed(beforeState, fixtureState);
 
   const changed = summary.users + summary.projects + summary.proposals + summary.events;
 
-  if (changed === 0) {
+  if (changed === 0 && !isReset) {
     console.log('변경 항목이 없어 시드를 건너뜁니다.');
     return;
   }
 
   if (isDryRun) {
-    console.log('드라이 런 실행: 파일이 변경되지 않습니다.');
+    console.log(isReset ? '리셋 드라이 런 실행: 파일이 변경되지 않습니다.' : '드라이 런 실행: 파일이 변경되지 않습니다.');
     console.log(`예상 변경 항목: 사용자 ${summary.users}개, 프로젝트 ${summary.projects}개, 제안 ${summary.proposals}개, 이벤트 ${summary.events}개`);
     return;
   }
 
   writeStoreState(beforeState);
-  console.log(`테스트 데이터 시드 완료: 사용자 ${summary.users}개, 프로젝트 ${summary.projects}개, 제안 ${summary.proposals}개, 이벤트 ${summary.events}개 동기화`);
+  console.log(
+    `${isReset ? '테스트 데이터 리셋 완료' : '테스트 데이터 시드 완료'}: 사용자 ${summary.users}개, 프로젝트 ${summary.projects}개, 제안 ${summary.proposals}개, 이벤트 ${summary.events}개 동기화`,
+  );
 }
 
 main();

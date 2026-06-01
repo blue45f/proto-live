@@ -9,10 +9,14 @@ function runSeedDataScript(options: {
   fixturePath: string;
   storePath: string;
   dryRun?: boolean;
+  reset?: boolean;
 }) {
   const args = ['scripts/seed-test-data.mjs'];
   if (options.dryRun) {
     args.push('--dry-run');
+  }
+  if (options.reset) {
+    args.push('--reset');
   }
 
   return spawnSync(process.execPath, args, {
@@ -263,6 +267,149 @@ test('test-data seed updates existing user role and supports dry-run', () => {
     assert.equal(afterState.users[0].role, 'investor');
     assert.equal(afterState.projects.length, 1);
     assert.equal(afterState.projects[0].userId, 1);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('test-data seed reset restores the store to fixture data only', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'protolive-seed-data-reset-'));
+  const fixturePath = createFixture(
+    dir,
+    'fixture.json',
+    {
+      accounts: [
+        {
+          id: 1,
+          email: 'fixture.maker@protolive.local',
+          role: 'maker',
+        },
+      ],
+      projects: [
+        {
+          id: 1,
+          userId: 1,
+          title: 'Fixture Prototype',
+          description: '기준 샘플 프로토타입',
+          liveUrl: 'https://example.com/fixture',
+          category: 'AI & SaaS',
+          accessMode: 'open',
+          validation: {
+            success: true,
+            status: 200,
+            message: 'ok',
+            checkedAt: '2026-05-31T10:00:00.000Z',
+          },
+          createdAt: '2026-05-31T10:00:00.000Z',
+        },
+      ],
+      proposals: [],
+      events: [
+        {
+          id: 1,
+          projectId: 1,
+          type: 'create',
+          createdAt: '2026-05-31T10:05:00.000Z',
+        },
+      ],
+      nextUserId: 2,
+      nextProjectId: 2,
+      nextProposalId: 1,
+      nextEventId: 2,
+    },
+  );
+  const storePath = join(dir, 'store.json');
+
+  writeFileSync(
+    storePath,
+    JSON.stringify(
+      {
+        users: [
+          {
+            id: 10,
+            email: 'stale.user@protolive.local',
+            role: 'investor',
+          },
+        ],
+        projects: [
+          {
+            id: 10,
+            userId: 10,
+            title: 'Stale Prototype',
+            description: '삭제되어야 하는 임시 데이터',
+            liveUrl: 'https://example.com/stale',
+            category: 'Other',
+            accessMode: 'open',
+            protectionNoticeAccepted: true,
+            investorCount: 1,
+            matchCount: 1,
+            committedAmountMin: 10_000_000,
+            committedAmountMax: 30_000_000,
+            validation: {
+              success: true,
+              status: 200,
+              message: 'stale',
+              checkedAt: '2026-05-30T10:00:00.000Z',
+            },
+            createdAt: '2026-05-30T10:00:00.000Z',
+          },
+        ],
+        proposals: [
+          {
+            id: 10,
+            projectId: 10,
+            fundingRangeId: 'pre-seed-10-30',
+            message: 'stale proposal',
+            createdAt: '2026-05-30T10:10:00.000Z',
+          },
+        ],
+        events: [
+          {
+            id: 10,
+            projectId: 10,
+            type: 'preview',
+            createdAt: '2026-05-30T10:20:00.000Z',
+          },
+        ],
+        nextUserId: 11,
+        nextProjectId: 11,
+        nextProposalId: 11,
+        nextEventId: 11,
+      },
+      null,
+      2,
+    ),
+    'utf8',
+  );
+
+  try {
+    const result = runSeedDataScript({ fixturePath, storePath, reset: true });
+
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /리셋/);
+
+    const state = readStore(storePath);
+    assert.deepEqual(
+      state.users.map((user: { email: string }) => user.email),
+      ['fixture.maker@protolive.local'],
+    );
+    assert.deepEqual(
+      state.projects.map((project: { title: string }) => project.title),
+      ['Fixture Prototype'],
+    );
+    assert.equal(state.proposals.length, 0);
+    assert.deepEqual(
+      state.events.map((event: { id: number; projectId: number; type: string }) => ({
+        id: event.id,
+        projectId: event.projectId,
+        type: event.type,
+      })),
+      [{ id: 1, projectId: 1, type: 'create' }],
+    );
+    assert.equal(state.nextUserId, 2);
+    assert.equal(state.nextProjectId, 2);
+    assert.equal(state.nextProposalId, 1);
+    assert.equal(state.nextEventId, 2);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
