@@ -2,6 +2,13 @@
 
 본 파일은 로컬 개발/QA에서 사용하는 테스트 계정 정보입니다. 실제 인증 시스템이 붙지 않는 현재 버전에서는 이메일만으로 메이커/투자자 역할이 구분됩니다.
 
+로컬 스토어 반영:
+```bash
+npm run seed:test-accounts
+```
+
+`backend/fixtures/test-accounts.json`에 있는 계정은 `backend/data/protolive-store.json`(혹은 `PROJECT_STORE_PATH`) 사용자 목록에 반영됩니다.
+
 ## 파일 위치
 - `backend/fixtures/test-accounts.json`
 

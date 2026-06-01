@@ -9,6 +9,7 @@
     "test": "npm --prefix backend run test",
     "lint": "npm --prefix frontend run lint",
     "check": "npm run build && npm run lint && npm run test",
-    "smoke": "python3 scripts/smoke_ui.py"
+    "smoke": "python3 scripts/smoke_ui.py",
+    "seed:test-accounts": "npm --prefix backend run seed:test-accounts"
   }
 }

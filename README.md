@@ -12,6 +12,13 @@ npm run setup
 npm run dev
 ```
 
+테스트 계정 시드 생성이 필요한 경우:
+```bash
+npm run seed:test-accounts
+```
+
+시드는 `backend/fixtures/test-accounts.json`의 계정을 기준으로 로컬 스토어 사용자(`PROJECT_STORE_PATH`)에 반영합니다.
+
 백엔드가 `http://localhost:3003/api` 에서 동작하고, 프론트엔드가 `http://localhost:5174`에서 실행됩니다.
 
 ### 1. 백엔드 기동 (NestJS API)
