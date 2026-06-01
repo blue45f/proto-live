@@ -7,6 +7,7 @@ import {
   PROJECT_CATEGORIES,
   ProjectCategory,
 } from './project.constants';
+import { ProjectQueryInput } from './dto/get-projects-query.dto';
 import {
   MatchProposal,
   Project,
@@ -160,14 +161,63 @@ export class ProjectsService {
     }
   }
 
-  async getAllProjects(): Promise<Project[]> {
-    return [...this.projects]
+  async getAllProjects(query: ProjectQueryInput = {}): Promise<Project[]> {
+    const sortBy = query.sort ?? 'signal';
+    const searchText = (query.q ?? '').trim().toLowerCase();
+    const minSignal = query.minSignal;
+
+    const filtered = this.projects
+      .filter((project) => {
+        if (query.category && project.category !== query.category) {
+          return false;
+        }
+
+        if (query.accessMode && project.accessMode !== query.accessMode) {
+          return false;
+        }
+
+        if (query.onlyVerified && !project.validation.success) {
+          return false;
+        }
+
+        if (searchText.length > 0) {
+          const payload = [
+            project.title,
+            project.description,
+            project.category,
+            project.liveUrl,
+          ]
+            .join(' ')
+            .toLowerCase();
+
+          if (!payload.includes(searchText)) {
+            return false;
+          }
+        }
+
+        return true;
+      })
       .map((project) => this.hydrateProject(project))
+      .filter((project) => (minSignal === undefined ? true : (project.signalScore ?? 0) >= minSignal))
       .sort((a, b) => {
+        if (sortBy === 'recent') {
+          const aTime = a.eventSummary?.latestAt ? new Date(a.eventSummary.latestAt).getTime() : 0;
+          const bTime = b.eventSummary?.latestAt ? new Date(b.eventSummary.latestAt).getTime() : 0;
+          const diff = bTime - aTime;
+          if (diff !== 0) return diff;
+        }
+
+        if (sortBy === 'created') {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        }
+
         const scoreDiff = (b.signalScore ?? 0) - (a.signalScore ?? 0);
         if (scoreDiff !== 0) return scoreDiff;
-        return b.createdAt.getTime() - a.createdAt.getTime();
+
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
+
+    return filtered;
   }
 
   async getProjectById(id: number): Promise<Project> {
@@ -277,7 +327,8 @@ export class ProjectsService {
     }
 
     const project = this.findProject(id);
-    if (project.accessMode === 'screened' && (type === 'preview' || type === 'outbound')) {
+    const hasApprovedAccess = project.accessMode === 'open' || project.matchCount > 0;
+    if (project.accessMode === 'screened' && (type === 'preview' || type === 'outbound') && !hasApprovedAccess) {
       throw new BadRequestException('선별 공개 프로젝트는 매칭 요청 뒤 URL을 공유할 수 있습니다.');
     }
 

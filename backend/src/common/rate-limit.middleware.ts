@@ -36,22 +36,35 @@ export class TokenBucketRateLimiter {
       resetAt: bucket.resetAt,
     };
   }
+
+  cleanup(now = Date.now()) {
+    for (const [clientKey, bucket] of this.buckets) {
+      if (bucket.resetAt <= now) {
+        this.buckets.delete(clientKey);
+      }
+    }
+  }
 }
 
 @Injectable()
 export class RateLimitMiddleware implements NestMiddleware {
   private readonly limiter = new TokenBucketRateLimiter({
-    windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS ?? 60_000),
-    maxRequests: Number(process.env.RATE_LIMIT_MAX_REQUESTS ?? 120),
+    windowMs: Math.max(1, Number(process.env.RATE_LIMIT_WINDOW_MS ?? 60_000) || 60_000),
+    maxRequests: Math.max(1, Number(process.env.RATE_LIMIT_MAX_REQUESTS ?? 120) || 120),
   });
 
+  private lastCleanupAt = 0;
+  private readonly cleanupIntervalMs = 30_000;
+
   use(request: Request, response: Response, next: NextFunction) {
+    const now = Date.now();
+
     const forwardedFor = request.headers['x-forwarded-for'];
     const clientKey = Array.isArray(forwardedFor)
       ? forwardedFor[0]
       : forwardedFor?.split(',')[0]?.trim() || request.ip || request.socket.remoteAddress || 'unknown';
 
-    const result = this.limiter.consume(clientKey);
+    const result = this.limiter.consume(clientKey, now);
     response.setHeader('X-RateLimit-Remaining', String(result.remaining));
     response.setHeader('X-RateLimit-Reset', new Date(result.resetAt).toISOString());
 
@@ -64,7 +77,11 @@ export class RateLimitMiddleware implements NestMiddleware {
       return;
     }
 
+    if (now >= this.lastCleanupAt + this.cleanupIntervalMs) {
+      this.lastCleanupAt = now;
+      this.limiter.cleanup(now);
+    }
+
     next();
   }
 }
-
