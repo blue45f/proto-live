@@ -92,6 +92,7 @@ const EMPTY_CONFIG: MarketConfig = {
 };
 
 const FILTER_PRESET_STORAGE_KEY = 'protolive:filters:v1';
+const FILTER_UI_STORAGE_KEY = 'protolive:filters-ui:v1';
 
 const FUNDING_SORT_OPTIONS: ProjectListQuery['sort'][] = ['signal', 'recent', 'created', 'funding'];
 
@@ -383,13 +384,28 @@ export default function App() {
   const [matchMessage, setMatchMessage] = useState('');
   const [isSendingMatch, setIsSendingMatch] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(() => {
-    return (
+    const hasAdvancedFilterPreset =
       (filterPreset.accessMode !== 'All' && filterPreset.accessMode !== undefined) ||
       (filterPreset.onlyVerified ?? false) ||
       (filterPreset.favorites ?? false) ||
       (filterPreset.minSignal ?? 0) > 0 ||
       (filterPreset.minFundingAmount ?? 0) > 0 ||
-      (filterPreset.maxFundingAmount ?? 0) > 0
+      (filterPreset.maxFundingAmount ?? 0) > 0;
+
+    try {
+      const raw = localStorage.getItem(FILTER_UI_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed.showAdvancedFilters === 'boolean') {
+          return parsed.showAdvancedFilters;
+        }
+      }
+    } catch {
+      // Ignore UI persistence reads errors and fall back to presets.
+    }
+
+    return (
+      hasAdvancedFilterPreset
     );
   });
   const isFilterInitialized = useRef(false);
@@ -678,6 +694,14 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('protolive:favorites', JSON.stringify(Array.from(favoriteProjectIds)));
   }, [favoriteProjectIds]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    localStorage.setItem(FILTER_UI_STORAGE_KEY, JSON.stringify({ showAdvancedFilters }));
+  }, [showAdvancedFilters]);
 
   useEffect(() => {
     if (!isFilterInitialized.current) {
@@ -1269,7 +1293,7 @@ export default function App() {
                 ))}
                 <button
                   type="button"
-                  onClick={() => setShowAdvancedFilters((value) => !value)}
+                  onClick={() => setShowAdvancedFilters((value: boolean) => !value)}
                   className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 text-xs font-black text-stone-300 hover:border-cyan-300/50 hover:text-cyan-100"
                 >
                   {showAdvancedFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
