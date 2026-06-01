@@ -989,6 +989,18 @@ function getRecommendationTone(priority: 'high' | 'medium' | 'low') {
   return 'border-cyan-300/35 bg-cyan-950/30 text-cyan-100';
 }
 
+function getRecommendationPriorityTone(priority: 'high' | 'medium' | 'low') {
+  if (priority === 'high') return 'border-red-300/45 bg-red-500/14 text-red-100';
+  if (priority === 'medium') return 'border-amber-300/45 bg-amber-500/14 text-amber-100';
+  return 'border-cyan-300/45 bg-cyan-500/14 text-cyan-100';
+}
+
+function getRecommendationPriorityLabel(priority: 'high' | 'medium' | 'low') {
+  if (priority === 'high') return '긴급';
+  if (priority === 'medium') return '중간';
+  return '완화';
+}
+
 const PRIORITY_WEIGHT: Record<AdminActionRecommendation['priority'], number> = {
   high: 2,
   medium: 1,
@@ -1046,6 +1058,7 @@ export default function App() {
   const [apiOnline, setApiOnline] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isApplyingAllAdminRecommendations, setIsApplyingAllAdminRecommendations] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [view, setView] = useState<AppView>(readInitialView());
   const [session, setSession] = useState<AuthSession | null>(() => readSession());
@@ -1455,10 +1468,10 @@ export default function App() {
     setPage(1);
   }, []);
 
-  const applyObservedConversionRates = useCallback(() => {
+  const applyObservedConversionRates = useCallback((): boolean => {
     if (!isAdminDashboardAvailable) {
       toast('error', '데이터 없음', '관리자 대시보드 집계가 준비되지 않았습니다. 새로고침 후 다시 시도하세요.');
-      return;
+      return false;
     }
 
     const observedMakerRate =
@@ -1480,6 +1493,7 @@ export default function App() {
     }));
 
     toast('info', '운영 데이터 반영', '관측된 전환율로 수익 모델 가정을 업데이트했습니다.');
+    return true;
   }, [
     adminDashboard.conversionFunnel.matchPerProjectRate,
     adminDashboard.conversionFunnel.previewToMatchRate,
@@ -1505,7 +1519,7 @@ export default function App() {
     setPage(1);
   }, []);
 
-  const applyAdminRecommendation = useCallback((entry: AdminActionRecommendation) => {
+  const applyAdminRecommendation = useCallback((entry: AdminActionRecommendation): boolean => {
     const moveToMarket = () => {
       setView('market');
       setPage(1);
@@ -1513,9 +1527,7 @@ export default function App() {
     const focusRiskProject = adminDashboard.riskProjects[0];
 
     if (entry.area === '수익 모델') {
-      applyObservedConversionRates();
-      toast('info', '추천 액션 적용', '관측 전환율을 수익 모델 가정에 반영했습니다.');
-      return;
+      return applyObservedConversionRates();
     }
 
     resetFilters();
@@ -1526,7 +1538,7 @@ export default function App() {
       setSortMode('recent');
       moveToMarket();
       toast('info', '추천 액션 적용', `${focusRiskProject.title} 리스크 점검 필터를 열었습니다.`);
-      return;
+      return true;
     }
 
     if (entry.area === '퍼널 개선') {
@@ -1534,43 +1546,70 @@ export default function App() {
       setSortMode('funding');
       moveToMarket();
       toast('info', '추천 액션 적용', '검증 프로젝트를 투자 규모순으로 열어 매칭 CTA 점검 대상을 좁혔습니다.');
-      return;
+      return true;
     }
 
     if (entry.area === '활동성') {
       setSortMode('recent');
       moveToMarket();
       toast('info', '추천 액션 적용', '최신 신호순으로 전환해 활동이 낮은 프로젝트를 빠르게 비교합니다.');
-      return;
+      return true;
     }
 
     if (entry.area === '인프라' || entry.area === '검증 게이트') {
       setSortMode('recent');
       moveToMarket();
       toast('info', '추천 액션 적용', '최근 등록/검증 흐름으로 이동해 URL 응답 상태를 재점검합니다.');
-      return;
+      return true;
     }
 
     moveToMarket();
     toast('info', '추천 액션 적용', '시장 워크스페이스로 이동해 추천 기준을 점검합니다.');
+    return true;
   }, [adminDashboard.riskProjects, applyObservedConversionRates, resetFilters]);
 
   const applyAllAdminRecommendations = useCallback(() => {
+    if (isApplyingAllAdminRecommendations) {
+      return;
+    }
+
     if (orderedAdminRecommendations.length === 0) {
       toast('info', '일괄 적용 미실행', '현재 처리할 운영 추천 항목이 없습니다.');
       return;
     }
 
-    orderedAdminRecommendations.forEach((entry) => {
-      applyAdminRecommendation(entry);
-    });
+    setIsApplyingAllAdminRecommendations(true);
+    const orderedQueue = [...orderedAdminRecommendations];
+    let appliedCount = 0;
+    let skippedCount = 0;
 
-    toast(
-      'success',
-      '일괄 추천 적용',
-      `우선순위 순으로 운영 추천 ${orderedAdminRecommendations.length}건을 모두 실행했습니다.`,
-    );
-  }, [applyAdminRecommendation, orderedAdminRecommendations]);
+    try {
+      orderedQueue.forEach((entry) => {
+        const applied = applyAdminRecommendation(entry);
+        if (applied) {
+          appliedCount += 1;
+        } else {
+          skippedCount += 1;
+        }
+      });
+
+      if (skippedCount === 0) {
+        toast(
+          'success',
+          '일괄 추천 적용',
+          `우선순위 순으로 운영 추천 ${appliedCount}건을 모두 실행했습니다.`,
+        );
+      } else {
+        toast(
+          'info',
+          '일괄 추천 적용',
+          `운영 추천 ${orderedQueue.length}건 중 ${appliedCount}건 실행, ${skippedCount}건은 현재 조건으로 건너뛰었습니다.`,
+        );
+      }
+    } finally {
+      setIsApplyingAllAdminRecommendations(false);
+    }
+  }, [isApplyingAllAdminRecommendations, orderedAdminRecommendations, applyAdminRecommendation]);
 
   const loadSnapshot = useCallback(async (showLoading = false) => {
     if (showLoading) setIsRefreshing(true);
@@ -2910,17 +2949,37 @@ export default function App() {
                     <span className="protolive-badge rounded-full border border-cyan-300/35 bg-cyan-950/40 px-2 py-0.5 text-xs font-black text-cyan-100">
                       {orderedAdminRecommendations.length}건
                     </span>
+                    {orderedAdminRecommendations[0] ? (
+                      <span
+                        className={`rounded-full border px-2 py-0.5 text-[11px] font-black ${
+                          getRecommendationPriorityTone(orderedAdminRecommendations[0].priority)
+                        }`}
+                      >
+                        최상위: {getRecommendationPriorityLabel(orderedAdminRecommendations[0].priority)} 우선순위
+                      </span>
+                    ) : null}
                   </div>
                   <button
                     type="button"
                     onClick={() => void applyAllAdminRecommendations()}
-                    className="protolive-btn inline-flex min-h-8 items-center justify-center gap-2 rounded-lg border border-cyan-300/40 px-3 text-xs font-black text-cyan-100 transition hover:bg-cyan-300/10 disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={orderedAdminRecommendations.length === 0}
+                    className={`protolive-btn inline-flex min-h-8 min-w-32 items-center justify-center gap-2 rounded-lg border px-3 text-xs font-black text-cyan-100 transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                      isApplyingAllAdminRecommendations
+                        ? 'border-amber-300/45 bg-amber-950/45 animate-pulse hover:bg-amber-900/20'
+                        : 'border-cyan-300/45 hover:bg-cyan-300/12'
+                    }`}
+                    disabled={orderedAdminRecommendations.length === 0 || isApplyingAllAdminRecommendations}
                   >
-                    <Radar className="h-3.5 w-3.5" />
-                    우선순위 일괄 실행
+                    {isApplyingAllAdminRecommendations
+                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      : <Radar className="h-3.5 w-3.5" />}
+                    {isApplyingAllAdminRecommendations ? '일괄 적용 중...' : '우선순위 일괄 실행'}
                   </button>
                 </div>
+                {isApplyingAllAdminRecommendations ? (
+                  <p className="mb-3 rounded-lg border border-amber-300/30 bg-amber-950/20 px-3 py-2 text-xs text-amber-100">
+                    우선순위 큐 전체 {orderedAdminRecommendations.length}건을 즉시 순차 실행합니다. 적용 완료 토스트를 확인하세요.
+                  </p>
+                ) : null}
                 {orderedAdminRecommendations.length === 0 ? (
                   <p className="rounded-lg border border-dashed border-stone-700 p-3 text-sm text-stone-500">
                     즉시 조치할 항목은 없습니다.
@@ -2930,20 +2989,32 @@ export default function App() {
                     {orderedAdminRecommendations.map((entry, index) => (
                       <div
                         key={`${entry.area}-${index}`}
-                        className={`protolive-reco-item rounded-lg border p-2 text-xs ${getRecommendationTone(entry.priority)}`}
+                        className={`protolive-reco-item animate-panel-slide-in rounded-lg border p-3 text-xs ${
+                          getRecommendationTone(entry.priority)
+                        }`}
+                        style={{ animationDelay: `${index * 40}ms` }}
                       >
-                        <p className="mb-1 font-black">
-                          [{entry.area}] {entry.title}
-                        </p>
+                        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                          <p className="font-black leading-tight">
+                            [{entry.area}] {entry.title}
+                          </p>
+                          <span
+                            className={`rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] ${getRecommendationPriorityTone(
+                              entry.priority,
+                            )}`}
+                          >
+                            {getRecommendationPriorityLabel(entry.priority)}
+                          </span>
+                        </div>
                         <p className="leading-5 text-stone-300">{entry.why}</p>
                         <p className="mt-1 break-words text-stone-200">
                           <span className="font-black">Action:</span> {entry.nextAction}
                         </p>
-                        <p className="mt-1 text-stone-400">효과 추정: {entry.expectedImpact}</p>
+                        <p className="mt-1 text-stone-200">효과 추정: {entry.expectedImpact}</p>
                         <button
                           type="button"
                           onClick={() => applyAdminRecommendation(entry)}
-                          className="protolive-btn mt-2 inline-flex min-h-8 items-center justify-center gap-2 rounded-lg border border-cyan-300/40 px-3 text-[11px] font-black text-cyan-100 transition hover:bg-cyan-300/10"
+                          className="protolive-btn mt-2 inline-flex min-h-8 items-center justify-center gap-2 rounded-lg border border-cyan-300/35 bg-sky-950/40 px-3 text-[11px] font-black text-cyan-100 transition hover:bg-cyan-300/20"
                         >
                           <Radar className="h-3.5 w-3.5" />
                           추천 적용
