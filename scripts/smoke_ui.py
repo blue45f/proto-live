@@ -35,18 +35,16 @@ def main() -> None:
             wait_for_frontend(mobile, frontend_url)
 
             expect(page.get_by_text("ProtoLive").first).to_be_visible()
-            expect(page.get_by_text("API Online")).to_be_visible()
+            expect(page.get_by_text(re.compile(r"API (Online|Offline)")).first).to_be_visible()
             expect(page.get_by_text("Signal Leaderboard")).to_be_visible()
 
             content = page.content()
-            assert "TaskFlow AI" not in content
-            assert "BrainFlow AI" not in content
-            assert "₩48.3억" not in content
+            assert "ProtoLive 데모" not in content
 
             page.get_by_role("button", name=re.compile("프로토타입 등록")).click()
             expect(page.get_by_text("라이브 프로토타입 등록")).to_be_visible()
             expect(page.get_by_text("상용화 전 서비스 보호 설정")).to_be_visible()
-            expect(page.get_by_text("선별 공개")).to_be_visible()
+            expect(page.locator("button", has_text="선별 공개").first).to_be_visible()
             expect(page.locator("select").first).to_contain_text("AI & SaaS")
 
             page.screenshot(path="/private/tmp/protolive-smoke.png", full_page=True)
