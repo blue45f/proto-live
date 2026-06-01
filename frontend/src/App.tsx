@@ -2679,28 +2679,28 @@ export default function App() {
       <header className="protolive-header sticky top-0 z-40 border-b border-cyan-900/40 bg-[oklch(14%_0.018_205)/0.92] backdrop-blur">
         <div className="mx-auto flex min-h-[76px] max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:flex-nowrap lg:px-8">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-lg bg-lime-300 text-slate-950 shadow-[0_0_0_1px_oklch(89%_0.18_125/0.25)]">
+            <div className="protolive-logo grid h-11 w-11 place-items-center rounded-lg bg-lime-300 text-slate-950 shadow-[0_0_0_1px_oklch(89%_0.18_125/0.25)]">
               <Zap className="h-5 w-5" />
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-black tracking-tight text-stone-50">ProtoLive</h1>
-                <span className="rounded-full border border-lime-400/30 bg-lime-300/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-lime-200">
+                <h1 className="protolive-title text-xl font-black tracking-tight text-stone-50">ProtoLive</h1>
+                <span className="protolive-badge rounded-full border border-lime-400/30 bg-lime-300/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-lime-200">
                   Live Diligence
                 </span>
               </div>
-              <p className="truncate text-xs font-medium text-stone-400">
+              <p className="protolive-subtitle truncate text-xs font-medium text-stone-400">
                 {isAdminView ? '수익 모델·운영 지표를 실험하는 관리자 대시보드' : '검증된 MVP만 검토하는 실시간 투자 매칭 워크스페이스'}
               </p>
             </div>
           </div>
 
           <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2 lg:flex-nowrap">
-            <div className="hidden shrink-0 items-center gap-2 rounded-full border border-stone-700/80 bg-stone-900/70 px-3 py-2 text-xs font-bold lg:flex">
+            <div className="protolive-pill-group hidden shrink-0 items-center gap-2 rounded-full border border-stone-700/80 bg-stone-900/70 px-3 py-2 text-xs font-bold lg:flex">
               <button
                 type="button"
                 onClick={() => switchView('market')}
-                className={`rounded-full px-2 py-1 transition ${
+                className={`protolive-pill rounded-full px-2 py-1 transition ${
                   isAdminView ? 'text-stone-400 hover:text-stone-100' : 'bg-cyan-300 text-slate-950'
                 }`}
               >
@@ -2709,7 +2709,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => switchView('admin')}
-                className={`rounded-full px-2 py-1 transition ${
+                className={`protolive-pill rounded-full px-2 py-1 transition ${
                   isAdminView ? 'bg-cyan-300 text-slate-950' : 'text-stone-400 hover:text-stone-100'
                 }`}
               >
@@ -2717,7 +2717,7 @@ export default function App() {
               </button>
             </div>
             <div
-              className={`hidden shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold xl:flex ${
+              className={`protolive-status hidden shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold xl:flex ${
                 apiOnline
                   ? 'border-lime-400/30 bg-lime-300/10 text-lime-200'
                   : 'border-red-400/30 bg-red-500/10 text-red-200'
@@ -2727,15 +2727,21 @@ export default function App() {
               {apiOnline ? 'API Online' : 'API Offline'}
               </div>
               {isAuthenticated ? (
-                <div className="hidden shrink-0 items-center gap-2 rounded-full border border-stone-700/80 bg-stone-900/70 px-3 py-2 text-xs font-black lg:flex">
+                <div className="protolive-user-chip hidden shrink-0 items-center gap-2 rounded-full border border-stone-700/80 bg-stone-900/70 px-3 py-2 text-xs font-black lg:flex">
                   <span className="hidden max-w-28 truncate xl:inline">{session?.name}</span>
-                  <span className={`shrink-0 rounded-full border px-2 py-0.5 ${canAccessAdmin ? 'border-lime-300/40 text-lime-200' : 'border-amber-300/40 text-amber-100'}`}>
+                  <span
+                    className={`protolive-badge shrink-0 rounded-full border px-2 py-0.5 ${
+                      canAccessAdmin
+                        ? 'border-lime-300/40 text-lime-200'
+                        : 'border-amber-300/40 text-amber-100'
+                    }`}
+                  >
                     {session ? resolveRoleLabel(session.role) : ''}
                   </span>
                   <button
                     type="button"
                     onClick={() => handleLogout()}
-                    className="shrink-0 whitespace-nowrap rounded-full border border-stone-600/70 px-2 py-0.5 text-stone-300 transition hover:border-red-300/60 hover:text-red-100"
+                    className="protolive-pill shrink-0 whitespace-nowrap rounded-full border border-stone-600/70 px-2 py-0.5 text-stone-300 transition hover:border-red-300/60 hover:text-red-100"
                     aria-label="로그아웃"
                   >
                     로그아웃
@@ -2745,7 +2751,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsLoginOpen(true)}
-                  className="grid min-h-11 min-w-11 place-items-center rounded-lg border border-stone-700/80 bg-stone-900/70 px-3 text-xs font-black text-stone-300 transition hover:border-cyan-300/40 hover:text-cyan-100"
+                  className="protolive-btn-grid grid min-h-11 min-w-11 place-items-center rounded-lg border border-stone-700/80 bg-stone-900/70 px-3 text-xs font-black text-stone-300 transition hover:border-cyan-300/40 hover:text-cyan-100"
                   aria-label="로그인"
                 >
                   <span className="hidden sm:inline">로그인</span>
@@ -2756,7 +2762,7 @@ export default function App() {
               type="button"
               onClick={() => void handleRefreshAll()}
               disabled={isRefreshing || !apiOnline || projects.length === 0}
-              className="grid min-h-11 min-w-11 place-items-center rounded-lg border border-stone-700/80 bg-stone-900/70 text-stone-300 transition hover:border-cyan-300/40 hover:text-cyan-100 disabled:cursor-not-allowed disabled:opacity-40"
+              className="protolive-btn-grid grid min-h-11 min-w-11 place-items-center rounded-lg border border-stone-700/80 bg-stone-900/70 text-stone-300 transition hover:border-cyan-300/40 hover:text-cyan-100 disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="전체 프로젝트 상태 새로고침"
               title="전체 프로젝트 상태 새로고침 (⌘/Ctrl + R)"
             >
@@ -2768,7 +2774,7 @@ export default function App() {
               disabled={!apiOnline || config.categories.length === 0}
               aria-label="프로토타입 등록"
               title="프로토타입 등록 (⌘/Ctrl + N)"
-              className="inline-flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-lime-300 px-3 text-sm font-black text-slate-950 transition hover:bg-lime-200 active:translate-y-px disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-stone-400 sm:px-4"
+              className="protolive-btn protolive-btn-primary inline-flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-lime-300 px-3 text-sm font-black text-slate-950 transition hover:bg-lime-200 active:translate-y-px disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-stone-400 sm:px-4"
             >
               <Plus className="h-4 w-4" />
               <span className="hidden lg:inline">프로토타입 등록</span>
@@ -2786,19 +2792,19 @@ export default function App() {
             <div className="protolive-hero rounded-xl border border-cyan-900/50 bg-[oklch(18%_0.018_205)] p-5 shadow-[0_24px_80px_oklch(8%_0.02_205/0.45)]">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-300/10 px-3 py-1 text-xs font-black text-cyan-100">
+                  <p className="protolive-badge mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-300/10 px-3 py-1 text-xs font-black text-cyan-100">
                     <DollarSign className="h-3.5 w-3.5" />
                     Revenue Model 시뮬레이션 모드
                   </p>
-                  <h2 className="text-2xl font-black tracking-tight text-stone-50 sm:text-3xl">
+                  <h2 className="protolive-hero-title text-2xl font-black tracking-tight text-stone-50 sm:text-3xl">
                     수익 가정을 바꿔 보면서 운영 정책을 설계하세요.
                   </h2>
-                  <p className="mt-3 max-w-[70ch] text-sm leading-6 text-stone-300">
+                  <p className="protolive-subtitle mt-3 max-w-[70ch] text-sm leading-6 text-stone-300">
                     유저 수, 검증률, 현재 시장 신호를 바탕으로 월/연 매출을 빠르게 계산해
                     정책 의사결정에 쓰는 내부 용 대시보드입니다.
                   </p>
                 </div>
-                <div className="rounded-lg border border-stone-700/70 bg-stone-950/55 p-3 text-xs text-stone-400">
+                <div className="protolive-mini-tile rounded-lg border border-stone-700/70 bg-stone-950/55 p-3 text-xs text-stone-400">
                   <div className="flex items-center gap-2 font-black text-stone-200">
                     <CalendarClock className="h-4 w-4 text-cyan-200" />
                     최근 동기화
@@ -2821,7 +2827,7 @@ export default function App() {
             )}
 
             <div className="grid gap-4 xl:grid-cols-3">
-              <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+            <div className="protolive-panel rounded-xl border border-stone-800 bg-stone-950/65 p-4">
                 <div className="mb-4 flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4 text-lime-200" />
                   <h3 className="font-black text-stone-100">플랫폼 건강도</h3>
@@ -2861,7 +2867,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+            <div className="protolive-panel rounded-xl border border-stone-800 bg-stone-950/65 p-4">
                 <div className="mb-4 flex items-center gap-2">
                   <Clock3 className="h-4 w-4 text-amber-200" />
                   <h3 className="font-black text-stone-100">리스크 상위 프로젝트</h3>
@@ -2896,12 +2902,12 @@ export default function App() {
                 )}
               </div>
 
-              <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+              <div className="protolive-panel rounded-xl border border-stone-800 bg-stone-950/65 p-4">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                   <AlertTriangle className="h-4 w-4 text-cyan-200" />
                   <div className="flex min-w-0 items-center gap-2">
                     <h3 className="font-black text-stone-100">운영 추천 액션</h3>
-                    <span className="rounded-full border border-cyan-300/35 bg-cyan-950/40 px-2 py-0.5 text-xs font-black text-cyan-100">
+                    <span className="protolive-badge rounded-full border border-cyan-300/35 bg-cyan-950/40 px-2 py-0.5 text-xs font-black text-cyan-100">
                       {orderedAdminRecommendations.length}건
                     </span>
                   </div>
@@ -2924,7 +2930,7 @@ export default function App() {
                     {orderedAdminRecommendations.map((entry, index) => (
                       <div
                         key={`${entry.area}-${index}`}
-                        className={`rounded-lg border p-2 text-xs ${getRecommendationTone(entry.priority)}`}
+                        className={`protolive-reco-item rounded-lg border p-2 text-xs ${getRecommendationTone(entry.priority)}`}
                       >
                         <p className="mb-1 font-black">
                           [{entry.area}] {entry.title}
@@ -2937,7 +2943,7 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => applyAdminRecommendation(entry)}
-                          className="mt-2 inline-flex min-h-8 items-center justify-center gap-2 rounded-lg border border-cyan-300/40 px-3 text-[11px] font-black text-cyan-100 transition hover:bg-cyan-300/10"
+                          className="protolive-btn mt-2 inline-flex min-h-8 items-center justify-center gap-2 rounded-lg border border-cyan-300/40 px-3 text-[11px] font-black text-cyan-100 transition hover:bg-cyan-300/10"
                         >
                           <Radar className="h-3.5 w-3.5" />
                           추천 적용
