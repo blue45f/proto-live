@@ -14,7 +14,8 @@ const BACKEND_DIR =
   existsSync(join(ROOT, 'package.json')) && existsSync(ROOT_BACKEND_DIR)
     ? ROOT_BACKEND_DIR
     : dirname(SCRIPT_DIR);
-const FIXTURE_PATH = join(BACKEND_DIR, 'fixtures', 'test-accounts.json');
+const FIXTURE_PATH =
+  process.env.TEST_ACCOUNTS_FIXTURE_PATH ?? join(BACKEND_DIR, 'fixtures', 'test-accounts.json');
 const DEFAULT_STORE_PATH = join(BACKEND_DIR, 'data', 'protolive-store.json');
 const STORE_PATH = process.env.PROJECT_STORE_PATH ?? DEFAULT_STORE_PATH;
 
