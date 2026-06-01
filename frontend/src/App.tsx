@@ -332,6 +332,7 @@ export default function App() {
         label: '즐겨찾기만',
         onClear: () => {
           setShowFavoritesOnly(false);
+          setPage(1);
         },
       });
     }
@@ -347,7 +348,7 @@ export default function App() {
       });
     }
 
-    if (minFundingAmount > 0 || maxFundingAmount > 0) {
+    if (!hasFundingRangeError && (minFundingAmount > 0 || maxFundingAmount > 0)) {
       const fundingLabel =
         minFundingAmount > 0 && maxFundingAmount > 0
           ? `${formatWon(minFundingAmount)} ~ ${formatWon(maxFundingAmount)}`
@@ -377,6 +378,7 @@ export default function App() {
     selectedCategory,
     showFavoritesOnly,
     sortMode,
+    hasFundingRangeError,
   ]);
 
   const applyFundingRange = useCallback((range: FundingRange) => {
@@ -503,6 +505,19 @@ export default function App() {
   const accessModeOptions: Array<'All' | ProjectAccessMode> = ['All', ...config.accessModes.map((item) => item.id)];
   const activeFundingRange = config.fundingRanges.find((range) => range.id === fundingRangeId);
 
+  const openSubmitDialog = useCallback(() => {
+    if (config.categories.length > 0) {
+      setCategory(config.categories.includes(category) ? category : config.categories[0]);
+    }
+
+    const accessModeIds = config.accessModes.map((item) => item.id);
+    if (accessModeIds.length > 0) {
+      setAccessMode(accessModeIds.includes(accessMode) ? accessMode : accessModeIds[0]);
+    }
+
+    setIsSubmitOpen(true);
+  }, [accessMode, category, config.accessModes, config.categories]);
+
   useEffect(() => {
     const initialize = async () => {
       await loadSnapshot();
@@ -517,6 +532,41 @@ export default function App() {
 
     return () => window.clearInterval(timer);
   }, [config.refreshIntervalMs, loadSnapshot]);
+
+  useEffect(() => {
+    const hasOverlayOpen = Boolean(previewProject || matchingProject || isSubmitOpen);
+    if (!hasOverlayOpen) {
+      return;
+    }
+
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+
+      if (previewProject) {
+        setPreviewProject(null);
+        setPreviewEvents([]);
+        return;
+      }
+
+      if (matchingProject) {
+        setMatchingProject(null);
+        return;
+      }
+
+      if (isSubmitOpen) {
+        setIsSubmitOpen(false);
+      }
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onEscape);
+    };
+  }, [isSubmitOpen, matchingProject, previewProject]);
 
   async function handleVerifyUrl() {
     if (!liveUrl.trim()) {
@@ -739,7 +789,7 @@ export default function App() {
             </button>
             <button
               type="button"
-              onClick={() => setIsSubmitOpen(true)}
+              onClick={openSubmitDialog}
               disabled={!apiOnline || config.categories.length === 0}
               aria-label="프로토타입 등록"
               className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-lime-300 px-4 text-sm font-black text-slate-950 transition hover:bg-lime-200 active:translate-y-px disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-stone-400"
@@ -974,7 +1024,10 @@ export default function App() {
                 </label>
                 <button
                   type="button"
-                  onClick={() => setShowFavoritesOnly((value) => !value)}
+                  onClick={() => {
+                    setShowFavoritesOnly((value) => !value);
+                    setPage(1);
+                  }}
                   className={`inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 ${
                     showFavoritesOnly
                       ? 'border-amber-300/60 bg-amber-300/20 text-amber-100'
