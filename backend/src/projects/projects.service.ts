@@ -51,6 +51,7 @@ export interface ProjectListPage {
 
 @Injectable()
 export class ProjectsService {
+  private readonly defaultScenarioMultipliers = [0.75, 1, 1.25, 1.5];
   private readonly logger = new Logger(ProjectsService.name);
   private readonly store = new JsonProjectsStore();
   private users: User[];
@@ -74,7 +75,9 @@ export class ProjectsService {
     this.nextEventId = state.nextEventId;
   }
 
-  getAdminRevenueProjection(overrides: Partial<AdminRevenueAssumption> = {}): AdminRevenueProjection {
+  getAdminRevenueProjection(
+    overrides: Partial<AdminRevenueAssumption> & { scenarioMultipliers?: number[] } = {},
+  ): AdminRevenueProjection {
     const totalProjects = this.projects.length;
     const verifiedProjects = this.projects.filter((project) => project.validation.success).length;
     const totalInvestors = this.projects.reduce((sum, project) => sum + project.investorCount, 0);
@@ -92,6 +95,7 @@ export class ProjectsService {
         ...this.buildDefaultRevenueAssumptions(),
         ...overrides,
       },
+      scenarioMultipliers: overrides.scenarioMultipliers,
     });
   }
 
@@ -118,6 +122,7 @@ export class ProjectsService {
     totalCommittedAmount: number;
     conversionFunnel: AdminFunnelMetric;
     assumptions: AdminRevenueAssumption;
+    scenarioMultipliers?: number[];
   }): AdminRevenueProjection {
     const assumption = this.normalizeRevenueAssumptions(params.assumptions);
     const denominators = {
@@ -230,7 +235,7 @@ export class ProjectsService {
 
     const scenarios = this.buildRevenueScenarios({
       baseMonthlyRevenue: totalMonthlyRevenue,
-      multipliers: [0.75, 1, 1.25, 1.5],
+      multipliers: this.resolveScenarioMultipliers(params.scenarioMultipliers),
     });
 
     return {
@@ -1249,6 +1254,27 @@ export class ProjectsService {
           annualRevenue: scenario.monthlyRevenue * 12,
         };
       });
+  }
+
+  private resolveScenarioMultipliers(requestedMultipliers?: number[]) {
+    const source = requestedMultipliers && requestedMultipliers.length > 0
+      ? requestedMultipliers
+      : this.defaultScenarioMultipliers;
+
+    const sanitized = source
+      .filter((value) => Number.isFinite(value))
+      .map((value) => {
+        const clamped = Math.max(0.05, value);
+        return Math.round(clamped * 100) / 100;
+      })
+      .filter((value) => value > 0);
+
+    const unique = Array.from(new Set(sanitized));
+    if (unique.length === 0) {
+      return this.defaultScenarioMultipliers;
+    }
+
+    return unique.sort((a, b) => a - b);
   }
 
   private buildTargetGapComment(params: {

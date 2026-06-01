@@ -487,6 +487,7 @@ test('getAdminRevenueProjection applies formulas and overrides assumptions', asy
       investorAcquisitionCost: 80000,
       makerAcquisitionCost: 120000,
       estimatedMonthlyChurnRate: 10,
+      scenarioMultipliers: [0.5, 1.0, 1.4],
     });
 
     assert.equal(overrideProjection.monthlyMakerPlanRevenue, 100);
@@ -497,10 +498,15 @@ test('getAdminRevenueProjection applies formulas and overrides assumptions', asy
     assert.equal(overrideProjection.annualRevenue, 12720);
     assert.equal(overrideProjection.averageCommittedPerInvestor, 1500);
     assert.equal(overrideProjection.benchmarkGaps.length, 6);
-    assert.equal(overrideProjection.scenarios.length, 4);
+    assert.equal(overrideProjection.scenarios.length, 3);
+    assert.deepEqual(
+      overrideProjection.scenarios.map((scenario) => scenario.multiplier),
+      [0.5, 1, 1.4],
+    );
     assert.equal(overrideProjection.assumptions.makerConversionRate, 10);
     assert.equal(overrideProjection.assumptions.investorAcquisitionCost, 80000);
     assert.equal(overrideProjection.assumptions.estimatedMonthlyChurnRate, 10);
+    assert.equal(overrideProjection.assumptions.successFeeRate, 10);
 
     const defaultProjection = service.getAdminRevenueProjection();
     assert.equal(defaultProjection.scenarios.length, 4);

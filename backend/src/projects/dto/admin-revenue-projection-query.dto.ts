@@ -1,9 +1,11 @@
 import { Transform } from 'class-transformer';
 import {
+  IsArray,
   IsNumber,
   IsOptional,
   Max,
   Min,
+  ArrayMinSize,
 } from 'class-validator';
 
 function parseNumberIfPossible(value: unknown): unknown {
@@ -21,6 +23,26 @@ function parseNumberOrUndefined(value: unknown) {
   }
 
   return parseNumberIfPossible(value);
+}
+
+function parseScenarioMultipliers(value: unknown): number[] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const entries = Array.isArray(value) ? value : [value];
+  const parsed = entries
+    .flatMap((entry) => {
+      if (typeof entry !== 'string') {
+        return [entry];
+      }
+
+      return entry.split(',').map((item) => item.trim()).filter(Boolean);
+    })
+    .map((entry) => parseNumberIfPossible(entry))
+    .filter((entry): entry is number => typeof entry === 'number' && Number.isFinite(entry));
+
+  return parsed.length > 0 ? parsed : undefined;
 }
 
 export class AdminRevenueProjectionQueryDto {
@@ -85,4 +107,16 @@ export class AdminRevenueProjectionQueryDto {
   @Min(0.01, { message: '월간 이탈률은 0.01 이상이어야 합니다.' })
   @Max(99.99, { message: '월간 이탈률은 99.99 이하여야 합니다.' })
   estimatedMonthlyChurnRate?: number;
+
+  @Transform(({ value }) => parseScenarioMultipliers(value))
+  @IsOptional()
+  @IsArray({ message: '시나리오 배율은 배열이어야 합니다.' })
+  @ArrayMinSize(1, { message: '시나리오 배율은 최소 1개 이상 입력해야 합니다.' })
+  @IsNumber(
+    {},
+    { each: true, message: '각 시나리오 배율은 숫자여야 합니다.' },
+  )
+  @Min(0.05, { each: true, message: '시나리오 배율은 0.05 이상이어야 합니다.' })
+  @Max(5, { each: true, message: '시나리오 배율은 5 이하이어야 합니다.' })
+  scenarioMultipliers?: number[];
 }
