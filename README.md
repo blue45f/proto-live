@@ -92,6 +92,14 @@ VITE_API_BASE_URL=http://localhost:3003/api
 
 `db/schema.sql`에 PostgreSQL DDL이 있습니다. 모의 프로젝트 INSERT는 제거되어 실제 검증 API를 통과한 데이터만 표시하는 기준을 유지합니다.
 
+로컬 PostgreSQL에서 개발/QA용 샘플을 바로 채우려면:
+
+```bash
+psql "$DATABASE_URL" -f db/seeds/sample-data.sql
+```
+
+`psql` 접속 문자열이 없다면 `DATABASE_URL`은 `.env` 기준으로 적절히 설정하고 실행하세요.
+
 테이블 구성:
 - `users`: 메이커/투자자 계정
 - `projects`: 라이브 URL, 검증 결과, 공개 범위, 노출 위험 확인 여부, 매칭 카운터, 누적 의향 금액
