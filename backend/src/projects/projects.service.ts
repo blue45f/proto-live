@@ -21,6 +21,10 @@ import {
   AdminHealthIndicator,
   AdminTopProjectMetric,
   AdminRiskProject,
+  AdminRevenueAssumption,
+  AdminRevenueBenchmark,
+  AdminRevenueProjection,
+  AdminRevenueScenario,
   ProjectsState,
   User,
   ValidationSnapshot,
@@ -68,6 +72,185 @@ export class ProjectsService {
     this.nextProjectId = state.nextProjectId;
     this.nextProposalId = state.nextProposalId;
     this.nextEventId = state.nextEventId;
+  }
+
+  getAdminRevenueProjection(overrides: Partial<AdminRevenueAssumption> = {}): AdminRevenueProjection {
+    const totalProjects = this.projects.length;
+    const verifiedProjects = this.projects.filter((project) => project.validation.success).length;
+    const totalInvestors = this.projects.reduce((sum, project) => sum + project.investorCount, 0);
+    const totalCommittedAmount = this.projects.reduce((sum, project) => sum + project.committedAmountMax, 0);
+    const conversionFunnel = this.buildAdminConversionFunnel();
+
+    return this.computeRevenueProjection({
+      totalProjects,
+      totalInvestors,
+      totalSignals: this.events.length,
+      totalCommittedAmount,
+      verifiedProjects,
+      conversionFunnel,
+      assumptions: {
+        ...this.buildDefaultRevenueAssumptions(),
+        ...overrides,
+      },
+    });
+  }
+
+  private buildDefaultRevenueAssumptions(): AdminRevenueAssumption {
+    return {
+      makerMonthlyFee: 25000,
+      investorMonthlyFee: 19000,
+      leadCaptureFee: 8000,
+      makerConversionRate: 18,
+      investorConversionRate: 14,
+      closeLeadRate: 12,
+      successFeeRate: 3.5,
+      investorAcquisitionCost: 180000,
+      makerAcquisitionCost: 280000,
+      estimatedMonthlyChurnRate: 12,
+    };
+  }
+
+  private computeRevenueProjection(params: {
+    totalProjects: number;
+    verifiedProjects: number;
+    totalInvestors: number;
+    totalSignals: number;
+    totalCommittedAmount: number;
+    conversionFunnel: AdminFunnelMetric;
+    assumptions: AdminRevenueAssumption;
+  }): AdminRevenueProjection {
+    const assumption = this.normalizeRevenueAssumptions(params.assumptions);
+    const denominators = {
+      project: Math.max(1, params.totalProjects),
+      investor: Math.max(1, params.totalInvestors),
+      signal: Math.max(1, params.totalSignals),
+    };
+
+    const verifiedProjectShare = params.verifiedProjects / Math.max(1, params.totalProjects);
+    const averageCommittedPerInvestor =
+      params.totalInvestors > 0
+        ? Math.max(0, params.totalCommittedAmount / Math.max(1, params.totalInvestors))
+        : 0;
+
+    const makerMonthlyPlanConversionRate = assumption.makerConversionRate / 100;
+    const investorMonthlyPlanConversionRate = assumption.investorConversionRate / 100;
+    const leadCloseRate = assumption.closeLeadRate / 100;
+    const transactionRate = assumption.successFeeRate / 100;
+
+    const monthlyMakerPlanRevenue = Math.round(
+      params.totalProjects * verifiedProjectShare * assumption.makerMonthlyFee * makerMonthlyPlanConversionRate,
+    );
+
+    const monthlyInvestorPlanRevenue = Math.round(
+      params.totalInvestors * assumption.investorMonthlyFee * investorMonthlyPlanConversionRate,
+    );
+    const monthlyLeadRevenue = Math.round(params.totalSignals * assumption.leadCaptureFee);
+    const projectedTransactionPool = params.totalInvestors * averageCommittedPerInvestor * leadCloseRate;
+    const monthlyTransactionRevenue = Math.round(projectedTransactionPool * transactionRate);
+
+    const totalMonthlyRevenue = Math.round(
+      monthlyMakerPlanRevenue + monthlyInvestorPlanRevenue + monthlyLeadRevenue + monthlyTransactionRevenue,
+    );
+    const annualRevenue = totalMonthlyRevenue * 12;
+
+    const arpu = totalMonthlyRevenue / denominators.project;
+    const arppu = totalMonthlyRevenue / denominators.investor;
+    const investorLtvMonths = this.estimateLtvMonths(assumption.estimatedMonthlyChurnRate);
+    const investorLtvEstimate = Math.round((assumption.investorMonthlyFee * investorMonthlyPlanConversionRate + leadCloseRate * transactionRate * averageCommittedPerInvestor) * investorLtvMonths);
+    const makerMonthlyLtv = assumption.makerMonthlyFee * makerMonthlyPlanConversionRate * verifiedProjectShare;
+    const investorMonthlyLtv = assumption.investorMonthlyFee * investorMonthlyPlanConversionRate + leadCloseRate * transactionRate * averageCommittedPerInvestor;
+    const makerPaybackMonths = this.estimatePaybackMonths(assumption.makerAcquisitionCost, makerMonthlyLtv);
+    const investorPaybackMonths = this.estimatePaybackMonths(assumption.investorAcquisitionCost, investorMonthlyLtv);
+
+    const benchmarkTargets = [
+      {
+        key: 'verifiedProjectShare',
+        label: '검증 프로젝트 비중',
+        actual: this.toPercent(verifiedProjectShare),
+        target: 68,
+        unit: 'percent' as const,
+      },
+      {
+        key: 'previewToMatchRate',
+        label: '프리뷰→매칭 전환',
+        actual: params.conversionFunnel.previewToMatchRate,
+        target: 12,
+        unit: 'percent' as const,
+      },
+      {
+        key: 'outboundToMatchRate',
+        label: '아웃바운드→매칭 전환',
+        actual: params.conversionFunnel.outboundToMatchRate,
+        target: 18,
+        unit: 'percent' as const,
+      },
+      {
+        key: 'matchPerProjectRate',
+        label: '프로젝트당 매칭율',
+        actual: params.conversionFunnel.matchPerProjectRate,
+        target: 30,
+        unit: 'percent' as const,
+      },
+      {
+        key: 'monthlyRevenue',
+        label: '월 수익',
+        actual: totalMonthlyRevenue,
+        target: 2500000,
+        unit: 'currency' as const,
+      },
+      {
+        key: 'arpu',
+        label: 'ARPU',
+        actual: arpu,
+        target: 50000,
+        unit: 'currency' as const,
+      },
+    ];
+
+    const benchmarkGaps: AdminRevenueBenchmark[] = benchmarkTargets.map((entry) => {
+      const gap = entry.actual - entry.target;
+      const targetRatio = entry.target > 0 ? entry.actual / entry.target : 0;
+
+      return {
+        key: entry.key,
+        label: entry.label,
+        actual: this.roundMoney(entry.actual),
+        target: this.roundMoney(entry.target),
+        gap: this.roundMoney(gap),
+        unit: entry.unit,
+        status:
+          targetRatio >= 1 ? 'good' : targetRatio >= 0.8 ? 'warning' : 'critical',
+        comment: this.buildTargetGapComment({
+          label: entry.label,
+          gap,
+          unit: entry.unit,
+        }),
+      };
+    });
+
+    const scenarios = this.buildRevenueScenarios({
+      baseMonthlyRevenue: totalMonthlyRevenue,
+      multipliers: [0.75, 1, 1.25, 1.5],
+    });
+
+    return {
+      assumptions: assumption,
+      monthlyMakerPlanRevenue,
+      monthlyInvestorPlanRevenue,
+      monthlyLeadRevenue,
+      monthlyTransactionRevenue,
+      totalMonthlyRevenue,
+      annualRevenue,
+      verifiedProjectShare,
+      averageCommittedPerInvestor: Math.round(averageCommittedPerInvestor),
+      arpu: Math.round(arpu),
+      arppu: Math.round(arppu),
+      investorLtvEstimate: Math.round(investorLtvEstimate),
+      makerPaybackMonths,
+      investorPaybackMonths,
+      benchmarkGaps,
+      scenarios,
+    };
   }
 
   getMarketConfig() {
@@ -329,6 +512,16 @@ export class ProjectsService {
       conversionFunnel,
     });
 
+    const revenue = this.computeRevenueProjection({
+      totalProjects,
+      verifiedProjects,
+      totalInvestors,
+      totalSignals: this.events.length,
+      totalCommittedAmount,
+      conversionFunnel,
+      assumptions: this.buildDefaultRevenueAssumptions(),
+    });
+
     return {
       conversionFunnel,
       eventTrend14d,
@@ -341,6 +534,7 @@ export class ProjectsService {
       riskProjects,
       health,
       recommendations,
+      revenue,
       lastUpdatedAt: now.toISOString(),
     };
   }
@@ -993,6 +1187,159 @@ export class ProjectsService {
       return 0;
     }
     return Math.max(0, Math.min(100, Math.round((numerator / denominator) * 1000) / 10));
+  }
+
+  private buildAdminConversionFunnel(): AdminFunnelMetric {
+    let previewCount = 0;
+    let outboundCount = 0;
+    let matchCount = 0;
+
+    for (const event of this.events) {
+      if (event.type === 'preview') {
+        previewCount += 1;
+      } else if (event.type === 'outbound') {
+        outboundCount += 1;
+      } else if (event.type === 'match') {
+        matchCount += 1;
+      }
+    }
+
+    return {
+      previewToMatchRate: this.calculateRate(matchCount, previewCount),
+      outboundToMatchRate: this.calculateRate(matchCount, outboundCount),
+      matchPerProjectRate: this.calculateRate(
+        this.projects.reduce((sum, project) => sum + project.matchCount, 0),
+        Math.max(1, this.projects.length),
+      ),
+      matchCount,
+      previewCount,
+      outboundCount,
+      totalEvents: this.events.length,
+    };
+  }
+
+  private buildRevenueScenarios(params: {
+    baseMonthlyRevenue: number;
+    multipliers: number[];
+  }): AdminRevenueScenario[] {
+    const labels: Record<number, string> = {
+      0.75: '보수',
+      1: '기준',
+      1.25: '성장',
+      1.5: '확장',
+    };
+
+    return params.multipliers
+      .map((multiplier) => ({
+        label: labels[multiplier] ?? `${Math.round(multiplier * 100)}% 케이스`,
+        multiplier: this.roundNumber(multiplier),
+        monthlyRevenue: this.toPositiveInteger(params.baseMonthlyRevenue * multiplier, 0),
+        annualRevenue:
+          (this.toPositiveInteger(params.baseMonthlyRevenue * multiplier, 0) * 12),
+      }))
+      .sort((a, b) => a.multiplier - b.multiplier)
+      .map((scenario) => {
+        const normalizedMultiplier = scenario.multiplier;
+        if (normalizedMultiplier <= 0) {
+          return scenario;
+        }
+
+        return {
+          ...scenario,
+          annualRevenue: scenario.monthlyRevenue * 12,
+        };
+      });
+  }
+
+  private buildTargetGapComment(params: {
+    label: string;
+    gap: number;
+    unit: 'percent' | 'currency' | 'count';
+  }) {
+    const gapDirection = params.gap >= 0 ? '초과' : '부족';
+    const normalizedGap = this.roundNumber(params.gap);
+    if (params.unit === 'percent') {
+      return `${params.label}이(가) 목표 대비 ${Math.abs(normalizedGap)}% ${gapDirection}입니다.`;
+    }
+
+    if (params.unit === 'currency') {
+      return `${params.label}이(가) 목표 대비 ${this.formatCurrency(Math.abs(params.gap))} ${gapDirection}입니다.`;
+    }
+
+    return `${params.label}이(가) 목표 대비 ${params.gap} 포인트 ${gapDirection}입니다.`;
+  }
+
+  private estimateLtvMonths(churnRatePercent: number) {
+    const stableRate = Math.max(0.01, churnRatePercent);
+    return this.roundNumber(100 / stableRate);
+  }
+
+  private estimatePaybackMonths(
+    acquisitionCost: number,
+    monthlyValuePerUnit: number,
+  ) {
+    if (acquisitionCost <= 0 || monthlyValuePerUnit <= 0) {
+      return 0;
+    }
+    return this.roundNumber(acquisitionCost / monthlyValuePerUnit);
+  }
+
+  private toPercent(value: number) {
+    if (!Number.isFinite(value)) {
+      return 0;
+    }
+    return this.roundRate(value * 100);
+  }
+
+  private roundRate(value: number) {
+    return this.roundNumber(value);
+  }
+
+  private roundMoney(value: number) {
+    return this.roundRate(value);
+  }
+
+  private roundNumber(value: number) {
+    if (!Number.isFinite(value)) {
+      return 0;
+    }
+    return Math.round(value * 10) / 10;
+  }
+
+  private toPositiveInteger(value: number | undefined, fallback: number) {
+    if (!Number.isFinite(value)) {
+      return fallback;
+    }
+    return Math.max(0, Math.floor(value));
+  }
+
+  private formatCurrency(value: number) {
+    return `₩${Math.max(0, Math.round(Math.abs(value))).toLocaleString('ko-KR')}`;
+  }
+
+  private normalizeRevenueAssumptions(input: Partial<AdminRevenueAssumption>): AdminRevenueAssumption {
+    const defaults = this.buildDefaultRevenueAssumptions();
+
+    const clampRate = (value: number, fallback: number) => {
+      const next = Number.isFinite(value) ? value : fallback;
+      return this.roundRate(Math.max(0, Math.min(100, next)));
+    };
+
+    return {
+      makerMonthlyFee: this.toPositiveInteger(input.makerMonthlyFee, defaults.makerMonthlyFee),
+      investorMonthlyFee: this.toPositiveInteger(input.investorMonthlyFee, defaults.investorMonthlyFee),
+      leadCaptureFee: this.toPositiveInteger(input.leadCaptureFee, defaults.leadCaptureFee),
+      makerConversionRate: clampRate(input.makerConversionRate ?? defaults.makerConversionRate, defaults.makerConversionRate),
+      investorConversionRate: clampRate(
+        input.investorConversionRate ?? defaults.investorConversionRate,
+        defaults.investorConversionRate,
+      ),
+      closeLeadRate: clampRate(input.closeLeadRate ?? defaults.closeLeadRate, defaults.closeLeadRate),
+      successFeeRate: clampRate(input.successFeeRate ?? defaults.successFeeRate, defaults.successFeeRate),
+      investorAcquisitionCost: this.toPositiveInteger(input.investorAcquisitionCost, defaults.investorAcquisitionCost),
+      makerAcquisitionCost: this.toPositiveInteger(input.makerAcquisitionCost, defaults.makerAcquisitionCost),
+      estimatedMonthlyChurnRate: this.roundRate(input.estimatedMonthlyChurnRate ?? defaults.estimatedMonthlyChurnRate),
+    };
   }
 
   private hydrateProject(project: Project): Project {

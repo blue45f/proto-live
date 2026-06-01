@@ -131,6 +131,56 @@ export interface AdminHealthIndicator {
   warningCount: number;
 }
 
+export interface AdminRevenueAssumption {
+  makerMonthlyFee: number;
+  investorMonthlyFee: number;
+  leadCaptureFee: number;
+  makerConversionRate: number;
+  investorConversionRate: number;
+  closeLeadRate: number;
+  successFeeRate: number;
+  investorAcquisitionCost: number;
+  makerAcquisitionCost: number;
+  estimatedMonthlyChurnRate: number;
+}
+
+export interface AdminRevenueBenchmark {
+  key: string;
+  label: string;
+  actual: number;
+  target: number;
+  gap: number;
+  unit: 'percent' | 'currency' | 'count';
+  status: 'good' | 'warning' | 'critical';
+  comment: string;
+}
+
+export interface AdminRevenueScenario {
+  label: string;
+  multiplier: number;
+  monthlyRevenue: number;
+  annualRevenue: number;
+}
+
+export interface AdminRevenueProjection {
+  assumptions: AdminRevenueAssumption;
+  monthlyMakerPlanRevenue: number;
+  monthlyInvestorPlanRevenue: number;
+  monthlyLeadRevenue: number;
+  monthlyTransactionRevenue: number;
+  totalMonthlyRevenue: number;
+  annualRevenue: number;
+  verifiedProjectShare: number;
+  averageCommittedPerInvestor: number;
+  arpu: number;
+  arppu: number;
+  investorLtvEstimate: number;
+  makerPaybackMonths: number;
+  investorPaybackMonths: number;
+  benchmarkGaps: AdminRevenueBenchmark[];
+  scenarios: AdminRevenueScenario[];
+}
+
 export interface AdminDashboardMetrics {
   conversionFunnel: AdminFunnelMetric;
   eventTrend14d: AdminEventTrendPoint[];
@@ -143,6 +193,7 @@ export interface AdminDashboardMetrics {
   riskProjects: AdminRiskProject[];
   health: AdminHealthIndicator;
   recommendations: AdminActionRecommendation[];
+  revenue: AdminRevenueProjection;
   lastUpdatedAt: string;
 }
 

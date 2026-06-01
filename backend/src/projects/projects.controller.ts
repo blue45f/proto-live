@@ -6,6 +6,7 @@ import { ValidateUrlDto } from './dto/validate-url.dto';
 import { CreateMatchProposalDto } from './dto/create-match-proposal.dto';
 import { RecordProjectEventDto } from './dto/record-project-event.dto';
 import { GetProjectsQueryDto, ProjectQueryInput } from './dto/get-projects-query.dto';
+import { AdminRevenueProjectionQueryDto } from './dto/admin-revenue-projection-query.dto';
 
 @Controller('api/projects')
 export class ProjectsController {
@@ -53,6 +54,15 @@ export class ProjectsController {
   @Get('admin-dashboard')
   getAdminDashboard() {
     return this.projectsService.getAdminDashboard();
+  }
+
+  /**
+   * GET /api/projects/admin-revenue-projection
+   * 수익 가정값을 반영한 월간/연간 시뮬레이션과 KPI 시그널을 반환합니다.
+   */
+  @Get('admin-revenue-projection')
+  getAdminRevenueProjection(@Query() query: AdminRevenueProjectionQueryDto) {
+    return this.projectsService.getAdminRevenueProjection(query);
   }
 
   /**
