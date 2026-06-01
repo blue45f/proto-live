@@ -1,10 +1,15 @@
 # ProtoLive 테스트 계정(로컬)
 
-본 파일은 로컬 개발/QA에서 사용하는 테스트 계정 정보입니다. 실제 인증 시스템이 붙지 않는 현재 버전에서는 이메일만으로 메이커/투자자 역할이 구분됩니다.
+본 파일은 로컬 개발/QA에서 사용하는 테스트 계정/샘플 데이터 정보입니다. 실제 인증 시스템이 붙지 않는 현재 버전에서는 이메일만으로 메이커/투자자 역할이 구분됩니다.
 
-로컬 스토어 반영:
+기본 시드 반영:
 ```bash
 npm run seed:test-accounts
+```
+
+실제 테스트용 프로젝트/제안/이벤트까지 한 번에 반영:
+```bash
+npm run seed:test-data
 ```
 
 실데이터 반영 없이 예정 변경만 확인:
@@ -12,7 +17,13 @@ npm run seed:test-accounts
 npm run seed:test-accounts -- --dry-run
 ```
 
-`backend/fixtures/test-accounts.json`에 있는 계정은 `backend/data/protolive-store.json`(혹은 `PROJECT_STORE_PATH`) 사용자 목록에 반영됩니다.
+```bash
+npm run seed:test-data -- --dry-run
+```
+
+`backend/fixtures/test-accounts.json`은 계정 시드 전용이며,
+`backend/fixtures/test-data.json`은 계정 + 프로젝트 + 제안 + 이벤트(총괄 테스트 데이터)를 제공합니다.
+두 파일 모두 `backend/data/protolive-store.json`(혹은 `PROJECT_STORE_PATH`)에 반영됩니다.
 
 ## 파일 위치
 - `backend/fixtures/test-accounts.json`
@@ -30,6 +41,8 @@ npm run seed:test-accounts -- --dry-run
 | 테스트 메이커 B | `maker-b@protolive.local` | `pass-mock-02` | `maker` | 다중 메이커 비교와 중복처리 확인 |
 | 테스트 투자자 A | `investor-a@protolive.local` | `pass-mock-03` | `investor` | 매칭 제안/관심신호 수집 확인 |
 | 테스트 투자자 B | `investor-b@protolive.local` | `pass-mock-04` | `investor` | 투자자 분산 지표 및 수익 시뮬레이션 테스트 |
+| 테스트 메이커 C | `maker-c@protolive.local` | `pass-mock-05` | `maker` | 다중 소유자/스크린 테스트용 |
+| 테스트 투자자 C | `investor-c@protolive.local` | `pass-mock-06` | `investor` | 고빈도 제안 시나리오 검증용 |
 
 ## 사용 가이드
 1. 앱에서 프로젝트 등록 시 `이메일` 입력란에 위 주소 중 하나를 사용합니다.

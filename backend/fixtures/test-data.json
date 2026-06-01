@@ -1,0 +1,367 @@
+{
+  "version": "1.0",
+  "description": "ProtoLive 로컬 시드 데이터(계정 + 프로젝트 + 제안 + 이벤트)",
+  "environment": "local",
+  "createdAt": "2026-06-01",
+  "accounts": [
+    {
+      "id": 1,
+      "email": "maker-a@protolive.local",
+      "password": "pass-mock-01",
+      "role": "maker",
+      "name": "테스트 메이커 A",
+      "description": "라이브 데모 등록과 스크린샷 재확인을 위한 기본 계정",
+      "notes": "기본 오너 계정"
+    },
+    {
+      "id": 2,
+      "email": "maker-b@protolive.local",
+      "password": "pass-mock-02",
+      "role": "maker",
+      "name": "테스트 메이커 B",
+      "description": "경쟁 프로젝트 등록 비교 테스트",
+      "notes": "고신뢰 접근 방식의 샘플"
+    },
+    {
+      "id": 3,
+      "email": "maker-c@protolive.local",
+      "password": "pass-mock-05",
+      "role": "maker",
+      "name": "테스트 메이커 C",
+      "description": "스크린 보호 + 공개 공개 모드 비교용 계정",
+      "notes": "관리지표 실측용 템플릿"
+    },
+    {
+      "id": 4,
+      "email": "investor-a@protolive.local",
+      "password": "pass-mock-03",
+      "role": "investor",
+      "name": "테스트 투자자 A",
+      "description": "초기 투자 제안 생성과 이벤트 기록 테스트",
+      "notes": "스크린/프리뷰 가드를 빠르게 체크"
+    },
+    {
+      "id": 5,
+      "email": "investor-b@protolive.local",
+      "password": "pass-mock-04",
+      "role": "investor",
+      "name": "테스트 투자자 B",
+      "description": "투자자 분산 지표 유효성 검증용",
+      "notes": "활동 빈도가 높은 시나리오"
+    },
+    {
+      "id": 6,
+      "email": "investor-c@protolive.local",
+      "password": "pass-mock-06",
+      "role": "investor",
+      "name": "테스트 투자자 C",
+      "description": "다중 제안/메시지 품질 점검용",
+      "notes": "리드 캡처 KPI 확인용"
+    }
+  ],
+  "projects": [
+    {
+      "id": 1,
+      "userId": 1,
+      "title": "SignalBoard for Founders",
+      "description": "초기 창업자를 위한 투자자 매칭 대시보드. 공개 데모 링크를 통해 실제 사용 로그와 문의 유입을 함께 추적합니다.",
+      "liveUrl": "https://example.com/signalboard",
+      "category": "AI & SaaS",
+      "accessMode": "open",
+      "protectionNoticeAccepted": true,
+      "investorCount": 0,
+      "matchCount": 0,
+      "committedAmountMin": 0,
+      "committedAmountMax": 0,
+      "validation": {
+        "success": true,
+        "status": 200,
+        "message": "시나리오 시드용 검증 통과",
+        "responseTimeMs": 210,
+        "finalUrl": "https://example.com/signalboard",
+        "checkedAt": "2026-05-23T01:00:00.000Z"
+      },
+      "createdAt": "2026-05-21T10:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "userId": 1,
+      "title": "CreatorOps Lab",
+      "description": "콘텐츠 크리에이터 수익화 실험 도구. 유입/리텐션 실측과 PMF 인터뷰 데이터 공유를 전제합니다.",
+      "liveUrl": "https://example.com/creator-ops",
+      "category": "Other",
+      "accessMode": "screened",
+      "protectionNoticeAccepted": true,
+      "investorCount": 0,
+      "matchCount": 0,
+      "committedAmountMin": 0,
+      "committedAmountMax": 0,
+      "validation": {
+        "success": true,
+        "status": 200,
+        "message": "시나리오 시드용 검증 통과",
+        "responseTimeMs": 640,
+        "finalUrl": "https://example.com/creator-ops",
+        "checkedAt": "2026-05-24T03:20:00.000Z"
+      },
+      "createdAt": "2026-05-22T09:30:00.000Z"
+    },
+    {
+      "id": 3,
+      "userId": 2,
+      "title": "FinOps Check",
+      "description": "재무 리스크 알림과 회수 전략을 동시에 보여주는 투자자 중심 템플릿.",
+      "liveUrl": "https://example.com/finops-check",
+      "category": "FinTech",
+      "accessMode": "open",
+      "protectionNoticeAccepted": true,
+      "investorCount": 0,
+      "matchCount": 0,
+      "committedAmountMin": 0,
+      "committedAmountMax": 0,
+      "validation": {
+        "success": false,
+        "status": 403,
+        "message": "보안 정책으로 차단된 요청",
+        "responseTimeMs": 1880,
+        "checkedAt": "2026-05-25T14:10:00.000Z"
+      },
+      "createdAt": "2026-05-22T19:40:00.000Z"
+    },
+    {
+      "id": 4,
+      "userId": 3,
+      "title": "TaskFlow AI",
+      "description": "개인형 태스크 플로우 엔진. PM·영업·투자자용 협업 보드까지 연동해 데모를 운영합니다.",
+      "liveUrl": "https://example.com/taskflow-ai",
+      "category": "Web3 & Community",
+      "accessMode": "screened",
+      "protectionNoticeAccepted": true,
+      "investorCount": 0,
+      "matchCount": 0,
+      "committedAmountMin": 0,
+      "committedAmountMax": 0,
+      "validation": {
+        "success": true,
+        "status": 200,
+        "message": "시나리오 시드용 검증 통과",
+        "responseTimeMs": 320,
+        "finalUrl": "https://example.com/taskflow-ai",
+        "checkedAt": "2026-05-27T18:00:00.000Z"
+      },
+      "createdAt": "2026-05-20T07:00:00.000Z"
+    },
+    {
+      "id": 5,
+      "userId": 1,
+      "title": "Pulse Commerce",
+      "description": "이커머스 운영자에게 실시간 전환 분석과 투자자 질의 로그를 동시에 제공하는 데모.",
+      "liveUrl": "https://example.com/pulse-commerce",
+      "category": "XR & E-Commerce",
+      "accessMode": "open",
+      "protectionNoticeAccepted": true,
+      "investorCount": 0,
+      "matchCount": 0,
+      "committedAmountMin": 0,
+      "committedAmountMax": 0,
+      "validation": {
+        "success": true,
+        "status": 200,
+        "message": "시나리오 시드용 검증 통과",
+        "responseTimeMs": 280,
+        "checkedAt": "2026-05-28T10:30:00.000Z"
+      },
+      "createdAt": "2026-05-28T10:30:00.000Z"
+    }
+  ],
+  "proposals": [
+    {
+      "id": 1,
+      "projectId": 1,
+      "fundingRangeId": "seed-50-100",
+      "message": "시드 단계부터 파일럿 고객 전환율 추적 지표를 같이 보고 싶습니다.",
+      "createdAt": "2026-05-25T06:10:00.000Z"
+    },
+    {
+      "id": 2,
+      "projectId": 1,
+      "fundingRangeId": "pre-seed-10-30",
+      "message": "우선 1차 PoC 진행 후 투자 라운드 확장까지 검토 가능한지 보고 싶습니다.",
+      "createdAt": "2026-05-26T13:00:00.000Z"
+    },
+    {
+      "id": 3,
+      "projectId": 2,
+      "fundingRangeId": "seed-100-300",
+      "message": "콘텐츠 크리에이터 마케팅 데이터 품질을 함께 테스트해보겠습니다.",
+      "createdAt": "2026-05-29T21:40:00.000Z"
+    },
+    {
+      "id": 4,
+      "projectId": 2,
+      "fundingRangeId": "seed-50-100",
+      "message": "유입·구독 지표가 안정적이면 2개월 내 계약까지 진행 가능합니다.",
+      "createdAt": "2026-05-30T09:20:00.000Z"
+    },
+    {
+      "id": 5,
+      "projectId": 4,
+      "fundingRangeId": "pre-seed-30-50",
+      "message": "보안 토폴로지와 멀티 채널 협업 구조가 괜찮아 보입니다.",
+      "createdAt": "2026-05-31T11:10:00.000Z"
+    },
+    {
+      "id": 6,
+      "projectId": 4,
+      "fundingRangeId": "seed-100-300",
+      "message": "PMF 리포트를 함께 받아보면 빠르게 의사결정 가능합니다.",
+      "createdAt": "2026-05-31T11:42:00.000Z"
+    },
+    {
+      "id": 7,
+      "projectId": 4,
+      "fundingRangeId": "seed-50-100",
+      "message": "팀 확장 전 단계 투자 제안서를 공유받고 싶습니다.",
+      "createdAt": "2026-06-01T00:55:00.000Z"
+    },
+    {
+      "id": 8,
+      "projectId": 5,
+      "fundingRangeId": "pre-seed-10-30",
+      "message": "온보딩 경로를 개선하면 성장성이 높아 보입니다. 소규모 실험을 시작해요.",
+      "createdAt": "2026-06-01T03:33:00.000Z"
+    }
+  ],
+  "events": [
+    {
+      "id": 1,
+      "projectId": 1,
+      "type": "create",
+      "createdAt": "2026-05-21T10:05:00.000Z"
+    },
+    {
+      "id": 2,
+      "projectId": 1,
+      "type": "preview",
+      "createdAt": "2026-05-24T08:12:00.000Z"
+    },
+    {
+      "id": 3,
+      "projectId": 1,
+      "type": "outbound",
+      "createdAt": "2026-05-24T09:20:00.000Z"
+    },
+    {
+      "id": 4,
+      "projectId": 1,
+      "type": "match",
+      "createdAt": "2026-05-25T06:11:00.000Z"
+    },
+    {
+      "id": 5,
+      "projectId": 1,
+      "type": "refresh",
+      "createdAt": "2026-05-28T11:31:00.000Z"
+    },
+    {
+      "id": 6,
+      "projectId": 2,
+      "type": "create",
+      "createdAt": "2026-05-22T09:40:00.000Z"
+    },
+    {
+      "id": 7,
+      "projectId": 2,
+      "type": "preview",
+      "createdAt": "2026-05-30T18:20:00.000Z"
+    },
+    {
+      "id": 8,
+      "projectId": 2,
+      "type": "match",
+      "createdAt": "2026-05-30T21:00:00.000Z"
+    },
+    {
+      "id": 9,
+      "projectId": 2,
+      "type": "preview",
+      "createdAt": "2026-06-01T00:10:00.000Z"
+    },
+    {
+      "id": 10,
+      "projectId": 3,
+      "type": "create",
+      "createdAt": "2026-05-22T20:00:00.000Z"
+    },
+    {
+      "id": 11,
+      "projectId": 3,
+      "type": "refresh",
+      "createdAt": "2026-06-01T03:20:00.000Z"
+    },
+    {
+      "id": 12,
+      "projectId": 4,
+      "type": "create",
+      "createdAt": "2026-05-20T07:06:00.000Z"
+    },
+    {
+      "id": 13,
+      "projectId": 4,
+      "type": "match",
+      "createdAt": "2026-05-26T15:50:00.000Z"
+    },
+    {
+      "id": 14,
+      "projectId": 4,
+      "type": "match",
+      "createdAt": "2026-05-27T16:10:00.000Z"
+    },
+    {
+      "id": 15,
+      "projectId": 4,
+      "type": "match",
+      "createdAt": "2026-06-01T04:10:00.000Z"
+    },
+    {
+      "id": 16,
+      "projectId": 4,
+      "type": "outbound",
+      "createdAt": "2026-06-01T05:00:00.000Z"
+    },
+    {
+      "id": 17,
+      "projectId": 4,
+      "type": "refresh",
+      "createdAt": "2026-06-01T07:13:00.000Z"
+    },
+    {
+      "id": 18,
+      "projectId": 5,
+      "type": "create",
+      "createdAt": "2026-05-28T10:45:00.000Z"
+    },
+    {
+      "id": 19,
+      "projectId": 5,
+      "type": "outbound",
+      "createdAt": "2026-05-29T09:33:00.000Z"
+    },
+    {
+      "id": 20,
+      "projectId": 5,
+      "type": "refresh",
+      "createdAt": "2026-05-30T08:00:00.000Z"
+    },
+    {
+      "id": 21,
+      "projectId": 5,
+      "type": "preview",
+      "createdAt": "2026-06-01T01:30:00.000Z"
+    }
+  ],
+  "nextUserId": 7,
+  "nextProjectId": 6,
+  "nextProposalId": 9,
+  "nextEventId": 22
+}

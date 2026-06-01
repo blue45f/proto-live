@@ -17,12 +17,17 @@ npm run dev
 npm run seed:test-accounts
 ```
 
+프로젝트/제안/이벤트까지 포함한 통합 테스트 데이터 시드가 필요한 경우:
+```bash
+npm run seed:test-data
+```
+
 변경 없이 미리 보기만 하려면:
 ```bash
 npm run seed:test-accounts -- --dry-run
 ```
 
-시드는 `backend/fixtures/test-accounts.json`의 계정을 기준으로 로컬 스토어 사용자(`PROJECT_STORE_PATH`)에 반영합니다.
+`seed:test-accounts`는 `backend/fixtures/test-accounts.json`의 계정을, `seed:test-data`는 `backend/fixtures/test-data.json`의 계정+프로젝트+제안+이벤트를 기준으로 로컬 스토어 사용자(`PROJECT_STORE_PATH`)를 반영합니다.
 
 백엔드가 `http://localhost:3003/api` 에서 동작하고, 프론트엔드가 `http://localhost:5174`에서 실행됩니다.
 

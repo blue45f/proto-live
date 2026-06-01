@@ -13,7 +13,8 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/src/main",
-    "seed:test-accounts": "node scripts/seed-test-accounts.mjs"
+    "seed:test-accounts": "node scripts/seed-test-accounts.mjs",
+    "seed:test-data": "node scripts/seed-test-data.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.1.24",
