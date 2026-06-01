@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { Project } from './project.models';
-import { ProjectsService } from './projects.service';
+import { ProjectsService, ProjectListPage } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { ValidateUrlDto } from './dto/validate-url.dto';
 import { CreateMatchProposalDto } from './dto/create-match-proposal.dto';
@@ -16,8 +16,16 @@ export class ProjectsController {
    * 등록된 전체 프로젝트 목록을 반환합니다.
    */
   @Get()
-  async getProjects(@Query() query: GetProjectsQueryDto): Promise<Project[]> {
-    return this.projectsService.getAllProjects(normalizeProjectQuery(query));
+  async getProjects(
+    @Query() query: GetProjectsQueryDto,
+  ): Promise<Project[] | ProjectListPage> {
+    const normalized = normalizeProjectQuery(query);
+
+    if (normalized.page !== undefined || normalized.limit !== undefined) {
+      return this.projectsService.getProjectList(normalized);
+    }
+
+    return this.projectsService.getAllProjects(normalized);
   }
 
   /**
@@ -132,7 +140,11 @@ function normalizeProjectQuery(query: GetProjectsQueryDto): ProjectQueryInput {
     accessMode: query.accessMode,
     q: query.q,
     minSignal: query.minSignal,
+    minFundingAmount: query.minFundingAmount,
+    maxFundingAmount: query.maxFundingAmount,
     sort: query.sort,
+    page: query.page,
+    limit: query.limit,
     onlyVerified: query.onlyVerified === 'true',
   };
 }

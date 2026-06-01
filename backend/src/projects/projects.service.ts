@@ -7,7 +7,7 @@ import {
   PROJECT_CATEGORIES,
   ProjectCategory,
 } from './project.constants';
-import { ProjectQueryInput } from './dto/get-projects-query.dto';
+import { ProjectQueryInput, ProjectSortKey } from './dto/get-projects-query.dto';
 import {
   MatchProposal,
   Project,
@@ -26,6 +26,16 @@ import {
   normalizePublicHttpUrl,
   resolveRedirectUrl,
 } from './url-security';
+
+export interface ProjectListPage {
+  data: Project[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+}
 
 @Injectable()
 export class ProjectsService {
@@ -162,11 +172,42 @@ export class ProjectsService {
   }
 
   async getAllProjects(query: ProjectQueryInput = {}): Promise<Project[]> {
-    const sortBy = query.sort ?? 'signal';
+    const result = this.buildFilteredProjects(query);
+    const { sort } = query;
+
+    return this.applySort(result, sort ?? 'signal');
+  }
+
+  async getProjectList(query: ProjectQueryInput = {}): Promise<ProjectListPage> {
+    const page = Math.max(1, query.page ?? 1);
+    const defaultLimit = this.projects.length > 0 ? Math.min(this.projects.length, 100) : 12;
+    const limit = Math.max(1, Math.min(100, query.limit ?? defaultLimit));
+
+    const filtered = await this.getAllProjects(query);
+    const total = filtered.length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const safePage = Math.min(page, totalPages);
+    const start = (safePage - 1) * limit;
+    const end = start + limit;
+
+    return {
+      data: filtered.slice(start, end),
+      page: safePage,
+      limit,
+      total,
+      totalPages,
+      hasPrev: safePage > 1,
+      hasNext: safePage < totalPages,
+    };
+  }
+
+  private buildFilteredProjects(query: ProjectQueryInput): Project[] {
     const searchText = (query.q ?? '').trim().toLowerCase();
     const minSignal = query.minSignal;
+    const minFundingAmount = query.minFundingAmount;
+    const maxFundingAmount = query.maxFundingAmount;
 
-    const filtered = this.projects
+    return this.projects
       .filter((project) => {
         if (query.category && project.category !== query.category) {
           return false;
@@ -177,6 +218,14 @@ export class ProjectsService {
         }
 
         if (query.onlyVerified && !project.validation.success) {
+          return false;
+        }
+
+        if (minFundingAmount !== undefined && project.committedAmountMax < minFundingAmount) {
+          return false;
+        }
+
+        if (maxFundingAmount !== undefined && project.committedAmountMin > maxFundingAmount) {
           return false;
         }
 
@@ -198,26 +247,40 @@ export class ProjectsService {
         return true;
       })
       .map((project) => this.hydrateProject(project))
-      .filter((project) => (minSignal === undefined ? true : (project.signalScore ?? 0) >= minSignal))
-      .sort((a, b) => {
-        if (sortBy === 'recent') {
-          const aTime = a.eventSummary?.latestAt ? new Date(a.eventSummary.latestAt).getTime() : 0;
-          const bTime = b.eventSummary?.latestAt ? new Date(b.eventSummary.latestAt).getTime() : 0;
-          const diff = bTime - aTime;
-          if (diff !== 0) return diff;
+      .filter((project) => {
+        if (minSignal === undefined) {
+          return true;
         }
 
-        if (sortBy === 'created') {
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-        }
-
-        const scoreDiff = (b.signalScore ?? 0) - (a.signalScore ?? 0);
-        if (scoreDiff !== 0) return scoreDiff;
-
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        const score = project.signalScore ?? 0;
+        return score >= minSignal;
       });
+  }
 
-    return filtered;
+  private applySort(projects: Project[], sortBy: ProjectSortKey): Project[] {
+    return [...projects].sort((a, b) => {
+      if (sortBy === 'recent') {
+        const aTime = a.eventSummary?.latestAt ? new Date(a.eventSummary.latestAt).getTime() : 0;
+        const bTime = b.eventSummary?.latestAt ? new Date(b.eventSummary.latestAt).getTime() : 0;
+        const diff = bTime - aTime;
+        if (diff !== 0) return diff;
+      }
+
+      if (sortBy === 'created') {
+        const diff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        if (diff !== 0) return diff;
+      }
+
+      if (sortBy === 'funding') {
+        const diff = b.committedAmountMax - a.committedAmountMax;
+        if (diff !== 0) return diff;
+      }
+
+      const scoreDiff = (b.signalScore ?? 0) - (a.signalScore ?? 0);
+      if (scoreDiff !== 0) return scoreDiff;
+
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
   }
 
   async getProjectById(id: number): Promise<Project> {

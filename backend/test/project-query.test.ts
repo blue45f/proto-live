@@ -174,3 +174,94 @@ test('getAllProjects supports category/search/access mode query filters', async 
     assert.deepEqual(created.map((project) => project.id), [1, 2, 3, 4]);
   });
 });
+
+test('getProjectList paginates projects and applies funding filters', async () => {
+  await withSeededService((state) => {
+    state.users.push({ id: 1, email: 'maker@protolive.local', role: 'maker' });
+    state.projects.push(
+      {
+        id: 1,
+        userId: 1,
+        title: 'Small Scale',
+        description: 'entry level build',
+        liveUrl: 'https://small.example.com',
+        category: 'AI & SaaS' as ProjectCategory,
+        accessMode: 'open' as ProjectAccessMode,
+        protectionNoticeAccepted: true,
+        investorCount: 0,
+        matchCount: 1,
+        committedAmountMin: 80,
+        committedAmountMax: 120,
+        validation: { success: true, status: 200, message: 'ok', checkedAt: '2026-06-01T00:00:00.000Z', finalUrl: 'https://small.example.com', responseTimeMs: 40 },
+        createdAt: new Date('2026-06-01T12:00:00.000Z'),
+      },
+      {
+        id: 2,
+        userId: 1,
+        title: 'Middle Scale',
+        description: 'steady growth product',
+        liveUrl: 'https://middle.example.com',
+        category: 'FinTech',
+        accessMode: 'open' as ProjectAccessMode,
+        protectionNoticeAccepted: true,
+        investorCount: 2,
+        matchCount: 3,
+        committedAmountMin: 300,
+        committedAmountMax: 500,
+        validation: { success: true, status: 200, message: 'ok', checkedAt: '2026-06-01T00:00:00.000Z', finalUrl: 'https://middle.example.com', responseTimeMs: 60 },
+        createdAt: new Date('2026-06-01T11:00:00.000Z'),
+      },
+      {
+        id: 3,
+        userId: 1,
+        title: 'Large Scale',
+        description: 'enterprise onboarding',
+        liveUrl: 'https://large.example.com',
+        category: 'DevTools',
+        accessMode: 'open' as ProjectAccessMode,
+        protectionNoticeAccepted: true,
+        investorCount: 4,
+        matchCount: 2,
+        committedAmountMin: 800,
+        committedAmountMax: 1300,
+        validation: { success: true, status: 200, message: 'ok', checkedAt: '2026-06-01T00:00:00.000Z', finalUrl: 'https://large.example.com', responseTimeMs: 80 },
+        createdAt: new Date('2026-06-01T10:00:00.000Z'),
+      },
+    );
+
+    state.nextUserId = 2;
+    state.nextProjectId = 4;
+    state.nextProposalId = 1;
+    state.nextEventId = 1;
+  }, async (service) => {
+    const firstPage = await service.getProjectList({ page: 1, limit: 2, sort: 'funding' });
+    assert.equal(firstPage.page, 1);
+    assert.equal(firstPage.limit, 2);
+    assert.equal(firstPage.total, 3);
+    assert.equal(firstPage.totalPages, 2);
+    assert.equal(firstPage.hasPrev, false);
+    assert.equal(firstPage.hasNext, true);
+    assert.deepEqual(firstPage.data.map((project) => project.id), [3, 2]);
+
+    const secondPage = await service.getProjectList({ page: 2, limit: 2, sort: 'funding' });
+    assert.equal(secondPage.page, 2);
+    assert.equal(secondPage.hasPrev, true);
+    assert.equal(secondPage.hasNext, false);
+    assert.equal(secondPage.data.length, 1);
+    assert.equal(secondPage.data[0].id, 1);
+
+    const requestedOverflowPage = await service.getProjectList({ page: 9, limit: 2, sort: 'funding' });
+    assert.equal(requestedOverflowPage.page, 2);
+
+    const fundedByRange = await service.getProjectList({ sort: 'funding', minFundingAmount: 200, maxFundingAmount: 900 });
+    assert.equal(fundedByRange.total, 2);
+    assert.deepEqual(fundedByRange.data.map((project) => project.id), [3, 2]);
+
+    const atLeastMin = await service.getProjectList({ sort: 'funding', minFundingAmount: 100 });
+    assert.equal(atLeastMin.total, 3);
+
+    const atMostMax = await service.getProjectList({ sort: 'funding', maxFundingAmount: 500 });
+    assert.equal(atMostMax.total, 2);
+    assert.deepEqual(atMostMax.data.map((project) => project.id), [2, 1]);
+  });
+});
