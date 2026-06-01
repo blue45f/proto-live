@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { isAxiosError } from 'axios';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -55,6 +55,18 @@ import {
   validateLiveUrl,
 } from './api';
 import ToastContainer, { toast } from './components/ToastContainer';
+
+const DIALOG_FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function getDialogFocusableElements(container: HTMLElement | null) {
+  if (!container) return [];
+
+  return Array.from(container.querySelectorAll<HTMLElement>(DIALOG_FOCUSABLE_SELECTOR)).filter((element) => {
+    const computed = window.getComputedStyle(element);
+    return computed.visibility !== 'hidden' && computed.display !== 'none';
+  });
+}
 
 const EMPTY_STATS: MarketStats = {
   totalProjects: 0,
@@ -369,6 +381,10 @@ export default function App() {
   const [matchMessage, setMatchMessage] = useState('');
   const [isSendingMatch, setIsSendingMatch] = useState(false);
   const isFilterInitialized = useRef(false);
+  const previewDialogRef = useRef<HTMLElement>(null);
+  const matchModalRef = useRef<HTMLElement>(null);
+  const submitModalRef = useRef<HTMLElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
   const normalizedCategory =
     selectedCategory === 'All' || config.categories.includes(selectedCategory)
@@ -794,32 +810,76 @@ export default function App() {
       return;
     }
 
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
+    const activeDialogRef = previewProject
+      ? previewDialogRef
+      : matchingProject
+        ? matchModalRef
+        : submitModalRef;
 
-      if (previewProject) {
-        setPreviewProject(null);
-        setPreviewEvents([]);
+    if (!activeDialogRef.current) {
+      return;
+    }
+
+    previousFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : previousFocusRef.current;
+
+    const focusables = getDialogFocusableElements(activeDialogRef.current);
+    if (focusables.length > 0) {
+      focusables[0].focus();
+    } else {
+      activeDialogRef.current.focus();
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+
+        if (previewProject) {
+          setPreviewProject(null);
+          setPreviewEvents([]);
+          return;
+        }
+
+        if (matchingProject) {
+          setMatchingProject(null);
+          return;
+        }
+
+        if (isSubmitOpen) {
+          setIsSubmitOpen(false);
+        }
         return;
       }
 
-      if (matchingProject) {
-        setMatchingProject(null);
+      if (event.key !== 'Tab' || focusables.length === 0) {
         return;
       }
 
-      if (isSubmitOpen) {
-        setIsSubmitOpen(false);
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const activeElement = document.activeElement as HTMLElement | null;
+
+      if (!event.shiftKey && activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      } else if (event.shiftKey && activeElement === first) {
+        event.preventDefault();
+        last.focus();
       }
     };
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    window.addEventListener('keydown', onEscape);
+    window.addEventListener('keydown', onKeyDown);
 
     return () => {
       document.body.style.overflow = previousOverflow;
-      window.removeEventListener('keydown', onEscape);
+      window.removeEventListener('keydown', onKeyDown);
+
+      const restoreTarget = previousFocusRef.current;
+      if (restoreTarget) {
+        restoreTarget.focus();
+      }
     };
   }, [isSubmitOpen, matchingProject, previewProject]);
 
@@ -1510,7 +1570,14 @@ export default function App() {
             onClick={closePreview}
             aria-label="프리뷰 닫기"
           />
-          <section className="absolute right-0 top-0 flex h-full w-full flex-col border-l border-stone-700 bg-[oklch(13%_0.016_205)] shadow-2xl lg:w-[72vw] xl:w-[62vw]">
+          <section
+            ref={previewDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="라이브 프리뷰"
+            tabIndex={-1}
+            className="absolute right-0 top-0 flex h-full w-full flex-col border-l border-stone-700 bg-[oklch(13%_0.016_205)] shadow-2xl lg:w-[72vw] xl:w-[62vw]"
+          >
             <div className="flex min-h-16 items-center justify-between gap-3 border-b border-stone-800 px-4">
               <div className="min-w-0">
                 <p className="truncate text-sm font-black text-stone-100">{previewProject.title}</p>
@@ -1594,7 +1661,12 @@ export default function App() {
       )}
 
       {matchingProject && (
-        <Modal title="투자 의향 기록" subtitle={matchingProject.title} onClose={() => setMatchingProject(null)}>
+        <Modal
+          title="투자 의향 기록"
+          subtitle={matchingProject.title}
+          onClose={() => setMatchingProject(null)}
+          dialogRef={matchModalRef}
+        >
           <form onSubmit={handleSubmitMatch} className="space-y-4">
             <div className="rounded-lg border border-stone-800 bg-stone-950/50 p-3">
               <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-200">
@@ -1650,7 +1722,12 @@ export default function App() {
       )}
 
       {isSubmitOpen && (
-        <Modal title="라이브 프로토타입 등록" subtitle="공인 URL 검증 후 마켓에 반영됩니다." onClose={() => setIsSubmitOpen(false)}>
+        <Modal
+          title="라이브 프로토타입 등록"
+          subtitle="공인 URL 검증 후 마켓에 반영됩니다."
+          onClose={() => setIsSubmitOpen(false)}
+          dialogRef={submitModalRef}
+        >
           <form onSubmit={handleSubmitProject} className="space-y-4">
             <label className="block">
               <span className="mb-2 block text-xs font-black text-stone-300">메이커 이메일</span>
@@ -2103,20 +2180,37 @@ function Modal({
   subtitle,
   children,
   onClose,
+  dialogRef,
 }: {
   title: string;
   subtitle: string;
   children: React.ReactNode;
   onClose: () => void;
+  dialogRef?: React.RefObject<HTMLElement | null>;
 }) {
+  const titleId = useId();
+  const descriptionId = useId();
+
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/80 p-4 backdrop-blur-sm">
       <button type="button" className="absolute inset-0 cursor-default" onClick={onClose} aria-label="닫기" />
-      <section className="relative max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-xl border border-stone-700 bg-[oklch(16%_0.018_205)] p-5 shadow-2xl">
+      <section
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        tabIndex={-1}
+        className="relative max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-xl border border-stone-700 bg-[oklch(16%_0.018_205)] p-5 shadow-2xl"
+      >
         <div className="mb-5 flex items-start justify-between gap-3 border-b border-stone-800 pb-4">
           <div>
-            <h2 className="text-xl font-black text-stone-50">{title}</h2>
-            <p className="mt-1 text-sm text-stone-400">{subtitle}</p>
+            <h2 id={titleId} className="text-xl font-black text-stone-50">
+              {title}
+            </h2>
+            <p id={descriptionId} className="mt-1 text-sm text-stone-400">
+              {subtitle}
+            </p>
           </div>
           <button
             type="button"
