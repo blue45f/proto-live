@@ -103,10 +103,26 @@ export interface ProjectListQuery {
   q?: string;
   category?: string;
   accessMode?: ProjectAccessMode;
-  sort?: 'signal' | 'recent' | 'created';
+  sort?: 'signal' | 'recent' | 'created' | 'funding';
   minSignal?: number;
+  minFundingAmount?: number;
+  maxFundingAmount?: number;
   onlyVerified?: boolean;
+  page?: number;
+  limit?: number;
 }
+
+export interface ProjectListResponse {
+  data: Project[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+}
+
+export type ProjectListPayload = Project[] | ProjectListResponse;
 
 interface ApiErrorBody {
   message?: string | string[];
@@ -134,8 +150,8 @@ export async function fetchMarketStats() {
   return response.data;
 }
 
-export async function fetchProjects(query: ProjectListQuery = {}) {
-  const response = await client.get<Project[]>('/projects', { params: normalizeProjectQuery(query) });
+export async function fetchProjects(query: ProjectListQuery = {}): Promise<ProjectListPayload> {
+  const response = await client.get<ProjectListPayload>('/projects', { params: normalizeProjectQuery(query) });
   return response.data;
 }
 
@@ -149,7 +165,7 @@ export async function fetchMarketSnapshot() {
   return {
     config,
     stats,
-    projects,
+    projects: extractProjects(projects),
   };
 }
 
@@ -188,6 +204,14 @@ export async function fetchProjectEvents(id: number) {
   return response.data;
 }
 
+export function extractProjects(payload: ProjectListPayload): Project[] {
+  return Array.isArray(payload) ? payload : payload.data;
+}
+
+export function hasPagination(payload: ProjectListPayload): payload is ProjectListResponse {
+  return !Array.isArray(payload) && typeof payload.total === 'number';
+}
+
 function normalizeProjectQuery(query: ProjectListQuery): Record<string, string | number> {
   const params: Record<string, string | number> = {};
 
@@ -196,7 +220,13 @@ function normalizeProjectQuery(query: ProjectListQuery): Record<string, string |
   if (query.accessMode) params.accessMode = query.accessMode;
   if (query.sort && query.sort !== 'signal') params.sort = query.sort;
   if (query.minSignal !== undefined && Number.isFinite(query.minSignal)) params.minSignal = query.minSignal;
+  if (query.minFundingAmount !== undefined && Number.isFinite(query.minFundingAmount))
+    params.minFundingAmount = query.minFundingAmount;
+  if (query.maxFundingAmount !== undefined && Number.isFinite(query.maxFundingAmount))
+    params.maxFundingAmount = query.maxFundingAmount;
   if (query.onlyVerified === true) params.onlyVerified = 'true';
+  if (query.page && Number.isFinite(query.page)) params.page = query.page;
+  if (query.limit && Number.isFinite(query.limit)) params.limit = query.limit;
 
   return params;
 }

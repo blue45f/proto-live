@@ -38,10 +38,12 @@ import {
   ProjectEvent,
   ProjectEventType,
   ValidationSnapshot,
+  hasPagination,
   createMatchProposal,
   createProject,
   fetchMarketConfig,
   fetchMarketStats,
+  extractProjects,
   fetchProjects,
   fetchProjectEvents,
   getApiErrorMessage,
@@ -168,7 +170,19 @@ export default function App() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedAccessMode, setSelectedAccessMode] = useState<'All' | ProjectAccessMode>('All');
-  const [sortMode, setSortMode] = useState<'signal' | 'recent' | 'created'>('signal');
+  const [sortMode, setSortMode] = useState<'signal' | 'recent' | 'created' | 'funding'>('signal');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
+  const [minFundingAmount, setMinFundingAmount] = useState(0);
+  const [maxFundingAmount, setMaxFundingAmount] = useState(0);
+  const [projectMeta, setProjectMeta] = useState({
+    total: 0,
+    page: 1,
+    totalPages: 1,
+    hasPrev: false,
+    hasNext: false,
+    limit: 12,
+  });
   const [onlyVerified, setOnlyVerified] = useState(false);
   const [minSignal, setMinSignal] = useState(0);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -221,10 +235,25 @@ export default function App() {
       category: selectedCategory === 'All' ? undefined : selectedCategory,
       accessMode: selectedAccessMode === 'All' ? undefined : selectedAccessMode,
       sort: sortMode,
+      page,
+      limit: pageSize,
       minSignal: minSignal > 0 ? minSignal : undefined,
+      minFundingAmount: minFundingAmount > 0 ? minFundingAmount : undefined,
+      maxFundingAmount: maxFundingAmount > 0 ? maxFundingAmount : undefined,
       onlyVerified,
     };
-  }, [debouncedSearch, minSignal, onlyVerified, selectedAccessMode, selectedCategory, sortMode]);
+  }, [
+    debouncedSearch,
+    minSignal,
+    maxFundingAmount,
+    minFundingAmount,
+    onlyVerified,
+    selectedAccessMode,
+    selectedCategory,
+    sortMode,
+    page,
+    pageSize,
+  ]);
 
   const loadSnapshot = useCallback(async (showLoading = false) => {
     if (showLoading) setIsRefreshing(true);
@@ -236,9 +265,30 @@ export default function App() {
         fetchProjects(projectQuery),
       ]);
 
+      const projectPayload = extractProjects(projectsData);
+
       setConfig(configData);
       setStats(statsData);
-      setProjects(projectsData);
+      setProjects(projectPayload);
+      if (hasPagination(projectsData)) {
+        setProjectMeta({
+          total: projectsData.total,
+          page: projectsData.page,
+          totalPages: projectsData.totalPages,
+          hasPrev: projectsData.hasPrev,
+          hasNext: projectsData.hasNext,
+          limit: projectsData.limit,
+        });
+      } else {
+        setProjectMeta({
+          total: projectPayload.length,
+          page: 1,
+          totalPages: 1,
+          hasPrev: false,
+          hasNext: false,
+          limit: projectPayload.length,
+        });
+      }
       setApiOnline(true);
       setLoadError('');
 
@@ -611,7 +661,10 @@ export default function App() {
                   <button
                     key={item}
                     type="button"
-                    onClick={() => setSelectedCategory(item)}
+                    onClick={() => {
+                      setSelectedCategory(item);
+                      setPage(1);
+                    }}
                     className={`min-h-10 rounded-lg border px-3 text-xs font-black transition ${
                       selectedCategory === item
                         ? 'border-lime-300/50 bg-lime-300 text-slate-950'
@@ -622,12 +675,15 @@ export default function App() {
                   </button>
                 ))}
               </div>
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="relative w-full lg:w-[360px]">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
-                  <input
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="relative w-full lg:w-[360px]">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
+                    <input
                     value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
+                    onChange={(event) => {
+                      setPage(1);
+                      setSearchQuery(event.target.value);
+                    }}
                     placeholder="이름, 설명, URL, 카테고리 검색"
                     className="min-h-11 w-full rounded-lg border border-stone-700 bg-stone-950/70 pl-10 pr-3 text-sm text-stone-100 outline-none transition placeholder:text-stone-500 focus:border-cyan-300/60"
                   />
@@ -637,11 +693,15 @@ export default function App() {
                     ['signal', 'Signal'],
                     ['recent', '최근 신호'],
                     ['created', '등록순'],
+                    ['funding', '투자규모'],
                   ].map(([value, label]) => (
                     <button
                       key={value}
                       type="button"
-                      onClick={() => setSortMode(value as typeof sortMode)}
+                      onClick={() => {
+                        setSortMode(value as typeof sortMode);
+                        setPage(1);
+                      }}
                       className={`min-h-9 rounded-md px-3 text-xs font-black transition ${
                         sortMode === value
                           ? 'bg-cyan-300 text-slate-950'
@@ -658,7 +718,10 @@ export default function App() {
                   <button
                     key={item}
                     type="button"
-                    onClick={() => setSelectedAccessMode(item)}
+                    onClick={() => {
+                      setSelectedAccessMode(item);
+                      setPage(1);
+                    }}
                     className={`min-h-10 rounded-lg border px-3 text-xs font-black transition ${
                       selectedAccessMode === item
                         ? 'border-cyan-300/50 bg-cyan-300 text-slate-950'
@@ -669,27 +732,61 @@ export default function App() {
                   </button>
                 ))}
               </div>
-              <div className="flex flex-wrap items-center gap-3 text-xs font-black text-stone-300">
-                <label className="inline-flex items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2 text-xs">
+                <div className="flex flex-wrap items-center gap-3 text-xs font-black text-stone-300">
+                  <label className="inline-flex items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2 text-xs">
                   <input
                     type="checkbox"
                     checked={onlyVerified}
-                    onChange={(event) => setOnlyVerified(event.target.checked)}
+                    onChange={(event) => {
+                      setOnlyVerified(event.target.checked);
+                      setPage(1);
+                    }}
                   />
                   <span>검증된 프로젝트만</span>
                 </label>
-                <label className="inline-flex items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2">
-                  최소 시그널
+                  <label className="inline-flex items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2">
+                    최소 시그널
                   <input
                     type="number"
                     min={0}
                     max={100}
-                    value={minSignal}
-                    onChange={(event) => {
+                      value={minSignal}
+                      onChange={(event) => {
                       const next = Number(event.target.value);
                       setMinSignal(Number.isFinite(next) ? Math.max(0, Math.floor(next)) : 0);
-                    }}
+                      setPage(1);
+                      }}
                     className="ml-1 w-20 rounded bg-stone-950 border border-stone-700 px-2 py-1 text-right text-xs font-black text-stone-100 outline-none"
+                  />
+                </label>
+                <label className="inline-flex items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2">
+                  최소 투자금
+                  <input
+                    type="number"
+                    min={0}
+                    step={1000000}
+                      value={minFundingAmount}
+                      onChange={(event) => {
+                      const next = Number(event.target.value);
+                      setMinFundingAmount(Number.isFinite(next) ? Math.max(0, Math.floor(next)) : 0);
+                      setPage(1);
+                      }}
+                    className="ml-1 w-28 rounded bg-stone-950 border border-stone-700 px-2 py-1 text-right text-xs font-black text-stone-100 outline-none"
+                  />
+                </label>
+                <label className="inline-flex items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2">
+                  최대 투자금
+                  <input
+                    type="number"
+                    min={0}
+                    step={1000000}
+                      value={maxFundingAmount}
+                      onChange={(event) => {
+                      const next = Number(event.target.value);
+                      setMaxFundingAmount(Number.isFinite(next) ? Math.max(0, Math.floor(next)) : 0);
+                      setPage(1);
+                      }}
+                    className="ml-1 w-28 rounded bg-stone-950 border border-stone-700 px-2 py-1 text-right text-xs font-black text-stone-100 outline-none"
                   />
                 </label>
                 <button
@@ -703,6 +800,64 @@ export default function App() {
                 >
                   <Star className={`h-4 w-4 ${showFavoritesOnly ? 'fill-amber-100 text-amber-100' : 'text-stone-300'}`} />
                   즐겨찾기만
+                </button>
+                <label className="inline-flex min-w-[120px] items-center justify-between gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2">
+                  <span>페이지</span>
+                  <select
+                    value={pageSize}
+                    onChange={(event) => {
+                      const next = Number(event.target.value);
+                      setPageSize(Number.isFinite(next) ? next : 12);
+                      setPage(1);
+                    }}
+                    className="rounded border border-stone-700 bg-stone-900/80 px-2 py-1 text-xs font-black text-stone-100"
+                  >
+                    {[12, 24, 36, 60, 100].map((size) => (
+                      <option key={size} value={size}>
+                        {size}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-3 text-xs text-stone-300">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p>
+                {projectMeta.total === 0
+                  ? '조회 결과 0건'
+                  : `${(projectMeta.page - 1) * projectMeta.limit + 1}-${Math.min(
+                      projectMeta.page * projectMeta.limit,
+                      projectMeta.total,
+                    )} / ${projectMeta.total}건`}
+              </p>
+              <div className="inline-flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPage((value) => Math.max(1, value - 1))}
+                  disabled={!projectMeta.hasPrev}
+                  className={`inline-flex min-h-9 items-center rounded-lg border px-3 font-black transition ${
+                    projectMeta.hasPrev
+                      ? 'border-stone-700 text-stone-200 hover:border-cyan-300/50 hover:text-cyan-100'
+                      : 'cursor-not-allowed border-stone-800 text-stone-500'
+                  }`}
+                >
+                  이전
+                </button>
+                <span className="rounded-lg border border-stone-700 px-3 py-2">{projectMeta.page} / {projectMeta.totalPages}</span>
+                <button
+                  type="button"
+                  onClick={() => setPage((value) => (projectMeta.hasNext ? value + 1 : value))}
+                  disabled={!projectMeta.hasNext}
+                  className={`inline-flex min-h-9 items-center rounded-lg border px-3 font-black transition ${
+                    projectMeta.hasNext
+                      ? 'border-stone-700 text-stone-200 hover:border-cyan-300/50 hover:text-cyan-100'
+                      : 'cursor-not-allowed border-stone-800 text-stone-500'
+                  }`}
+                >
+                  다음
                 </button>
               </div>
             </div>
