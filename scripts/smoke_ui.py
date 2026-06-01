@@ -30,7 +30,9 @@ def main() -> None:
             mobile = browser.new_page(viewport={"width": 390, "height": 844}, is_mobile=True)
 
             frontend_url = os.environ.get("FRONTEND_URL", FRONTEND_DEFAULT_URL)
+            base_url = frontend_url.rstrip("/")
             wait_for_frontend(page, frontend_url)
+            wait_for_frontend(mobile, frontend_url)
 
             expect(page.get_by_text("ProtoLive").first).to_be_visible()
             expect(page.get_by_text("API Online")).to_be_visible()
@@ -49,10 +51,23 @@ def main() -> None:
 
             page.screenshot(path="/private/tmp/protolive-smoke.png", full_page=True)
 
+            page.goto(f"{base_url}/admin", wait_until="networkidle")
+            expect(page).to_have_url(re.compile(r".*/admin"))
+            expect(page.get_by_role("button", name="프로토타입 등록")).to_be_visible()
+            expect(page.get_by_text("수익 모델·운영 지표를 실험하는 관리자 대시보드")).to_be_visible()
+            page.screenshot(path="/private/tmp/protolive-admin-smoke.png", full_page=True)
+
             mobile.goto(frontend_url, wait_until="networkidle")
             expect(mobile.get_by_text("ProtoLive").first).to_be_visible()
             expect(mobile.get_by_role("button", name=re.compile("프로토타입 등록"))).to_be_visible()
             mobile.screenshot(path="/private/tmp/protolive-smoke-mobile.png", full_page=True)
+
+            page.goto(frontend_url, wait_until="networkidle")
+            expect(page.get_by_role("button", name="관리자")).to_be_visible(timeout=5000)
+            page.get_by_role("button", name="관리자").click()
+            expect(page).to_have_url(re.compile(r".*/admin"))
+            expect(page.get_by_text("수익 모델·운영 지표를 실험하는 관리자 대시보드")).to_be_visible()
+            page.screenshot(path="/private/tmp/protolive-admin-nav-smoke.png", full_page=True)
         finally:
             browser.close()
 
