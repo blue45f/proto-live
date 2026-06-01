@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import * as assert from 'node:assert/strict';
+import { BadRequestException } from '@nestjs/common';
 import { ProjectsService } from '../src/projects/projects.service';
 import { createEmptyProjectsState } from '../src/projects/project.models';
 import { JsonProjectsStore } from '../src/projects/projects.store';
@@ -263,5 +264,43 @@ test('getProjectList paginates projects and applies funding filters', async () =
     const atMostMax = await service.getProjectList({ sort: 'funding', maxFundingAmount: 500 });
     assert.equal(atMostMax.total, 2);
     assert.deepEqual(atMostMax.data.map((project) => project.id), [2, 1]);
+  });
+});
+
+test('getAllProjects rejects invalid funding range', async () => {
+  await withSeededService((state) => {
+    state.users.push({ id: 1, email: 'maker@protolive.local', role: 'maker' });
+    state.projects.push({
+      id: 1,
+      userId: 1,
+      title: 'Invalid Funding',
+      description: 'range test',
+      liveUrl: 'https://invalid-funding.example.com',
+      category: 'AI & SaaS' as ProjectCategory,
+      accessMode: 'open' as ProjectAccessMode,
+      protectionNoticeAccepted: true,
+      investorCount: 0,
+      matchCount: 0,
+      committedAmountMin: 120,
+      committedAmountMax: 280,
+      validation: { success: true, status: 200, message: 'ok', checkedAt: '2026-06-01T00:00:00.000Z', finalUrl: 'https://invalid-funding.example.com', responseTimeMs: 50 },
+      createdAt: new Date('2026-06-01T12:00:00.000Z'),
+    });
+
+    state.nextUserId = 2;
+    state.nextProjectId = 2;
+    state.nextProposalId = 1;
+    state.nextEventId = 1;
+  }, async (service) => {
+    const call = service.getAllProjects({
+      minFundingAmount: 3000000,
+      maxFundingAmount: 1000000,
+    });
+
+    await assert.rejects(call, (error: unknown) => {
+      assert.ok(error instanceof BadRequestException);
+      assert.equal((error as BadRequestException).message, '최대 투자금은 최소 투자금보다 크거나 같아야 합니다.');
+      return true;
+    });
   });
 });

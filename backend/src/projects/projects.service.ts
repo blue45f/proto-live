@@ -172,6 +172,7 @@ export class ProjectsService {
   }
 
   async getAllProjects(query: ProjectQueryInput = {}): Promise<Project[]> {
+    this.assertValidFundingRange(query);
     const result = this.buildFilteredProjects(query);
     const { sort } = query;
 
@@ -255,6 +256,16 @@ export class ProjectsService {
         const score = project.signalScore ?? 0;
         return score >= minSignal;
       });
+  }
+
+  private assertValidFundingRange(query: ProjectQueryInput) {
+    if (query.minFundingAmount === undefined || query.maxFundingAmount === undefined) {
+      return;
+    }
+
+    if (query.maxFundingAmount < query.minFundingAmount) {
+      throw new BadRequestException('최대 투자금은 최소 투자금보다 크거나 같아야 합니다.');
+    }
   }
 
   private applySort(projects: Project[], sortBy: ProjectSortKey): Project[] {
