@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { isAxiosError } from 'axios';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -14,6 +14,7 @@ import {
   Gauge,
   Globe2,
   Layers3,
+  Link2,
   Loader2,
   ShieldCheck,
   Plus,
@@ -75,6 +76,136 @@ const EMPTY_CONFIG: MarketConfig = {
   refreshIntervalMs: 30000,
   benchmarkSignals: [],
 };
+
+const FILTER_PRESET_STORAGE_KEY = 'protolive:filters:v1';
+
+const FUNDING_SORT_OPTIONS: ProjectListQuery['sort'][] = ['signal', 'recent', 'created', 'funding'];
+
+type RawFilterSnapshot = {
+  q?: string;
+  category?: string;
+  accessMode?: string;
+  sort?: string;
+  page?: number;
+  limit?: number;
+  minSignal?: number;
+  minFundingAmount?: number;
+  maxFundingAmount?: number;
+  onlyVerified?: boolean;
+  favorites?: boolean;
+};
+
+function safeInt(value: string | null, fallback: number) {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isNaN(parsed) ? fallback : parsed;
+}
+
+function toBoolean(value: string | null, fallback: boolean) {
+  if (value === null) return fallback;
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  return fallback;
+}
+
+function parseBoolean(value: unknown, fallback: boolean) {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') return toBoolean(value, fallback);
+  return fallback;
+}
+
+function clampPageSize(value: number) {
+  if (Number.isNaN(value)) return 12;
+  return Math.max(1, Math.min(100, Math.floor(value)));
+}
+
+function clampSort(value: string | null) {
+  if (!value) return 'signal';
+  return FUNDING_SORT_OPTIONS.includes(value as (typeof FUNDING_SORT_OPTIONS)[number])
+    ? (value as ProjectListQuery['sort'])
+    : 'signal';
+}
+
+function readFilterPreset(): RawFilterSnapshot {
+  const fallback: RawFilterSnapshot = {
+    q: '',
+    category: 'All',
+    accessMode: 'All',
+    sort: 'signal',
+    page: 1,
+    limit: 12,
+    minSignal: 0,
+    minFundingAmount: 0,
+    maxFundingAmount: 0,
+    onlyVerified: false,
+    favorites: false,
+  };
+
+  if (typeof window === 'undefined') {
+    return fallback;
+  }
+
+  let stored: Partial<RawFilterSnapshot> = {};
+  try {
+    const raw = localStorage.getItem(FILTER_PRESET_STORAGE_KEY);
+    if (raw) {
+      stored = JSON.parse(raw);
+    }
+  } catch {
+    stored = {};
+  }
+
+  const url = new URL(window.location.href);
+  const saved = {
+    q: url.searchParams.get('q') ?? null,
+    category: url.searchParams.get('category') ?? null,
+    accessMode: url.searchParams.get('accessMode') ?? null,
+    sort: url.searchParams.get('sort') ?? null,
+    page: url.searchParams.get('page'),
+    limit: url.searchParams.get('limit'),
+    minSignal: url.searchParams.get('minSignal'),
+    minFundingAmount: url.searchParams.get('minFundingAmount'),
+    maxFundingAmount: url.searchParams.get('maxFundingAmount'),
+    onlyVerified: url.searchParams.get('onlyVerified'),
+    favorites: url.searchParams.get('favorites'),
+  };
+
+  const hasAnyQuery = Array.from(url.searchParams.keys()).length > 0;
+  if (!hasAnyQuery) {
+    return {
+      q: stored.q ?? fallback.q,
+      category: stored.category ?? fallback.category,
+      accessMode: stored.accessMode ?? fallback.accessMode,
+      sort: clampSort(stored.sort ?? fallback.sort ?? null) as string,
+      page: Math.max(1, safeInt(stored.page?.toString() ?? null, fallback.page ?? 1)),
+      limit: clampPageSize(stored.limit ?? (fallback.limit ?? 12)),
+      minSignal: Math.max(0, safeInt(stored.minSignal?.toString() ?? null, fallback.minSignal ?? 0)),
+      minFundingAmount: Math.max(
+        0,
+        safeInt(stored.minFundingAmount?.toString() ?? null, fallback.minFundingAmount ?? 0),
+      ),
+      maxFundingAmount: Math.max(
+        0,
+        safeInt(stored.maxFundingAmount?.toString() ?? null, fallback.maxFundingAmount ?? 0),
+      ),
+      onlyVerified: parseBoolean(stored.onlyVerified, false),
+      favorites: parseBoolean(stored.favorites, false),
+    };
+  }
+
+  return {
+    q: saved.q ?? fallback.q,
+    category: saved.category ?? fallback.category,
+    accessMode: saved.accessMode ?? fallback.accessMode,
+    sort: clampSort(saved.sort) as string,
+    page: safeInt(saved.page, fallback.page ?? 1),
+    limit: safeInt(saved.limit, fallback.limit ?? 12),
+    minSignal: Math.max(0, safeInt(saved.minSignal, fallback.minSignal ?? 0)),
+    minFundingAmount: Math.max(0, safeInt(saved.minFundingAmount, fallback.minFundingAmount ?? 0)),
+    maxFundingAmount: Math.max(0, safeInt(saved.maxFundingAmount, fallback.maxFundingAmount ?? 0)),
+    onlyVerified: toBoolean(saved.onlyVerified, false),
+    favorites: toBoolean(saved.favorites, false),
+  };
+}
 
 const benchmarkCopy: Record<string, { title: string; body: string }> = {
   live_demo_required: {
@@ -159,6 +290,8 @@ function upsertProject(projects: Project[], nextProject: Project) {
 }
 
 export default function App() {
+  const filterPreset = useMemo(() => readFilterPreset(), []);
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [stats, setStats] = useState<MarketStats>(EMPTY_STATS);
   const [config, setConfig] = useState<MarketConfig>(EMPTY_CONFIG);
@@ -167,15 +300,21 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loadError, setLoadError] = useState('');
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(filterPreset.q ?? '');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedAccessMode, setSelectedAccessMode] = useState<'All' | ProjectAccessMode>('All');
-  const [sortMode, setSortMode] = useState<'signal' | 'recent' | 'created' | 'funding'>('signal');
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(12);
-  const [minFundingAmount, setMinFundingAmount] = useState(0);
-  const [maxFundingAmount, setMaxFundingAmount] = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState(filterPreset.category ?? 'All');
+  const [selectedAccessMode, setSelectedAccessMode] = useState<'All' | ProjectAccessMode>(
+    filterPreset.accessMode === 'open' || filterPreset.accessMode === 'screened'
+      ? filterPreset.accessMode
+      : 'All',
+  );
+  const [sortMode, setSortMode] = useState<'signal' | 'recent' | 'created' | 'funding'>(
+    filterPreset.sort as 'signal' | 'recent' | 'created' | 'funding',
+  );
+  const [page, setPage] = useState(filterPreset.page ?? 1);
+  const [pageSize, setPageSize] = useState(clampPageSize(filterPreset.limit ?? 12));
+  const [minFundingAmount, setMinFundingAmount] = useState(filterPreset.minFundingAmount ?? 0);
+  const [maxFundingAmount, setMaxFundingAmount] = useState(filterPreset.maxFundingAmount ?? 0);
   const [projectMeta, setProjectMeta] = useState({
     total: 0,
     page: 1,
@@ -184,9 +323,9 @@ export default function App() {
     hasNext: false,
     limit: 12,
   });
-  const [onlyVerified, setOnlyVerified] = useState(false);
-  const [minSignal, setMinSignal] = useState(0);
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [onlyVerified, setOnlyVerified] = useState(filterPreset.onlyVerified ?? false);
+  const [minSignal, setMinSignal] = useState(filterPreset.minSignal ?? 0);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(filterPreset.favorites ?? false);
   const [favoriteProjectIds, setFavoriteProjectIds] = useState<Set<number>>(() => {
     if (typeof window === 'undefined') {
       return new Set<number>();
@@ -229,14 +368,24 @@ export default function App() {
   const [fundingRangeId, setFundingRangeId] = useState('');
   const [matchMessage, setMatchMessage] = useState('');
   const [isSendingMatch, setIsSendingMatch] = useState(false);
+  const isFilterInitialized = useRef(false);
+
+  const normalizedCategory =
+    selectedCategory === 'All' || config.categories.includes(selectedCategory)
+      ? selectedCategory
+      : 'All';
+  const normalizedAccessMode =
+    selectedAccessMode === 'All' || config.accessModes.some((mode) => mode.id === selectedAccessMode)
+      ? selectedAccessMode
+      : 'All';
 
   const hasFundingRangeError = maxFundingAmount > 0 && minFundingAmount > 0 && maxFundingAmount < minFundingAmount;
 
   const projectQuery = useMemo<ProjectListQuery>(() => {
     return {
       q: debouncedSearch,
-      category: selectedCategory === 'All' ? undefined : selectedCategory,
-      accessMode: selectedAccessMode === 'All' ? undefined : selectedAccessMode,
+      category: normalizedCategory === 'All' ? undefined : normalizedCategory,
+      accessMode: normalizedAccessMode === 'All' ? undefined : normalizedAccessMode,
       sort: sortMode,
       page,
       limit: pageSize,
@@ -254,8 +403,8 @@ export default function App() {
     maxFundingAmount,
     minFundingAmount,
     onlyVerified,
-    selectedAccessMode,
-    selectedCategory,
+    normalizedAccessMode,
+    normalizedCategory,
     sortMode,
     page,
     pageSize,
@@ -276,10 +425,10 @@ export default function App() {
       });
     }
 
-    if (selectedCategory !== 'All') {
+    if (normalizedCategory !== 'All') {
       filters.push({
         id: 'category',
-        label: `카테고리: ${selectedCategory}`,
+        label: `카테고리: ${normalizedCategory}`,
         onClear: () => {
           setSelectedCategory('All');
           setPage(1);
@@ -287,10 +436,10 @@ export default function App() {
       });
     }
 
-    if (selectedAccessMode !== 'All') {
+    if (normalizedAccessMode !== 'All') {
       filters.push({
         id: 'accessMode',
-        label: `공개범위: ${selectedAccessMode === 'open' ? '공개' : '선별'}`,
+        label: `공개범위: ${normalizedAccessMode === 'open' ? '공개' : '선별'}`,
         onClear: () => {
           setSelectedAccessMode('All');
           setPage(1);
@@ -374,8 +523,8 @@ export default function App() {
     minFundingAmount,
     minSignal,
     onlyVerified,
-    selectedAccessMode,
-    selectedCategory,
+    normalizedAccessMode,
+    normalizedCategory,
     showFavoritesOnly,
     sortMode,
     hasFundingRangeError,
@@ -501,6 +650,96 @@ export default function App() {
     localStorage.setItem('protolive:favorites', JSON.stringify(Array.from(favoriteProjectIds)));
   }, [favoriteProjectIds]);
 
+  useEffect(() => {
+    if (!isFilterInitialized.current) {
+      isFilterInitialized.current = true;
+      return;
+    }
+
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const params = new URLSearchParams();
+    const trimmedSearch = debouncedSearch.trim();
+    if (trimmedSearch) {
+      params.set('q', trimmedSearch);
+    }
+
+    if (normalizedCategory !== 'All') {
+      params.set('category', normalizedCategory);
+    }
+
+    if (normalizedAccessMode !== 'All') {
+      params.set('accessMode', normalizedAccessMode);
+    }
+
+    if (sortMode !== 'signal') {
+      params.set('sort', sortMode);
+    }
+
+    if (page > 1) {
+      params.set('page', String(page));
+    }
+
+    if (pageSize !== 12) {
+      params.set('limit', String(pageSize));
+    }
+
+    if (minSignal > 0) {
+      params.set('minSignal', String(minSignal));
+    }
+
+    if (minFundingAmount > 0 && !hasFundingRangeError) {
+      params.set('minFundingAmount', String(minFundingAmount));
+    }
+
+    if (maxFundingAmount > 0 && !hasFundingRangeError) {
+      params.set('maxFundingAmount', String(maxFundingAmount));
+    }
+
+    if (onlyVerified) {
+      params.set('onlyVerified', 'true');
+    }
+
+    if (showFavoritesOnly) {
+      params.set('favorites', 'true');
+    }
+
+    const query = params.toString();
+    window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+
+    localStorage.setItem(
+      FILTER_PRESET_STORAGE_KEY,
+      JSON.stringify({
+        q: trimmedSearch,
+        category: normalizedCategory,
+        accessMode: normalizedAccessMode,
+        sort: sortMode,
+        page,
+        limit: pageSize,
+        minSignal,
+        minFundingAmount,
+        maxFundingAmount,
+        onlyVerified,
+        favorites: showFavoritesOnly,
+      }),
+    );
+  }, [
+    debouncedSearch,
+    hasFundingRangeError,
+    minFundingAmount,
+    maxFundingAmount,
+    minSignal,
+    normalizedCategory,
+    normalizedAccessMode,
+    onlyVerified,
+    page,
+    pageSize,
+    showFavoritesOnly,
+    sortMode,
+  ]);
+
   const categoryOptions = useMemo(() => ['All', ...config.categories], [config.categories]);
   const accessModeOptions: Array<'All' | ProjectAccessMode> = ['All', ...config.accessModes.map((item) => item.id)];
   const activeFundingRange = config.fundingRanges.find((range) => range.id === fundingRangeId);
@@ -517,6 +756,22 @@ export default function App() {
 
     setIsSubmitOpen(true);
   }, [accessMode, category, config.accessModes, config.categories]);
+
+  const activeFilterCount = activeFilters.length;
+
+  const copyFilterLink = useCallback(async () => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const url = `${window.location.origin}${window.location.pathname}${window.location.search}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast('success', '필터 링크 복사', '현재 조회 조건 링크가 클립보드에 복사되었습니다.');
+    } catch {
+      toast('error', '클립보드 복사 실패', '브라우저 권한을 확인하고 다시 시도해 주세요.');
+    }
+  }, []);
 
   useEffect(() => {
     const initialize = async () => {
@@ -1066,14 +1321,27 @@ export default function App() {
               {activeFilters.length > 0 && (
                 <div className="rounded-lg border border-stone-700 bg-stone-950/45 p-3">
                   <div className="mb-2 flex items-center justify-between">
-                    <span className="text-xs font-black uppercase tracking-[0.14em] text-stone-400">현재 필터</span>
-                    <button
-                      type="button"
-                      onClick={resetFilters}
-                      className="text-xs font-black text-cyan-200 hover:text-cyan-100"
-                    >
-                      전체 초기화
-                    </button>
+                    <span className="text-xs font-black uppercase tracking-[0.14em] text-stone-400">
+                      현재 필터
+                      {activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+                    </span>
+                    <div className="inline-flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => void copyFilterLink()}
+                        className="inline-flex min-h-8 items-center gap-2 rounded-lg border border-cyan-300/50 bg-cyan-300/10 px-3 text-xs font-black text-cyan-100 hover:bg-cyan-300/20"
+                      >
+                        <Link2 className="h-3.5 w-3.5" />
+                        링크 복사
+                      </button>
+                      <button
+                        type="button"
+                        onClick={resetFilters}
+                        className="text-xs font-black text-cyan-200 hover:text-cyan-100"
+                      >
+                        전체 초기화
+                      </button>
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {activeFilters.map((filter) => (
