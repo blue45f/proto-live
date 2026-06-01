@@ -240,6 +240,17 @@ const EMPTY_ADMIN_DASHBOARD: AdminDashboardSnapshot = {
   topSignalProjects: [],
   categoryPerformance: [],
   proposalRangeDistribution: [],
+  riskProjects: [],
+  health: {
+    healthScore: 0,
+    verifiedHealth: 0,
+    conversionHealth: 0,
+    engagementHealth: 0,
+    responseHealth: 0,
+    riskCount: 0,
+    warningCount: 0,
+  },
+  recommendations: [],
   lastUpdatedAt: new Date(0).toISOString(),
 };
 
@@ -630,6 +641,28 @@ function getValidationTone(validation?: ValidationSnapshot) {
   if (!validation) return 'text-stone-300 bg-stone-900/60 border-stone-700/60';
   if (validation.success) return 'text-lime-200 bg-lime-950/40 border-lime-500/30';
   return 'text-red-200 bg-red-950/40 border-red-500/30';
+}
+
+function formatHealthScore(value: number) {
+  return `${Math.max(0, Math.min(100, Math.round(value)))} / 100`;
+}
+
+function formatDaysSince(value: number) {
+  if (!Number.isFinite(value)) {
+    return '자료 없음';
+  }
+
+  if (value >= 9999) {
+    return '활동 없음';
+  }
+
+  return `${Math.max(0, Math.floor(value))}일 전`;
+}
+
+function getRecommendationTone(priority: 'high' | 'medium' | 'low') {
+  if (priority === 'high') return 'border-red-300/35 bg-red-950/30 text-red-100';
+  if (priority === 'medium') return 'border-amber-300/35 bg-amber-950/30 text-amber-100';
+  return 'border-cyan-300/35 bg-cyan-950/30 text-cyan-100';
 }
 
 function upsertProject(projects: Project[], nextProject: Project) {
@@ -1385,6 +1418,9 @@ export default function App() {
             conversionFunnel: adminDashboard.conversionFunnel,
             eventTotals: adminDashboard.eventTotals,
             topMatchProjects: adminDashboard.topMatchProjects,
+            riskProjects: adminDashboard.riskProjects,
+            health: adminDashboard.health,
+            recommendations: adminDashboard.recommendations,
           }
         : null,
       projectTotals: {
@@ -1405,6 +1441,9 @@ export default function App() {
     adminDashboard.conversionFunnel,
     adminDashboard.eventTotals,
     adminDashboard.topMatchProjects,
+    adminDashboard.health,
+    adminDashboard.recommendations,
+    adminDashboard.riskProjects,
     adminRevenueConfig,
     debouncedSearch,
     isAdminView,
@@ -1890,6 +1929,113 @@ export default function App() {
                 </div>
               </div>
             )}
+
+            <div className="grid gap-4 xl:grid-cols-3">
+              <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+                <div className="mb-4 flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-lime-200" />
+                  <h3 className="font-black text-stone-100">플랫폼 건강도</h3>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-black text-stone-300">총점</span>
+                    <span className="text-stone-100">{formatHealthScore(adminDashboard.health.healthScore)}</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-stone-800">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-lime-300 to-cyan-200"
+                      style={{ width: `${Math.min(100, adminDashboard.health.healthScore)}%` }}
+                    />
+                  </div>
+                  <div className="grid gap-2 text-xs">
+                    <div className="flex justify-between border-b border-stone-800 pb-1 text-stone-400">
+                      <span>검증률</span>
+                      <span className="text-stone-100">{formatRate(adminDashboard.health.verifiedHealth)}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-stone-800 pb-1 text-stone-400">
+                      <span>퍼널 효율</span>
+                      <span className="text-stone-100">{formatRate(adminDashboard.health.conversionHealth)}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-stone-800 pb-1 text-stone-400">
+                      <span>활동성</span>
+                      <span className="text-stone-100">{formatRate(adminDashboard.health.engagementHealth)}</span>
+                    </div>
+                    <div className="flex justify-between text-stone-400">
+                      <span>응답성</span>
+                      <span className="text-stone-100">{formatRate(adminDashboard.health.responseHealth)}</span>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-stone-700 bg-[oklch(15%_0.016_205)] p-2 text-xs text-stone-400">
+                    경고 {adminDashboard.health.warningCount}건 / 리스크 {adminDashboard.health.riskCount}건
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+                <div className="mb-4 flex items-center gap-2">
+                  <Clock3 className="h-4 w-4 text-amber-200" />
+                  <h3 className="font-black text-stone-100">리스크 상위 프로젝트</h3>
+                </div>
+                {adminDashboard.riskProjects.length === 0 ? (
+                  <p className="rounded-lg border border-dashed border-stone-700 p-3 text-sm text-stone-500">
+                    현재 추적 대상 리스크 프로젝트가 없습니다.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {adminDashboard.riskProjects.slice(0, 5).map((entry) => (
+                      <div
+                        key={entry.projectId}
+                        className="rounded-lg border border-amber-400/30 bg-amber-950/20 p-2 text-xs text-stone-300"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="truncate font-black text-stone-100">
+                            {entry.title}
+                          </p>
+                          <span className="rounded-full border border-red-400/50 px-2 py-0.5 text-[10px] text-red-200">
+                            위험도 {entry.riskScore}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-stone-400">{entry.reason}</p>
+                        <p className="mt-1 text-stone-500">
+                          마지막 활동: {formatDaysSince(entry.daysSinceActivity)}
+                          {entry.lastActivityAt ? ` · ${formatRelativeTime(entry.lastActivityAt)}` : ''}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+                <div className="mb-4 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-cyan-200" />
+                  <h3 className="font-black text-stone-100">운영 추천 액션</h3>
+                </div>
+                {adminDashboard.recommendations.length === 0 ? (
+                  <p className="rounded-lg border border-dashed border-stone-700 p-3 text-sm text-stone-500">
+                    즉시 조치할 항목은 없습니다.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {adminDashboard.recommendations.map((entry, index) => (
+                      <div
+                        key={`${entry.area}-${index}`}
+                        className={`rounded-lg border p-2 text-xs ${getRecommendationTone(entry.priority)}`}
+                      >
+                        <p className="mb-1 font-black">
+                          [{entry.area}] {entry.title}
+                        </p>
+                        <p className="leading-5 text-stone-300">{entry.why}</p>
+                        <p className="mt-1 break-words text-stone-200">
+                          <span className="font-black">Action:</span> {entry.nextAction}
+                        </p>
+                        <p className="mt-1 text-stone-400">효과 추정: {entry.expectedImpact}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
 
             <div className="grid gap-4 xl:grid-cols-2">
               <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
