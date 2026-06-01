@@ -414,6 +414,7 @@ export default function App() {
   const submitModalRef = useRef<HTMLElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const [isMobileProjectTimelineOpen, setIsMobileProjectTimelineOpen] = useState(false);
 
   const normalizedCategory =
     selectedCategory === 'All' || config.categories.includes(selectedCategory)
@@ -574,6 +575,8 @@ export default function App() {
     sortMode,
     hasFundingRangeError,
   ]);
+
+  const favoriteProjectCount = favoriteProjectIds.size;
 
   const applyFundingRange = useCallback((range: FundingRange) => {
     setMinFundingAmount(range.minAmount);
@@ -1090,6 +1093,7 @@ export default function App() {
   function closePreview() {
     setPreviewProject(null);
     setPreviewEvents([]);
+    setIsMobileProjectTimelineOpen(false);
   }
 
   async function handleProjectEvent(project: Project, type: 'preview' | 'outbound' | 'refresh') {
@@ -1119,6 +1123,7 @@ export default function App() {
     setPreviewProject(project);
     setIframeKey((current) => current + 1);
     setIframeLoading(true);
+    setIsMobileProjectTimelineOpen(false);
 
     const updated = await handleProjectEvent(project, 'preview');
     await loadProjectEvents(project.id);
@@ -1251,6 +1256,7 @@ export default function App() {
                 label="평균 응답"
                 value={stats.averageResponseMs === null ? 'N/A' : `${stats.averageResponseMs}ms`}
               />
+              <Metric icon={Briefcase} label="총 투자자" value={String(stats.totalInvestors)} />
               <Metric icon={Briefcase} label="매칭 규모" value={formatWon(stats.totalCommittedAmount)} />
               <Metric icon={Signal} label="관심 신호" value={`${stats.totalSignals}`} />
             </div>
@@ -1338,6 +1344,74 @@ export default function App() {
                     </button>
                   ))}
                 </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSortMode('signal');
+                    setPage(1);
+                  }}
+                  className="inline-flex min-h-8 items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 text-xs font-black text-stone-300 transition hover:border-cyan-300/50 hover:text-cyan-100"
+                >
+                  상위 시그널 집중
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSortMode('recent');
+                    setOnlyVerified(false);
+                    setMinSignal(0);
+                    setPage(1);
+                  }}
+                  className="inline-flex min-h-8 items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 text-xs font-black text-stone-300 transition hover:border-cyan-300/50 hover:text-cyan-100"
+                >
+                  최근 반응 우선
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSortMode('funding');
+                    setPage(1);
+                  }}
+                  className="inline-flex min-h-8 items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 text-xs font-black text-stone-300 transition hover:border-cyan-300/50 hover:text-cyan-100"
+                >
+                  투자규모 많은 순
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOnlyVerified((current) => !current);
+                    setPage(1);
+                  }}
+                  className={`inline-flex min-h-8 items-center gap-2 rounded-lg border px-3 text-xs font-black transition ${
+                    onlyVerified
+                      ? 'border-lime-300/70 bg-lime-300/20 text-lime-100'
+                      : 'border-stone-700 bg-stone-950/55 text-stone-300 hover:border-cyan-300/50 hover:text-cyan-100'
+                  }`}
+                >
+                  {onlyVerified ? '검증만 보기 ON' : '검증만 보기'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (favoriteProjectCount > 0) {
+                      setShowFavoritesOnly((value) => !value);
+                      setPage(1);
+                    }
+                  }}
+                  className={`inline-flex min-h-8 items-center gap-2 rounded-lg border px-3 text-xs font-black transition ${
+                    showFavoritesOnly
+                      ? 'border-amber-300/70 bg-amber-300/20 text-amber-100'
+                      : favoriteProjectCount === 0
+                        ? 'cursor-not-allowed border-stone-700/80 bg-stone-950/30 text-stone-600'
+                        : 'border-stone-700 bg-stone-950/55 text-stone-300 hover:border-amber-300/50 hover:text-amber-100'
+                  }`}
+                  disabled={favoriteProjectCount === 0}
+                >
+                  <Star className={`h-4 w-4 ${showFavoritesOnly ? 'fill-amber-100 text-amber-100' : 'text-stone-300'}`} />
+                  {showFavoritesOnly ? '즐겨찾기 보기 ON' : '즐겨찾기 보기'}
+                </button>
               </div>
               {showAdvancedFilters && (
                 <>
@@ -1775,7 +1849,26 @@ export default function App() {
                   </div>
                 </div>
               </div>
-              <SignalTimeline events={previewEvents} isLoading={isPreviewEventsLoading} />
+              <button
+                type="button"
+                onClick={() => setIsMobileProjectTimelineOpen((value) => !value)}
+                className="mb-4 rounded-lg border border-stone-700 bg-stone-950/60 p-3 text-xs font-black text-stone-200 xl:hidden"
+                aria-expanded={isMobileProjectTimelineOpen}
+                aria-controls="preview-timeline-mobile"
+              >
+                {isMobileProjectTimelineOpen ? '활동 내역 닫기' : '활동 내역 열기'}
+              </button>
+              <div className="min-h-0 xl:block">
+                <SignalTimeline
+                  events={previewEvents}
+                  isLoading={isPreviewEventsLoading}
+                  className={`xl:block ${
+                    isMobileProjectTimelineOpen ? 'block' : 'hidden'
+                  }`}
+                  title="프로젝트 활동"
+                  titleId="preview-timeline-mobile"
+                />
+              </div>
             </div>
           </section>
         </div>
@@ -2040,9 +2133,15 @@ function Metric({ icon: Icon, label, value }: { icon: LucideIcon; label: string;
 function SignalTimeline({
   events,
   isLoading,
+  className = 'xl:flex xl:flex-col',
+  title = 'Activity Timeline',
+  titleId,
 }: {
   events: ProjectEvent[];
   isLoading: boolean;
+  className?: string;
+  title?: string;
+  titleId?: string;
 }) {
   const totals = events.reduce<Record<ProjectEventType, number>>(
     (counts, event) => {
@@ -2053,11 +2152,11 @@ function SignalTimeline({
   );
 
   return (
-    <aside className="hidden min-h-0 border-l border-stone-800 bg-[oklch(15%_0.016_205)] xl:flex xl:flex-col">
+    <aside id={titleId} className={`${className} min-h-0 border-l border-stone-800 bg-[oklch(15%_0.016_205)]`}>
       <div className="border-b border-stone-800 p-4">
         <div className="flex items-center gap-2">
           <Signal className="h-4 w-4 text-lime-200" />
-          <h3 className="font-black text-stone-100">Activity Timeline</h3>
+          <h3 className="font-black text-stone-100">{title}</h3>
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2">
           {(['preview', 'outbound', 'match'] as ProjectEventType[]).map((type) => {
