@@ -18,7 +18,7 @@ npm run dev
 BACKEND_PORT=3008 FRONTEND_PORT=4178 VITE_API_BASE_URL=http://localhost:3008/api npm run dev
 ```
 
-`npm run dev`는 기본적으로 백엔드 `3003`, 프론트 `5174`를 사용합니다.
+`npm run dev`는 기본적으로 백엔드 `3003`, 프론트 `4174`를 사용하며, 포트가 이미 사용 중이면 다음 사용 가능한 포트로 자동 전환합니다.
 `npm run dev` 실행 시 백엔드에서는 현재 프론트 포트를 포함해 기본 `CORS_ORIGINS`를 자동 보정해 커스텀 포트에서도 API가 동작하도록 처리합니다.
 
 테스트 계정 시드 생성이 필요한 경우:
@@ -48,7 +48,7 @@ npm run seed:test-accounts -- --dry-run
 
 `seed:test-accounts`는 `backend/fixtures/test-accounts.json`의 계정을, `seed:test-data`는 `backend/fixtures/test-data.json`의 계정+프로젝트+제안+이벤트를 기준으로 로컬 스토어 사용자(`PROJECT_STORE_PATH`)를 반영합니다. `seed:test-data -- --reset`은 기존 로컬 스토어를 기준 샘플 데이터만 남도록 재생성합니다.
 
-백엔드가 `http://localhost:3003/api` 에서 동작하고, 프론트엔드가 `http://localhost:5174`에서 실행됩니다.
+백엔드가 `http://localhost:3003/api` 에서 동작하고, 프론트엔드가 `http://localhost:4174`에서 실행됩니다. 해당 포트가 점유 중이면 실행 로그에 자동 전환된 실제 포트가 표시됩니다.
 
 ### 1. 백엔드 기동 (NestJS API)
 ```bash
@@ -97,7 +97,7 @@ npm install
 npm run dev
 ```
 
-`npm run dev` 기본 포트는 `5174`입니다.
+`npm run dev` 기본 포트는 `4174`입니다.
 `npm run dev`를 사용할 때는 `FRONTEND_PORT`로 프론트엔드 포트를 바꿀 수 있으며, 백엔드 포트 변경 시 같은 값으로 `VITE_API_BASE_URL`을 맞춰주어야 합니다.
 
 프론트엔드 API 주소는 Vite 환경 변수로 조정할 수 있습니다:

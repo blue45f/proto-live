@@ -214,7 +214,6 @@
 .protolive-shell .protolive-pill-group,
 .protolive-shell .protolive-user-chip,
 .protolive-shell .protolive-status,
-.protolive-shell .protolive-pill,
 .protolive-shell .protolive-btn-grid {
   background: linear-gradient(130deg, color-mix(in oklch, oklch(13% 0.02 205) 72%, transparent), color-mix(in oklch, oklch(16% 0.02 205) 85%, transparent));
 }
@@ -312,9 +311,7 @@
 }
 
 .protolive-hero,
-.protolive-shell article.rounded-xl,
-.protolive-shell section.rounded-xl,
-.protolive-shell aside.rounded-xl,
+.protolive-panel,
 .protolive-card {
   position: relative;
   border: 1px solid color-mix(in oklch, var(--color-mint) 20%, transparent);
@@ -332,9 +329,7 @@
 }
 
 .protolive-hero::before,
-.protolive-shell article.rounded-xl::before,
-.protolive-shell section.rounded-xl::before,
-.protolive-shell aside.rounded-xl::before,
+.protolive-panel::before,
 .protolive-card::before {
   content: '';
   position: absolute;
@@ -348,16 +343,11 @@
 }
 
 .protolive-hero:hover::before,
-.protolive-shell article.rounded-xl:hover::before,
-.protolive-shell section.rounded-xl:hover::before,
-.protolive-shell aside.rounded-xl:hover::before,
+.protolive-panel:hover::before,
 .protolive-card:hover::before {
   opacity: 0.32;
 }
 
-.protolive-shell article.rounded-xl:hover,
-.protolive-shell section.rounded-xl:hover,
-.protolive-shell aside.rounded-xl:hover,
 .protolive-card:hover {
   transform: translateY(-2px);
   border-color: color-mix(in oklch, var(--color-sky) 45%, transparent);
@@ -407,6 +397,103 @@
   box-shadow: 0 24px 72px oklch(0% 0 0 / 0.75), 0 0 0 1px color-mix(in oklch, var(--color-mint) 12%, transparent);
 }
 
+.protolive-chip-row,
+.protolive-proof-strip,
+.protolive-segmented {
+  scrollbar-width: none;
+}
+
+.protolive-chip-row::-webkit-scrollbar,
+.protolive-proof-strip::-webkit-scrollbar,
+.protolive-segmented::-webkit-scrollbar {
+  display: none;
+}
+
+.protolive-flow-step,
+.protolive-market-status {
+  min-width: 0;
+}
+
+.protolive-chip-row > button,
+.protolive-chip-row > a,
+.protolive-pill-group > button {
+  min-height: 2.75rem;
+}
+
+@media (max-width: 767px) {
+  .protolive-header {
+    position: sticky;
+  }
+
+  .protolive-shell .protolive-title {
+    letter-spacing: 0;
+  }
+
+  .protolive-shell .protolive-subtitle {
+    max-width: 16rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .protolive-chip-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    scroll-snap-type: x proximity;
+  }
+
+  .protolive-chip-row > * {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+
+  .protolive-proof-strip {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    scroll-snap-type: x proximity;
+  }
+
+  .protolive-proof-strip > * {
+    flex: 0 0 min(78vw, 18rem);
+    scroll-snap-align: start;
+  }
+
+  .protolive-segmented {
+    overflow-x: auto;
+  }
+
+  .protolive-segmented > * {
+    flex: 0 0 auto;
+    min-height: 2.75rem;
+  }
+
+  .protolive-card {
+    box-shadow:
+      0 1px 0 oklch(100% 0.01 95 / 0.02) inset,
+      0 12px 28px oklch(0% 0 0 / 0.38);
+  }
+
+  .protolive-btn:hover,
+  .protolive-shell button.rounded-lg:not(:disabled):hover,
+  .protolive-shell button.grid:not(:disabled):hover,
+  .protolive-shell a.grid:hover {
+    transform: none;
+  }
+}
+
+@media (max-width: 420px) {
+  .protolive-shell .protolive-logo {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .protolive-shell .protolive-badge {
+    letter-spacing: 0;
+  }
+}
+
 @keyframes protolive-sheen {
   from {
     transform: translate3d(-20px, 0, 0);
@@ -415,21 +502,6 @@
   to {
     transform: translate3d(20px, 0, 0);
     opacity: 0.24;
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .protolive-main {
-    animation: subtle-pulse 11s ease-in-out infinite alternate;
-  }
-
-  .protolive-shell article.rounded-xl,
-  .protolive-shell section.rounded-xl,
-  .protolive-shell aside.rounded-xl,
-  .protolive-card {
-    background-size: 200% 200%;
-    animation: protolive-sheen 18s ease-in-out infinite alternate;
-    animation-delay: 0.5s;
   }
 }
 
@@ -477,15 +549,6 @@
   to {
     opacity: 0;
     transform: translate3d(18px, -4px, 0) scale(0.98);
-  }
-}
-
-@keyframes subtle-pulse {
-  0%, 100% {
-    opacity: 0.72;
-  }
-  50% {
-    opacity: 1;
   }
 }
 

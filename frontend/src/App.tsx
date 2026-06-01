@@ -696,43 +696,6 @@ const benchmarkCopy: Record<string, { title: string; body: string }> = {
   },
 };
 
-const proofStackLayers: Array<{
-  icon: LucideIcon;
-  label: string;
-  value: string;
-  detail: string;
-  tone: string;
-}> = [
-  {
-    icon: Globe2,
-    label: 'Live URL Gate',
-    value: '서버 검증',
-    detail: '제출 URL은 공인망 HTTP/HTTPS 응답을 통과해야 노출됩니다.',
-    tone: 'border-lime-300/25 bg-lime-300/10 text-lime-100',
-  },
-  {
-    icon: ShieldCheck,
-    label: 'Screened Preview',
-    value: '기본 보호',
-    detail: '선별 공개 프로젝트는 URL과 iframe을 매칭 요청 흐름으로 전환합니다.',
-    tone: 'border-amber-300/25 bg-amber-300/10 text-amber-100',
-  },
-  {
-    icon: Signal,
-    label: 'Signal Ledger',
-    value: '행동 기록',
-    detail: '미리보기, 새 탭, 매칭, 갱신 이벤트가 랭킹 신호로 누적됩니다.',
-    tone: 'border-cyan-300/25 bg-cyan-300/10 text-cyan-100',
-  },
-  {
-    icon: Briefcase,
-    label: 'Intent Capture',
-    value: '금액 구간',
-    detail: '투자 의향은 메시지와 금액 범위로 구조화되어 바로 집계됩니다.',
-    tone: 'border-orange-300/25 bg-orange-300/10 text-orange-100',
-  },
-];
-
 const differentiationRows: Array<{
   label: string;
   usual: string;
@@ -1134,7 +1097,7 @@ export default function App() {
   const [loadError, setLoadError] = useState('');
   const [view, setView] = useState<AppView>(readInitialView());
   const [session, setSession] = useState<AuthSession | null>(() => readSession());
-  const [isLoginOpen, setIsLoginOpen] = useState(!readSession());
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
   const testAccounts = useMemo<TestAccount[]>(() => listTestAccounts(), []);
   const testAccountsByRole = useMemo(() => {
     return {
@@ -1166,7 +1129,7 @@ export default function App() {
   const canSubmitProject = isMaker;
   const canMatch = isInvestor;
   const canAccessAdmin = isMaker;
-  const shouldShowLogin = session ? isLoginOpen : true;
+  const shouldShowLogin = isLoginOpen;
   const effectiveView = useMemo<AppView>(() => {
     if (!session) {
       return 'market';
@@ -2809,12 +2772,12 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2 lg:flex-nowrap">
-            <div className="protolive-pill-group hidden shrink-0 items-center gap-2 rounded-full border border-stone-700/80 bg-stone-900/70 px-3 py-2 text-xs font-bold lg:flex">
+          <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-2 sm:flex-1 sm:justify-end lg:flex-nowrap">
+            <div className="protolive-pill-group order-last flex w-full min-w-0 shrink-0 items-center gap-2 overflow-x-auto rounded-lg border border-stone-700/80 bg-stone-900/70 px-2 py-2 text-xs font-bold sm:order-none sm:w-auto sm:rounded-full sm:px-3">
                 <button
                   type="button"
                   onClick={() => switchView('market')}
-                  className={`protolive-pill rounded-full px-2 py-1 transition ${
+                  className={`protolive-pill shrink-0 whitespace-nowrap rounded-full px-3 py-1 transition ${
                     isAdminView ? 'text-stone-400 hover:text-stone-100' : 'bg-cyan-300 text-slate-950'
                   }`}
                 >
@@ -2823,7 +2786,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => switchView('admin')}
-                  className={`protolive-pill rounded-full px-2 py-1 transition ${
+                  className={`protolive-pill shrink-0 whitespace-nowrap rounded-full px-3 py-1 transition ${
                     isAdminView ? 'bg-cyan-300 text-slate-950' : 'text-stone-400 hover:text-stone-100'
                   }`}
                 >
@@ -2868,6 +2831,7 @@ export default function App() {
                   className="protolive-btn-grid grid min-h-11 min-w-11 place-items-center rounded-lg border border-stone-700/80 bg-stone-900/70 px-3 text-xs font-black text-stone-300 transition hover:border-cyan-300/40 hover:text-cyan-100"
                   aria-label="로그인"
                 >
+                  <Users className="h-4 w-4 sm:hidden" />
                   <span className="hidden sm:inline">로그인</span>
                   <span className="sr-only">로그인</span>
                 </button>
@@ -3701,48 +3665,86 @@ export default function App() {
           </section>
         ) : (
         <>
-          <section className="space-y-6">
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-              <section className="overflow-hidden rounded-xl border border-cyan-900/50 bg-[linear-gradient(135deg,oklch(19%_0.024_205),oklch(15%_0.02_170)_52%,oklch(17%_0.022_88))] p-5 shadow-[0_24px_80px_oklch(8%_0.02_205/0.45)]">
-              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                <div className="max-w-3xl">
+          <section className="min-w-0 space-y-6">
+          <div className="grid gap-4">
+              <section className="protolive-hero overflow-hidden rounded-xl border border-cyan-900/50 bg-[linear-gradient(135deg,oklch(19%_0.024_205),oklch(15%_0.02_170)_52%,oklch(17%_0.022_88))] p-4 shadow-[0_24px_80px_oklch(8%_0.02_205/0.45)] sm:p-5">
+              <div className="grid min-w-0 gap-5">
+                <div className="min-w-0 max-w-3xl">
                   <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-300/10 px-3 py-1 text-xs font-bold text-cyan-100">
                     <Radar className="h-3.5 w-3.5" />
                     프로토타입 투자 매칭 시장
                   </p>
-                  <h2 className="text-2xl font-black tracking-tight text-stone-50 sm:text-3xl">
-                    라이브 프로토타입이 투자로 연결되는 시장
+                  <h2 className="overflow-wrap-anywhere text-2xl font-black tracking-tight text-stone-50 sm:text-3xl">
+                    작동하는 웹서비스를 투자 검토 흐름으로 바로 연결합니다
                   </h2>
-                  <p className="mt-3 max-w-[72ch] text-sm leading-6 text-stone-300">
-                    실제 작동하는 웹서비스 프로토타입을 투자자에게 가장 빨리 보여주고, 보호형 미리보기와 행동 신호, 구조화된 투자 의향 데이터로 매칭을 촉진합니다.
+                  <p className="mt-3 max-w-[72ch] overflow-wrap-anywhere text-sm leading-6 text-stone-300">
+                    메이커는 라이브 URL을 검증해 등록하고, 투자자는 실제 제품 화면과 행동 신호를 보며 구조화된 투자 의향을 남깁니다.
                   </p>
-                  <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                    <div className="protolive-mini-tile rounded-lg border border-cyan-300/30 bg-cyan-300/10 px-3 py-2">
-                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-cyan-100">메이커</p>
-                      <p className="text-sm font-black text-stone-50">라이브 URL + 액세스 권한</p>
+                  <div className="mt-5 grid gap-2 sm:grid-cols-3">
+                    <div className="protolive-flow-step min-w-0 rounded-lg border border-cyan-300/30 bg-cyan-300/10 px-3 py-3">
+                      <div className="mb-3 flex items-center justify-between gap-2">
+                        <span className="text-xs font-black text-cyan-100">01</span>
+                        <Globe2 className="h-4 w-4 text-cyan-100" />
+                      </div>
+                      <p className="text-sm font-black text-stone-50">URL 검증</p>
+                      <p className="mt-1 text-xs leading-5 text-stone-400">공인망 응답과 상태 코드를 먼저 확인합니다.</p>
                     </div>
-                    <div className="protolive-mini-tile rounded-lg border border-lime-300/35 bg-lime-300/10 px-3 py-2">
-                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-lime-100">투자자</p>
-                      <p className="text-sm font-black text-stone-50">미리보기·행동 신호 확인</p>
+                    <div className="protolive-flow-step min-w-0 rounded-lg border border-lime-300/35 bg-lime-300/10 px-3 py-3">
+                      <div className="mb-3 flex items-center justify-between gap-2">
+                        <span className="text-xs font-black text-lime-100">02</span>
+                        <Activity className="h-4 w-4 text-lime-100" />
+                      </div>
+                      <p className="text-sm font-black text-stone-50">라이브 실사</p>
+                      <p className="mt-1 text-xs leading-5 text-stone-400">미리보기, 새 탭, 재검증 행동을 신호로 쌓습니다.</p>
                     </div>
-                    <div className="protolive-mini-tile rounded-lg border border-amber-300/35 bg-amber-300/10 px-3 py-2 sm:col-span-2 xl:col-span-1">
-                      <p className="text-[10px] font-black uppercase tracking-[0.14em] text-amber-100">운영/분석</p>
-                      <p className="text-sm font-black text-stone-50">매칭 실적·수익 시뮬레이션</p>
+                    <div className="protolive-flow-step min-w-0 rounded-lg border border-amber-300/35 bg-amber-300/10 px-3 py-3">
+                      <div className="mb-3 flex items-center justify-between gap-2">
+                        <span className="text-xs font-black text-amber-100">03</span>
+                        <Briefcase className="h-4 w-4 text-amber-100" />
+                      </div>
+                      <p className="text-sm font-black text-stone-50">투자 의향</p>
+                      <p className="mt-1 text-xs leading-5 text-stone-400">금액 구간과 메시지를 매칭 데이터로 저장합니다.</p>
                     </div>
                   </div>
                 </div>
-                <div className="rounded-lg border border-stone-700/70 bg-stone-950/55 p-3 text-xs text-stone-400">
-                  <div className="flex items-center gap-2 font-bold text-stone-200">
-                    <Clock3 className="h-4 w-4 text-cyan-200" />
-                    최근 동기화
+                <div className="protolive-market-status rounded-lg border border-stone-700/70 bg-stone-950/60 p-4 text-xs text-stone-400">
+                  <div className="mb-4 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 font-black text-stone-100">
+                      <Gauge className="h-4 w-4 text-lime-200" />
+                      실시간 매칭 상태
+                    </div>
+                    <span className={`h-2.5 w-2.5 rounded-full ${apiOnline ? 'bg-lime-300' : 'bg-red-300'}`} />
                   </div>
-                  <p className="mt-1">{formatRelativeTime(stats.lastUpdatedAt)}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-lg border border-stone-800 bg-stone-950/70 p-3">
+                      <p className="text-stone-500">검증률</p>
+                      <p className="mt-1 text-lg font-black text-stone-50">{stats.verificationRate}%</p>
+                    </div>
+                    <div className="rounded-lg border border-stone-800 bg-stone-950/70 p-3">
+                      <p className="text-stone-500">매칭 신호</p>
+                      <p className="mt-1 text-lg font-black text-stone-50">{stats.totalSignals}</p>
+                    </div>
+                    <div className="col-span-2 rounded-lg border border-stone-800 bg-stone-950/70 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-stone-500">등록 프로젝트</span>
+                        <span className="font-black text-stone-100">{stats.totalProjects}개</span>
+                      </div>
+                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-stone-800">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-lime-300 to-cyan-300"
+                          style={{ width: `${Math.max(4, Math.min(100, stats.verificationRate))}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <p className="mt-3 flex items-center gap-2 text-stone-500">
+                    <Clock3 className="h-3.5 w-3.5 text-cyan-200" />
+                    최근 동기화 {formatRelativeTime(stats.lastUpdatedAt)}
+                  </p>
                 </div>
               </div>
-              <ProofStackStrip />
             </section>
 
-            <DifferentiationPanel />
           </div>
 
           <ProofKpiRail
@@ -3769,7 +3771,7 @@ export default function App() {
 
           <div className="rounded-xl border border-stone-800 bg-[oklch(17%_0.018_205)] p-4">
             <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="protolive-chip-row flex flex-wrap items-center gap-2">
                 {categoryOptions.map((item) => (
                   <button
                     key={item}
@@ -3810,7 +3812,7 @@ export default function App() {
                     className="min-h-11 w-full rounded-lg border border-stone-700 bg-stone-950/70 pl-10 pr-3 text-sm text-stone-100 outline-none transition placeholder:text-stone-500 focus:border-cyan-300/60"
                   />
                 </div>
-                <div className="flex rounded-lg border border-stone-700 bg-stone-950/60 p-1">
+                <div className="protolive-segmented flex w-full overflow-x-auto rounded-lg border border-stone-700 bg-stone-950/60 p-1 lg:w-auto">
                   {[
                     ['signal', '매칭 시그널순'],
                     ['recent', '최근 신호'],
@@ -3826,7 +3828,7 @@ export default function App() {
                         setSortMode(value as typeof sortMode);
                         setPage(1);
                       }}
-                      className={`min-h-9 rounded-md px-3 text-xs font-black transition ${
+                      className={`min-h-9 shrink-0 rounded-md px-3 text-xs font-black transition ${
                         sortMode === value
                           ? 'bg-cyan-300 text-slate-950'
                           : 'text-stone-400 hover:text-stone-100'
@@ -3837,7 +3839,7 @@ export default function App() {
                   ))}
                 </div>
               </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="protolive-chip-row flex flex-wrap gap-2">
                   <button
                     type="button"
                     aria-pressed={sortMode === 'signal'}
@@ -4079,11 +4081,6 @@ export default function App() {
                   </p>
                 </>
               )}
-              {!showAdvancedFilters && (
-                <p className="text-xs font-black text-stone-400">
-                  고급 필터를 닫았습니다. 열린 상태에서 공개범위/투자금/조건 필터를 조정할 수 있습니다.
-                </p>
-              )}
               {activeFilters.length > 0 && (
                 <div className="rounded-lg border border-stone-700 bg-stone-950/45 p-3">
                   <div className="mb-2 flex items-center justify-between">
@@ -4199,7 +4196,7 @@ export default function App() {
           )}
         </section>
 
-        <aside className="space-y-4">
+        <aside className="min-w-0 space-y-4">
           <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
             <div className="mb-4 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -4237,6 +4234,8 @@ export default function App() {
               </div>
             </div>
           </div>
+
+          <DifferentiationPanel />
 
           <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
             <div className="mb-4 flex items-center gap-2">
@@ -4807,39 +4806,16 @@ export default function App() {
 function Metric({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
     <div className="protolive-mini-tile rounded-lg border border-stone-800 bg-[oklch(16%_0.016_205)] p-3">
-      <Icon className="mb-3 h-4 w-4 text-lime-200" />
+      <Icon className="mb-2 h-4 w-4 text-lime-200" />
       <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">{label}</p>
-      <p className="mt-1 break-words text-lg font-black text-stone-50">{value}</p>
-    </div>
-  );
-}
-
-function ProofStackStrip() {
-  return (
-    <div className="mt-6 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-      {proofStackLayers.map((layer, index) => {
-        const Icon = layer.icon;
-                return (
-          <div key={layer.label} className={`protolive-mini-tile rounded-lg border p-3 ${layer.tone}`}>
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <span className="text-[11px] font-black uppercase tracking-[0.14em] opacity-80">
-                {String(index + 1).padStart(2, '0')}
-              </span>
-              <Icon className="h-4 w-4" />
-            </div>
-            <p className="text-sm font-black text-stone-50">{layer.label}</p>
-            <p className="mt-1 text-xs font-black">{layer.value}</p>
-            <p className="mt-2 text-xs leading-5 text-stone-300">{layer.detail}</p>
-          </div>
-        );
-      })}
+      <p className="mt-1 break-words text-base font-black text-stone-50 sm:text-lg">{value}</p>
     </div>
   );
 }
 
 function DifferentiationPanel() {
   return (
-    <aside className="protolive-panel rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+    <section className="protolive-panel rounded-xl border border-stone-800 bg-stone-950/65 p-4">
       <div className="mb-4 flex items-center gap-2">
         <Layers3 className="h-4 w-4 text-amber-200" />
         <h3 className="font-black text-stone-100">차별화 레이어</h3>
@@ -4853,7 +4829,7 @@ function DifferentiationPanel() {
           </div>
         ))}
       </div>
-    </aside>
+    </section>
   );
 }
 
@@ -4869,7 +4845,7 @@ function ProofKpiRail({
   fastestResponseProject: Project | null;
 }) {
   return (
-    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
       <Metric icon={ShieldCheck} label="검증 프로젝트" value={`${stats.verifiedProjects}/${stats.totalProjects}`} />
       <Metric icon={Gauge} label="검증률" value={`${stats.verificationRate}%`} />
       <Metric
