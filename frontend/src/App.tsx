@@ -384,6 +384,7 @@ export default function App() {
   const previewDialogRef = useRef<HTMLElement>(null);
   const matchModalRef = useRef<HTMLElement>(null);
   const submitModalRef = useRef<HTMLElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
   const normalizedCategory =
@@ -761,6 +762,11 @@ export default function App() {
   const activeFundingRange = config.fundingRanges.find((range) => range.id === fundingRangeId);
 
   const openSubmitDialog = useCallback(() => {
+    if (!apiOnline || config.categories.length === 0) {
+      toast('error', '제출 준비 미완료', '카테고리/공개 범위 설정을 불러온 뒤 다시 시도하세요.');
+      return;
+    }
+
     if (config.categories.length > 0) {
       setCategory(config.categories.includes(category) ? category : config.categories[0]);
     }
@@ -771,7 +777,7 @@ export default function App() {
     }
 
     setIsSubmitOpen(true);
-  }, [accessMode, category, config.accessModes, config.categories]);
+  }, [accessMode, apiOnline, category, config.accessModes, config.categories]);
 
   const activeFilterCount = activeFilters.length;
 
@@ -788,6 +794,73 @@ export default function App() {
       toast('error', '클립보드 복사 실패', '브라우저 권한을 확인하고 다시 시도해 주세요.');
     }
   }, []);
+
+  const handleRefreshAll = useCallback(async () => {
+    if (!apiOnline || isRefreshing) {
+      return;
+    }
+
+    setIsRefreshing(true);
+    try {
+      const refreshed = await refreshAllProjects();
+      setProjects(refreshed);
+      await loadSnapshot();
+      toast('success', '검증 갱신 완료', '모든 프로젝트의 라이브 상태를 다시 확인했습니다.');
+    } catch {
+      toast('error', '갱신 실패', '백엔드 URL 검증 API 응답을 확인하세요.');
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [apiOnline, isRefreshing, loadSnapshot]);
+
+  const focusSearchInput = useCallback(() => {
+    searchInputRef.current?.focus();
+    searchInputRef.current?.select();
+  }, []);
+
+  const handleGlobalShortcut = useCallback(
+    (event: KeyboardEvent) => {
+      const target = event.target;
+      const isTypingTarget =
+        target instanceof HTMLElement &&
+        (target.isContentEditable ||
+          target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT');
+
+      if (isTypingTarget) {
+        return;
+      }
+
+      if (event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        event.preventDefault();
+        focusSearchInput();
+        return;
+      }
+
+      if ((event.metaKey || event.ctrlKey) && (event.key === 'n' || event.key === 'N')) {
+        event.preventDefault();
+        openSubmitDialog();
+        return;
+      }
+
+      if ((event.metaKey || event.ctrlKey) && (event.key === 'r' || event.key === 'R')) {
+        if (!isRefreshing && apiOnline && projects.length > 0) {
+          event.preventDefault();
+          void handleRefreshAll();
+        }
+        return;
+      }
+    },
+    [apiOnline, focusSearchInput, handleRefreshAll, isRefreshing, openSubmitDialog, projects.length],
+  );
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleGlobalShortcut);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalShortcut);
+    };
+  }, [handleGlobalShortcut]);
 
   useEffect(() => {
     const initialize = async () => {
@@ -953,20 +1026,6 @@ export default function App() {
     }
   }
 
-  async function handleRefreshAll() {
-    setIsRefreshing(true);
-    try {
-      const refreshed = await refreshAllProjects();
-      setProjects(refreshed);
-      await loadSnapshot();
-      toast('success', '검증 갱신 완료', '모든 프로젝트의 라이브 상태를 다시 확인했습니다.');
-    } catch {
-      toast('error', '갱신 실패', '백엔드 URL 검증 API 응답을 확인하세요.');
-    } finally {
-      setIsRefreshing(false);
-    }
-  }
-
   async function handleRefreshProject(project: Project) {
     setProjects((current) =>
       current.map((item) =>
@@ -1098,7 +1157,7 @@ export default function App() {
               disabled={isRefreshing || !apiOnline || projects.length === 0}
               className="grid min-h-11 min-w-11 place-items-center rounded-lg border border-stone-700/80 bg-stone-900/70 text-stone-300 transition hover:border-cyan-300/40 hover:text-cyan-100 disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="전체 프로젝트 상태 새로고침"
-              title="전체 프로젝트 상태 새로고침"
+              title="전체 프로젝트 상태 새로고침 (⌘/Ctrl + R)"
             >
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
@@ -1107,11 +1166,15 @@ export default function App() {
               onClick={openSubmitDialog}
               disabled={!apiOnline || config.categories.length === 0}
               aria-label="프로토타입 등록"
+              title="프로토타입 등록 (⌘/Ctrl + N)"
               className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-lime-300 px-4 text-sm font-black text-slate-950 transition hover:bg-lime-200 active:translate-y-px disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-stone-400"
             >
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">프로토타입 등록</span>
             </button>
+            <span className="hidden text-[10px] text-stone-500 sm:block">
+              단축키: / 검색 · ⌘/Ctrl + N 등록 · ⌘/Ctrl + R 갱신
+            </span>
           </div>
         </div>
       </header>
@@ -1197,6 +1260,7 @@ export default function App() {
                 <div className="relative w-full lg:w-[360px]">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
                   <input
+                    ref={searchInputRef}
                     value={searchQuery}
                     onChange={(event) => {
                       setPage(1);
