@@ -42,6 +42,8 @@ import {
   ProjectListQuery,
   MarketConfig,
   MarketStats,
+  AdminDashboardSnapshot,
+  ProjectListPayload,
   Project,
   ProjectAccessMode,
   ProjectEvent,
@@ -51,6 +53,7 @@ import {
   createMatchProposal,
   createProject,
   fetchMarketConfig,
+  fetchAdminDashboard,
   fetchMarketStats,
   extractProjects,
   fetchProjects,
@@ -90,6 +93,9 @@ const DEFAULT_REVENUE_CONFIG: RevenueModelConfig = {
   closeLeadRate: 12,
   successFeeRate: 3.5,
 };
+
+const ADMIN_DASHBOARD_POLL_INTERVAL_MS = 30000;
+const ADMIN_DASHBOARD_TREND_KEY_DAYS = 14;
 
 const REVENUE_PRESETS: Array<{ id: string; name: string; label: string; description: string; config: RevenueModelConfig }> =
   [
@@ -208,6 +214,32 @@ const EMPTY_STATS: MarketStats = {
   categoryBreakdown: [],
   totalSignals: 0,
   topSignals: [],
+  lastUpdatedAt: new Date(0).toISOString(),
+};
+
+const EMPTY_ADMIN_DASHBOARD: AdminDashboardSnapshot = {
+  conversionFunnel: {
+    previewToMatchRate: 0,
+    outboundToMatchRate: 0,
+    matchPerProjectRate: 0,
+    matchCount: 0,
+    previewCount: 0,
+    outboundCount: 0,
+    totalEvents: 0,
+  },
+  eventTrend14d: [],
+  eventTotals: {
+    create: 0,
+    preview: 0,
+    outbound: 0,
+    match: 0,
+    refresh: 0,
+  },
+  accessModeDistribution: [],
+  topMatchProjects: [],
+  topSignalProjects: [],
+  categoryPerformance: [],
+  proposalRangeDistribution: [],
   lastUpdatedAt: new Date(0).toISOString(),
 };
 
@@ -538,6 +570,30 @@ function formatRate(value: number) {
   return `${value.toFixed(DECIMAL_DIGITS)}%`;
 }
 
+function percentChange(previousValue: number, currentValue: number) {
+  if (previousValue <= 0) {
+    return 0;
+  }
+
+  return Number((((currentValue - previousValue) / previousValue) * 100).toFixed(1));
+}
+
+function isEqualPreset(a: RevenueModelConfig, b: RevenueModelConfig) {
+  const bValues = b as Record<keyof RevenueModelConfig, number>;
+  return Object.entries(a).every(([key, value]) => {
+    return value === bValues[key as keyof RevenueModelConfig];
+  });
+}
+
+function formatTrendDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat('ko-KR', { month: 'short', day: 'numeric' }).format(date);
+}
+
 function normalizeAmountInput(value: number) {
   if (Number.isNaN(value)) return 0;
   return Math.max(0, Math.floor(value));
@@ -588,6 +644,8 @@ export default function App() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [stats, setStats] = useState<MarketStats>(EMPTY_STATS);
   const [config, setConfig] = useState<MarketConfig>(EMPTY_CONFIG);
+  const [adminDashboard, setAdminDashboard] = useState<AdminDashboardSnapshot>(EMPTY_ADMIN_DASHBOARD);
+  const [adminDashboardError, setAdminDashboardError] = useState('');
   const [apiOnline, setApiOnline] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -862,6 +920,8 @@ export default function App() {
   const favoriteProjectCount = favoriteProjectIds.size;
 
   const isAdminView = view === 'admin';
+  const isAdminDashboardAvailable = adminDashboard.lastUpdatedAt !== EMPTY_ADMIN_DASHBOARD.lastUpdatedAt;
+
   const revenueProjection = useMemo(() => {
     const verifiedProjectShare = stats.totalProjects > 0 ? stats.verifiedProjects / stats.totalProjects : 0;
     const averageCommittedPerInvestor = stats.totalInvestors > 0 ? stats.totalCommittedAmount / stats.totalInvestors : 0;
@@ -889,30 +949,66 @@ export default function App() {
     };
   }, [adminRevenueConfig, stats]);
 
-  const projectedTopProjects = useMemo(
-    () =>
-      [...projects]
-        .map((project) => {
-          const investorRecurring = project.investorCount *
-            adminRevenueConfig.investorMonthlyFee * (adminRevenueConfig.investorConversionRate / 100);
-          const matchSignalFee = project.matchCount * adminRevenueConfig.leadCaptureFee;
-          const projectedDeal = (project.matchCount * (adminRevenueConfig.closeLeadRate / 100)) *
-            (project.committedAmountMax * (adminRevenueConfig.successFeeRate / 100));
-          return {
-            project,
-            monthlyScore: Math.round(investorRecurring + matchSignalFee + projectedDeal),
-          };
-        })
-        .sort((a, b) => b.monthlyScore - a.monthlyScore)
-        .slice(0, 5),
-    [adminRevenueConfig, projects],
-  );
+  const adminTrendMetrics = useMemo(() => {
+    const trend = adminDashboard.eventTrend14d;
+    const totalDays = trend.length;
+    const splitIndex = Math.max(0, totalDays - ADMIN_DASHBOARD_TREND_KEY_DAYS / 2);
+    const recent = trend.slice(splitIndex);
+    const previous = splitIndex === 0 ? [] : trend.slice(0, splitIndex);
+    const recentTotal = recent.reduce((sum, item) => sum + item.total, 0);
+    const previousTotal = previous.reduce((sum, item) => sum + item.total, 0);
+    const maxDaily = Math.max(1, ...trend.map((item) => item.total));
+
+    return {
+      trend,
+      recentTotal,
+      previousTotal,
+      trendDelta: percentChange(previousTotal, recentTotal),
+      maxDaily,
+    };
+  }, [adminDashboard]);
 
   const applyFundingRange = useCallback((range: FundingRange) => {
     setMinFundingAmount(range.minAmount);
     setMaxFundingAmount(range.maxAmount);
     setPage(1);
   }, []);
+
+  const applyObservedConversionRates = useCallback(() => {
+    if (!isAdminDashboardAvailable) {
+      toast('error', '데이터 없음', '관리자 대시보드 집계가 준비되지 않았습니다. 새로고침 후 다시 시도하세요.');
+      return;
+    }
+
+    const observedMakerRate =
+      stats.totalProjects > 0 ? clampRate((stats.verifiedProjects / stats.totalProjects) * 100) : adminRevenueConfig.makerConversionRate;
+    const observedInvestorRate =
+      adminDashboard.conversionFunnel.matchPerProjectRate > 0
+        ? adminDashboard.conversionFunnel.matchPerProjectRate
+        : adminRevenueConfig.investorConversionRate;
+    const observedCloseRate =
+      adminDashboard.conversionFunnel.previewToMatchRate > 0
+        ? adminDashboard.conversionFunnel.previewToMatchRate
+        : adminRevenueConfig.closeLeadRate;
+
+    setAdminRevenueConfig((current) => ({
+      ...current,
+      makerConversionRate: observedMakerRate,
+      investorConversionRate: observedInvestorRate,
+      closeLeadRate: observedCloseRate,
+    }));
+
+    toast('info', '운영 데이터 반영', '관측된 전환율로 수익 모델 가정을 업데이트했습니다.');
+  }, [
+    adminDashboard.conversionFunnel.matchPerProjectRate,
+    adminDashboard.conversionFunnel.previewToMatchRate,
+    isAdminDashboardAvailable,
+    stats.totalProjects,
+    stats.verifiedProjects,
+    adminRevenueConfig.closeLeadRate,
+    adminRevenueConfig.investorConversionRate,
+    adminRevenueConfig.makerConversionRate,
+  ]);
 
   const resetFilters = useCallback(() => {
     setSearchQuery('');
@@ -932,36 +1028,48 @@ export default function App() {
     if (showLoading) setIsRefreshing(true);
 
     try {
-      const [configData, statsData, projectsData] = await Promise.all([
+      const shouldFetchMarketProjects = !isAdminView;
+      const requests: [Promise<MarketConfig>, Promise<MarketStats>, Promise<ProjectListPayload | AdminDashboardSnapshot>] = [
         fetchMarketConfig(),
         fetchMarketStats(),
-        fetchProjects(projectQuery),
-      ]);
+        shouldFetchMarketProjects ? fetchProjects(projectQuery) : fetchAdminDashboard(),
+      ];
 
-      const projectPayload = extractProjects(projectsData);
+      const [configData, statsData, thirdPayload] = await Promise.all(requests);
 
       setConfig(configData);
       setStats(statsData);
-      setProjects(projectPayload);
-      if (hasPagination(projectsData)) {
-        setProjectMeta({
-          total: projectsData.total,
-          page: projectsData.page,
-          totalPages: projectsData.totalPages,
-          hasPrev: projectsData.hasPrev,
-          hasNext: projectsData.hasNext,
-          limit: projectsData.limit,
-        });
+      setAdminDashboardError('');
+
+      if (shouldFetchMarketProjects) {
+        const projectsPayload = thirdPayload as ProjectListPayload;
+        const projectPayload = extractProjects(projectsPayload);
+        setProjects(projectPayload);
+        if (hasPagination(projectsPayload)) {
+          setProjectMeta({
+            total: projectsPayload.total,
+            page: projectsPayload.page,
+            totalPages: projectsPayload.totalPages,
+            hasPrev: projectsPayload.hasPrev,
+            hasNext: projectsPayload.hasNext,
+            limit: projectsPayload.limit,
+          });
+        } else {
+          setProjectMeta({
+            total: projectPayload.length,
+            page: 1,
+            totalPages: 1,
+            hasPrev: false,
+            hasNext: false,
+            limit: projectPayload.length,
+          });
+        }
+
+        setAdminDashboard(EMPTY_ADMIN_DASHBOARD);
       } else {
-        setProjectMeta({
-          total: projectPayload.length,
-          page: 1,
-          totalPages: 1,
-          hasPrev: false,
-          hasNext: false,
-          limit: projectPayload.length,
-        });
+        setAdminDashboard(thirdPayload as AdminDashboardSnapshot);
       }
+
       setApiOnline(true);
       setLoadError('');
 
@@ -975,9 +1083,15 @@ export default function App() {
       if (hasResponseError) {
         setApiOnline(true);
         setLoadError(message);
+        if (isAdminView) {
+          setAdminDashboardError(message);
+        }
       } else {
         setApiOnline(false);
         setLoadError('백엔드 API에 연결할 수 없습니다. 서버를 실행한 뒤 다시 시도하세요.');
+        if (isAdminView) {
+          setAdminDashboardError('백엔드 API에 연결할 수 없습니다. 서버를 실행한 뒤 다시 시도하세요.');
+        }
       }
 
       if (showLoading) {
@@ -987,7 +1101,7 @@ export default function App() {
       setIsInitialLoading(false);
       setIsRefreshing(false);
     }
-  }, [fundingRangeId, projectQuery]);
+  }, [fundingRangeId, isAdminView, projectQuery]);
 
   const loadProjectEvents = useCallback(async (projectId: number) => {
     setIsPreviewEventsLoading(true);
@@ -1266,6 +1380,13 @@ export default function App() {
         maxFundingAmount,
         onlyVerified,
       },
+      adminDashboard: isAdminView
+        ? {
+            conversionFunnel: adminDashboard.conversionFunnel,
+            eventTotals: adminDashboard.eventTotals,
+            topMatchProjects: adminDashboard.topMatchProjects,
+          }
+        : null,
       projectTotals: {
         totalProjects: stats.totalProjects,
         totalInvestors: stats.totalInvestors,
@@ -1280,7 +1401,26 @@ export default function App() {
     } catch {
       toast('error', '복사 실패', '클립보드 권한을 확인하고 다시 시도하세요.');
     }
-  }, [adminRevenueConfig, debouncedSearch, minFundingAmount, maxFundingAmount, minSignal, normalizedAccessMode, normalizedCategory, onlyVerified, revenueProjection, sortMode, stats.totalProjects, stats.totalInvestors, stats.totalSignals, stats.verifiedProjects]);
+  }, [
+    adminDashboard.conversionFunnel,
+    adminDashboard.eventTotals,
+    adminDashboard.topMatchProjects,
+    adminRevenueConfig,
+    debouncedSearch,
+    isAdminView,
+    maxFundingAmount,
+    minFundingAmount,
+    minSignal,
+    normalizedAccessMode,
+    normalizedCategory,
+    onlyVerified,
+    revenueProjection,
+    sortMode,
+    stats.totalInvestors,
+    stats.totalProjects,
+    stats.totalSignals,
+    stats.verifiedProjects,
+  ]);
 
   const handleRefreshAll = useCallback(async () => {
     if (!apiOnline || isRefreshing) {
@@ -1359,10 +1499,10 @@ export default function App() {
   useEffect(() => {
     const timer = window.setInterval(() => {
       void loadSnapshot();
-    }, config.refreshIntervalMs || 30000);
+    }, isAdminView ? ADMIN_DASHBOARD_POLL_INTERVAL_MS : config.refreshIntervalMs || 30000);
 
     return () => window.clearInterval(timer);
-  }, [config.refreshIntervalMs, loadSnapshot]);
+  }, [config.refreshIntervalMs, isAdminView, loadSnapshot]);
 
   useEffect(() => {
     const hasOverlayOpen = Boolean(previewProject || matchingProject || isSubmitOpen);
@@ -1734,10 +1874,22 @@ export default function App() {
                     <CalendarClock className="h-4 w-4 text-cyan-200" />
                     최근 동기화
                   </div>
-                  <p className="mt-1">{formatRelativeTime(stats.lastUpdatedAt)}</p>
+                  <p className="mt-1">{formatRelativeTime(adminDashboard.lastUpdatedAt)}</p>
                 </div>
               </div>
             </div>
+
+            {adminDashboardError && (
+              <div className="rounded-xl border border-red-400/25 bg-red-950/30 p-4 text-sm text-red-100">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="font-black">관리자 대시보드 수집 중 문제가 발생했습니다.</p>
+                    <p className="mt-1 text-red-100/80">{adminDashboardError}</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="grid gap-4 xl:grid-cols-2">
               <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
@@ -1754,6 +1906,18 @@ export default function App() {
                     스냅샷 복사
                   </button>
                 </div>
+                <div className="mb-3 rounded-lg border border-stone-700 bg-stone-950/55 p-3 text-xs">
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-400">운영 데이터 반영</p>
+                  <p className="mt-1 text-sm font-black text-stone-100">관측된 전환율로 수익 가정을 빠르게 덮어씌워 시나리오를 조정하세요.</p>
+                  <button
+                    type="button"
+                    onClick={() => void applyObservedConversionRates()}
+                    disabled={!isAdminDashboardAvailable}
+                    className="mt-3 inline-flex min-h-8 items-center gap-2 rounded-lg border border-cyan-300/50 px-3 py-1 text-[11px] font-black text-cyan-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    관측 전환율 적용
+                  </button>
+                </div>
                 <div className="grid gap-3">
                   {REVENUE_PRESETS.map((preset) => (
                     <button
@@ -1761,7 +1925,7 @@ export default function App() {
                       key={preset.id}
                       onClick={() => applyRevenueModelPreset(preset.config)}
                       className={`rounded-lg border p-3 text-left transition ${
-                        JSON.stringify(preset.config) === JSON.stringify(adminRevenueConfig)
+                        isEqualPreset(preset.config, adminRevenueConfig)
                           ? 'border-cyan-300 bg-cyan-300/15 text-cyan-100'
                           : 'border-stone-700 hover:border-cyan-300/60'
                       }`}
@@ -1800,6 +1964,106 @@ export default function App() {
                       {formatRate(revenueProjection.verifiedProjectShare * 100)}
                     </p>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-3">
+              <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+                <div className="mb-4 flex items-center gap-2">
+                  <Signal className="h-4 w-4 text-cyan-200" />
+                  <h3 className="font-black text-stone-100">운영 퍼널</h3>
+                </div>
+                <div className="grid gap-3">
+                  <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">프리뷰→매칭</p>
+                    <p className="mt-1 text-2xl font-black text-stone-50">
+                      {formatRate(adminDashboard.conversionFunnel.previewToMatchRate)}
+                    </p>
+                    <p className="mt-2 text-xs text-stone-500">
+                      매칭 수치 {adminDashboard.conversionFunnel.matchCount}건 / 프리뷰 {adminDashboard.conversionFunnel.previewCount}건
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">아웃바운드→매칭</p>
+                    <p className="mt-1 text-2xl font-black text-stone-50">
+                      {formatRate(adminDashboard.conversionFunnel.outboundToMatchRate)}
+                    </p>
+                    <p className="mt-2 text-xs text-stone-500">
+                      매칭 수치 {adminDashboard.conversionFunnel.matchCount}건 / 외부열람 {adminDashboard.conversionFunnel.outboundCount}건
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">프로젝트당 매칭율</p>
+                    <p className="mt-1 text-2xl font-black text-stone-50">
+                      {formatRate(adminDashboard.conversionFunnel.matchPerProjectRate)}
+                    </p>
+                    <p className="mt-2 text-xs text-stone-500">총 이벤트 {adminDashboard.conversionFunnel.totalEvents}건</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+                <div className="mb-4 flex items-center gap-2">
+                  <ChartBarBig className="h-4 w-4 text-cyan-200" />
+                  <h3 className="font-black text-stone-100">14일 이벤트 추이</h3>
+                </div>
+                {!isAdminDashboardAvailable ? (
+                  <p className="rounded-lg border border-dashed border-stone-700 p-3 text-sm text-stone-500">
+                    집계가 준비되지 않았습니다.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="mb-1 text-sm font-black text-stone-100">
+                      최근 {Math.min(adminTrendMetrics.trend.length, ADMIN_DASHBOARD_TREND_KEY_DAYS)}일 추이 ·
+                      최근 7일 {adminTrendMetrics.recentTotal}건 | 이전 7일 {adminTrendMetrics.previousTotal}건
+                      <span
+                        className={`ml-2 rounded-full border px-2 py-1 text-[10px] font-black ${
+                          adminTrendMetrics.trendDelta >= 0
+                            ? 'border-lime-400/40 text-lime-200'
+                            : 'border-red-400/40 text-red-200'
+                        }`}
+                      >
+                        {adminTrendMetrics.trendDelta >= 0 ? '+' : ''}{adminTrendMetrics.trendDelta}%
+                      </span>
+                    </div>
+                    {adminTrendMetrics.trend.map((point) => {
+                      const width = (point.total / adminTrendMetrics.maxDaily) * 100;
+                      return (
+                        <div key={point.date} className="grid gap-1 text-xs">
+                          <div className="flex items-center justify-between text-stone-300">
+                            <span>{formatTrendDate(point.date)}</span>
+                            <span className="font-black text-stone-100">{point.total}건</span>
+                          </div>
+                          <div className="h-2 overflow-hidden rounded-full bg-stone-800">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-lime-200 transition-[width]"
+                              style={{ width: `${width}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+                <div className="mb-4 flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-amber-200" />
+                  <h3 className="font-black text-stone-100">이벤트 타입 구성</h3>
+                </div>
+                <div className="space-y-2">
+                  {[['create', '등록', adminDashboard.eventTotals.create], ['preview', '프리뷰', adminDashboard.eventTotals.preview],
+                    ['outbound', '외부열람', adminDashboard.eventTotals.outbound], ['match', '매칭', adminDashboard.eventTotals.match],
+                    ['refresh', '갱신', adminDashboard.eventTotals.refresh]].map(([type, label, count]) => (
+                    <div key={type} className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-2">
+                      <div className="flex items-center justify-between text-xs font-black text-stone-300">
+                        <span>{label}</span>
+                        <span className="text-stone-50">{count}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -1860,36 +2124,147 @@ export default function App() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
-              <div className="mb-4 flex items-center gap-2">
-                <Signal className="h-4 w-4 text-cyan-200" />
-                <h3 className="font-black text-stone-100">매출 기여도 상위 프로젝트</h3>
-              </div>
-              {projectedTopProjects.length === 0 ? (
-                <p className="rounded-lg border border-dashed border-stone-700 p-3 text-sm text-stone-500">
-                  현재 데이터로 계산 가능한 프로젝트가 없습니다.
-                </p>
-              ) : (
-                <div className="space-y-3">
-                  {projectedTopProjects.map((entry, index) => (
-                    <div
-                      key={entry.project.id}
-                      className="grid rounded-lg border border-stone-700 bg-[oklch(15%_0.015_205)] p-3 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:gap-4"
-                    >
-                      <p className="text-sm font-black text-stone-100">#{index + 1}</p>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-black text-stone-100">{entry.project.title}</p>
-                        <p className="mt-1 text-xs text-stone-500">
-                          검증 시그널 {entry.project.signalScore ?? 0} · 매칭/뷰 {entry.project.matchCount}/{entry.project.investorCount}
+            <div className="grid gap-4 xl:grid-cols-2">
+              <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+                <div className="mb-4 flex items-center gap-2">
+                  <Signal className="h-4 w-4 text-cyan-200" />
+                  <h3 className="font-black text-stone-100">매출 기여도 상위 프로젝트</h3>
+                </div>
+                {adminDashboard.topMatchProjects.length === 0 ? (
+                  <p className="rounded-lg border border-dashed border-stone-700 p-3 text-sm text-stone-500">
+                    현재 데이터로 계산 가능한 프로젝트가 없습니다.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {adminDashboard.topMatchProjects.map((entry, index) => (
+                      <div
+                        key={entry.id}
+                        className="grid rounded-lg border border-stone-700 bg-[oklch(15%_0.015_205)] p-3 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:gap-4"
+                      >
+                        <p className="text-sm font-black text-stone-100">#{index + 1}</p>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-black text-stone-100">{entry.title}</p>
+                          <p className="mt-1 text-xs text-stone-500">
+                            매칭/투자가입 {entry.matchCount}/{entry.investorCount} · 시그널 {entry.signalScore} · {entry.accessMode}
+                          </p>
+                        </div>
+                        <p className="text-right text-sm font-black text-lime-200">
+                          {formatCurrency(entry.committedAmountMax)}
                         </p>
                       </div>
-                      <p className="text-right text-sm font-black text-lime-200">
-                        {formatCurrency(entry.monthlyScore)}
-                      </p>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+                <div className="mb-4 flex items-center gap-2">
+                  <Signal className="h-4 w-4 text-cyan-200" />
+                  <h3 className="font-black text-stone-100">신호 기준 상위 프로젝트</h3>
                 </div>
-              )}
+                {adminDashboard.topSignalProjects.length === 0 ? (
+                  <p className="rounded-lg border border-dashed border-stone-700 p-3 text-sm text-stone-500">
+                    현재 데이터로 계산 가능한 프로젝트가 없습니다.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {adminDashboard.topSignalProjects.map((entry, index) => (
+                      <div
+                        key={entry.id}
+                        className="grid rounded-lg border border-stone-700 bg-[oklch(15%_0.015_205)] p-3 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:gap-4"
+                      >
+                        <p className="text-sm font-black text-stone-100">#{index + 1}</p>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-black text-stone-100">{entry.title}</p>
+                          <p className="mt-1 text-xs text-stone-500">
+                            신호 {entry.signalScore} · 매칭/투자가입 {entry.matchCount}/{entry.investorCount}
+                          </p>
+                        </div>
+                        <p className="text-right text-sm font-black text-cyan-200">
+                          {formatWon(entry.committedAmountMax)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-2">
+              <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+                <div className="mb-4 flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-cyan-200" />
+                  <h3 className="font-black text-stone-100">카테고리 성과</h3>
+                </div>
+                {adminDashboard.categoryPerformance.length === 0 ? (
+                  <p className="rounded-lg border border-dashed border-stone-700 p-3 text-sm text-stone-500">
+                    분류할 프로젝트가 아직 없습니다.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {adminDashboard.categoryPerformance.map((item) => {
+                      const denominator = Math.max(1, adminDashboard.categoryPerformance.reduce((sum, target) => sum + target.projects, 0));
+                      const ratio = (item.projects / denominator) * 100;
+                      return (
+                        <div key={item.category} className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <p className="font-black text-stone-100">{item.category}</p>
+                            <p className="text-stone-400">
+                              {item.projects}개 / 투자자 {item.investorCount}명
+                            </p>
+                          </div>
+                          <div className="h-1.5 overflow-hidden rounded-full bg-stone-800">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-amber-200"
+                              style={{ width: `${ratio}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-stone-500">매칭 {item.matchCount}건 · 총 커밋 {formatWon(item.committedAmountMax)}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+                <div className="mb-4 flex items-center gap-2">
+                  <Signal className="h-4 w-4 text-cyan-200" />
+                  <h3 className="font-black text-stone-100">매칭 제안 구간</h3>
+                </div>
+                {adminDashboard.proposalRangeDistribution.length === 0 ? (
+                  <p className="rounded-lg border border-dashed border-stone-700 p-3 text-sm text-stone-500">
+                    매칭 제안이 아직 없습니다.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {adminDashboard.proposalRangeDistribution.map((item) => {
+                      const denominator = Math.max(
+                        1,
+                        adminDashboard.proposalRangeDistribution.reduce(
+                          (sum, target) => sum + target.proposalCount,
+                          0,
+                        ),
+                      );
+                      const ratio = (item.proposalCount / denominator) * 100;
+                      return (
+                        <div key={item.rangeId} className="space-y-2 rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-2">
+                          <div className="flex items-center justify-between text-xs font-black text-stone-200">
+                            <span>{item.label}</span>
+                            <span className="text-stone-100">{item.proposalCount}건</span>
+                          </div>
+                          <div className="h-1.5 overflow-hidden rounded-full bg-stone-800">
+                            <div className="h-full rounded-full bg-lime-300" style={{ width: `${ratio}%` }} />
+                          </div>
+                          <p className="text-[11px] text-stone-500">
+                            평균 예상액 {formatWon(item.averageAmount)} / 총 {formatWon(item.totalMinAmount + item.totalMaxAmount)}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </section>
         ) : (
