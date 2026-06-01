@@ -3,6 +3,9 @@ set -euo pipefail
 
 backend_pid=""
 frontend_pid=""
+backend_port="${BACKEND_PORT:-3003}"
+frontend_port="${FRONTEND_PORT:-5174}"
+frontend_api_base="${VITE_API_BASE_URL:-http://localhost:${backend_port}/api}"
 
 cleanup() {
   local pids=("$backend_pid" "$frontend_pid")
@@ -22,10 +25,10 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-npm --prefix backend run start:dev &
+PORT="$backend_port" npm --prefix backend run start:dev &
 backend_pid=$!
 
-npm --prefix frontend run dev &
+VITE_API_BASE_URL="$frontend_api_base" npm --prefix frontend run dev -- --port "$frontend_port" &
 frontend_pid=$!
 
 set +e

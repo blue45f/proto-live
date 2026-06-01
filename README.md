@@ -12,6 +12,14 @@ npm run setup
 npm run dev
 ```
 
+포트 충돌이 나면 루트 실행 시 아래처럼 환경 변수를 오버라이드해서 띄울 수 있습니다.
+
+```bash
+BACKEND_PORT=3008 FRONTEND_PORT=4178 VITE_API_BASE_URL=http://localhost:3008/api npm run dev
+```
+
+`npm run dev`는 기본적으로 백엔드 `3003`, 프론트 `5174`를 사용합니다.
+
 테스트 계정 시드 생성이 필요한 경우:
 ```bash
 npm run seed:test-accounts
@@ -39,6 +47,7 @@ npm run start:dev
 ```
 
 기본 포트는 `3003`입니다.
+`npm run dev`를 사용할 때는 `BACKEND_PORT`로 백엔드 포트를 바로 바꿀 수 있습니다.
 
 주요 API:
 - `POST http://localhost:3003/api/projects/validate`: SSRF 방어 규칙으로 URL을 확인한 뒤 HEAD/GET 요청으로 라이브 상태를 검증합니다.
@@ -77,6 +86,7 @@ npm run dev
 ```
 
 `npm run dev` 기본 포트는 `5174`입니다.
+`npm run dev`를 사용할 때는 `FRONTEND_PORT`로 프론트엔드 포트를 바꿀 수 있으며, 백엔드 포트 변경 시 같은 값으로 `VITE_API_BASE_URL`을 맞춰주어야 합니다.
 
 프론트엔드 API 주소는 Vite 환경 변수로 조정할 수 있습니다:
 ```bash
