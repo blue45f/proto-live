@@ -34,13 +34,16 @@ ProtoLive should not compete as another startup directory, fundraising CRM, or g
 3. **Diligence telemetry on every row**
    HTTP status, response time, verification time, signal score, match count, and funding intent are visible before an investor opens a modal or leaves the workspace.
 
-4. **Behavior signals become ranking inputs**
+4. **Per-project diligence report**
+   Each project exposes a compact diligence report with proof ledger, exposure status, event mix, investment intent, and next action controls. This keeps protected projects reviewable without leaking their original URL.
+
+5. **Behavior signals become ranking inputs**
    Preview, outbound, match, refresh, and create events are not vanity analytics. They feed signal ranking and admin health metrics.
 
-5. **Intent is structured, not just expressed**
+6. **Intent is structured, not just expressed**
    Investment interest is captured with amount range and message, letting the marketplace calculate committed ranges and segment demand.
 
-6. **Revenue model is part of operations**
+7. **Revenue model is part of operations**
    The admin page connects live marketplace data to subscription, lead, and success-fee assumptions so monetization can be tuned from measured behavior.
 
 ## Product Structure Recommendations
@@ -48,8 +51,9 @@ ProtoLive should not compete as another startup directory, fundraising CRM, or g
 1. Lead the first viewport with the proof flow: URL gate, screened preview, signal ledger, intent capture.
 2. Keep marketplace browsing dense and task-first: filters, verified-only modes, funding range, access mode, favorites, sort.
 3. Make project cards read like diligence rows: proof badges first, title second, then signal and funding pressure.
-4. Keep a right-side intelligence rail: health, signal leaderboard, benchmark stack, category flow.
-5. Treat admin as the operator cockpit: health, risk, revenue assumptions, forecast gaps, export.
+4. Add a per-project diligence report: proof ledger, decision notes, event mix, and protected next actions.
+5. Keep a right-side intelligence rail: health, signal leaderboard, benchmark stack, category flow.
+6. Treat admin as the operator cockpit: health, risk, revenue assumptions, forecast gaps, export.
 
 ## Messaging Guardrails
 

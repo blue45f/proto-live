@@ -97,6 +97,13 @@ def main() -> None:
             login_as_maker(page)
             wait_for_api_online(page)
 
+            expect(page.get_by_role("heading", name="SignalBoard for Founders")).to_be_visible(timeout=30000)
+            page.get_by_role("button", name=re.compile("실사 요약")).first.click()
+            expect(page.get_by_role("dialog", name=re.compile("실사 리포트"))).to_be_visible()
+            expect(page.get_by_text("Proof Ledger")).to_be_visible()
+            expect(page.get_by_text("투자 판단 메모")).to_be_visible()
+            page.get_by_role("button", name="닫기", exact=True).click()
+
             register_button = page.get_by_role("button", name=re.compile("프로토타입 등록"))
             expect(register_button).to_be_enabled(timeout=30000)
             register_button.click()
