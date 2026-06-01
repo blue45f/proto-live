@@ -304,3 +304,124 @@ test('getAllProjects rejects invalid funding range', async () => {
     });
   });
 });
+
+test('getAdminDashboard returns health, risks, and action recommendations', async () => {
+  await withSeededService((state) => {
+    state.users.push({ id: 1, email: 'maker@protolive.local', role: 'maker' });
+    state.users.push({ id: 2, email: 'maker2@protolive.local', role: 'maker' });
+    state.projects.push(
+      {
+        id: 1,
+        userId: 1,
+        title: 'Healthy Project',
+        description: 'Project with active signal and match',
+        liveUrl: 'https://healthy.example.com',
+        category: 'AI & SaaS' as ProjectCategory,
+        accessMode: 'open' as ProjectAccessMode,
+        protectionNoticeAccepted: true,
+        investorCount: 2,
+        matchCount: 1,
+        committedAmountMin: 100,
+        committedAmountMax: 220,
+        validation: {
+          success: true,
+          status: 200,
+          message: 'ok',
+          checkedAt: '2026-06-01T00:00:00.000Z',
+          finalUrl: 'https://healthy.example.com',
+          responseTimeMs: 90,
+        },
+        createdAt: new Date('2026-06-01T12:00:00.000Z'),
+      },
+      {
+        id: 2,
+        userId: 1,
+        title: 'Silent Risky Project',
+        description: 'No conversion and unverified',
+        liveUrl: 'https://risky.example.com',
+        category: 'FinTech' as ProjectCategory,
+        accessMode: 'screened' as ProjectAccessMode,
+        protectionNoticeAccepted: true,
+        investorCount: 0,
+        matchCount: 0,
+        committedAmountMin: 0,
+        committedAmountMax: 0,
+        validation: {
+          success: false,
+          status: 503,
+          message: 'down',
+          checkedAt: '2026-06-01T00:00:00.000Z',
+          finalUrl: 'https://risky.example.com',
+          responseTimeMs: 2400,
+        },
+        createdAt: new Date('2026-06-01T11:00:00.000Z'),
+      },
+      {
+        id: 3,
+        userId: 2,
+        title: 'Dormant Project',
+        description: 'Low signal project',
+        liveUrl: 'https://dormant.example.com',
+        category: 'DevTools' as ProjectCategory,
+        accessMode: 'open' as ProjectAccessMode,
+        protectionNoticeAccepted: true,
+        investorCount: 0,
+        matchCount: 0,
+        committedAmountMin: 0,
+        committedAmountMax: 0,
+        validation: {
+          success: true,
+          status: 200,
+          message: 'ok',
+          checkedAt: '2026-06-01T00:00:00.000Z',
+          finalUrl: 'https://dormant.example.com',
+          responseTimeMs: 1300,
+        },
+        createdAt: new Date('2026-06-01T10:00:00.000Z'),
+      },
+    );
+    state.proposals.push(
+      {
+        id: 1,
+        projectId: 1,
+        fundingRangeId: 'seed-50-100',
+        message: 'seed proposal',
+        createdAt: new Date('2026-06-01T12:10:00.000Z'),
+      },
+      {
+        id: 2,
+        projectId: 1,
+        fundingRangeId: 'seed-100-300',
+        message: 'seed2 proposal',
+        createdAt: new Date('2026-06-01T12:15:00.000Z'),
+      },
+    );
+    state.events.push(
+      { id: 1, projectId: 1, type: 'create', createdAt: new Date('2026-06-01T12:00:00.000Z') },
+      { id: 2, projectId: 1, type: 'preview', createdAt: new Date('2026-06-01T12:01:00.000Z') },
+      { id: 3, projectId: 1, type: 'outbound', createdAt: new Date('2026-06-01T12:02:00.000Z') },
+      { id: 4, projectId: 1, type: 'match', createdAt: new Date('2026-06-01T12:03:00.000Z') },
+      { id: 5, projectId: 3, type: 'create', createdAt: new Date('2026-05-01T09:00:00.000Z') },
+    );
+
+    state.nextUserId = 3;
+    state.nextProjectId = 4;
+    state.nextProposalId = 3;
+    state.nextEventId = 6;
+  }, async (service) => {
+    const dashboard = service.getAdminDashboard();
+
+    assert.equal(dashboard.conversionFunnel.matchCount, 1);
+    assert.equal(dashboard.conversionFunnel.previewToMatchRate, 100);
+    assert.equal(dashboard.conversionFunnel.outboundToMatchRate, 100);
+    assert.equal(dashboard.categoryPerformance.length, 3);
+    assert.equal(dashboard.health.healthScore >= 0 && dashboard.health.healthScore <= 100, true);
+    assert.equal(dashboard.health.riskCount, dashboard.riskProjects.length);
+    assert.equal(dashboard.health.warningCount >= 1, true);
+    assert.equal(Array.isArray(dashboard.recommendations), true);
+    assert.equal(dashboard.recommendations.length > 0, true);
+    assert.equal(dashboard.proposalRangeDistribution.length > 0, true);
+    assert.equal(dashboard.riskProjects.some((project) => project.title.includes('Silent Risky Project')), true);
+    assert.equal(dashboard.topMatchProjects[0].id, 1);
+  });
+});

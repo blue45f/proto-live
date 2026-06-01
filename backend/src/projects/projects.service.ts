@@ -17,7 +17,10 @@ import {
   AdminEventTrendPoint,
   AdminFunnelMetric,
   AdminRangeMetric,
+  AdminActionRecommendation,
+  AdminHealthIndicator,
   AdminTopProjectMetric,
+  AdminRiskProject,
   ProjectsState,
   User,
   ValidationSnapshot,
@@ -145,10 +148,17 @@ export class ProjectsService {
     let previewCount = 0;
     let outboundCount = 0;
     let matchCount = 0;
+    const eventsByProject = new Map<number, ProjectEvent[]>();
 
     for (const event of this.events) {
       const bucket = eventTotals[event.type];
       eventTotals[event.type] = bucket + 1;
+      const projectEvents = eventsByProject.get(event.projectId);
+      if (projectEvents) {
+        projectEvents.push(event);
+      } else {
+        eventsByProject.set(event.projectId, [event]);
+      }
 
       if (event.type === 'preview') {
         previewCount += 1;
@@ -166,19 +176,78 @@ export class ProjectsService {
 
     const rangeMetrics = this.buildProposalRangeDistribution();
 
-    const hydrationCache = new Map<number, Project>();
-    const projects = this.projects
-      .map((project) => {
-        const projectCache = hydrationCache.get(project.id);
-        if (projectCache) {
-          return projectCache;
-        }
+    const totalProjects = this.projects.length;
+    const verifiedProjects = this.projects.filter((project) => project.validation.success).length;
+    const totalInvestors = this.projects.reduce((sum, project) => sum + project.investorCount, 0);
+    const totalCommittedAmount = this.projects.reduce((sum, project) => sum + project.committedAmountMax, 0);
 
-        const hydrated = this.hydrateProject(project);
-        hydrationCache.set(project.id, hydrated);
-        return hydrated;
+    const enrichedProjects = this.projects.map((project) => {
+      const projectEvents = eventsByProject.get(project.id) ?? [];
+      const lastEventAt = projectEvents.reduce<Date | null>((max, event) => {
+        const created = event.createdAt.getTime();
+        if (!max || created > max.getTime()) {
+          return event.createdAt;
+        }
+        return max;
+      }, null);
+      const daysSinceActivity = lastEventAt
+        ? Math.max(0, Math.floor((now.getTime() - lastEventAt.getTime()) / 86400000))
+        : 9999;
+
+      const riskScore = this.calculateProjectRiskScore({
+        project,
+        isVerified: project.validation.success,
+        eventCount: projectEvents.length,
+        daysSinceActivity,
+        matchCount: project.matchCount,
+        investorCount: project.investorCount,
+        signalScore: calculateProjectSignalScore(project, projectEvents),
+      });
+
+      const reasons: string[] = [];
+      if (!project.validation.success) {
+        reasons.push('검증 실패');
+      }
+      if (projectEvents.length === 0) {
+        reasons.push('최근 14일 내 이벤트가 없습니다');
+      } else if (daysSinceActivity >= 14) {
+        reasons.push('최근 활동이 14일 이상 지연');
+      }
+      if (project.matchCount === 0 && project.investorCount === 0) {
+        reasons.push('매칭/투자 진척 없음');
+      }
+
+      const hydrated = this.hydrateProject(project);
+
+      return {
+        project: hydrated,
+        riskScore,
+        reason: reasons,
+        daysSinceActivity,
+      };
+    });
+
+    const riskProjects: AdminRiskProject[] = enrichedProjects
+      .filter((entry) => entry.riskScore >= 45)
+      .sort((a, b) => {
+        const scoreDiff = b.riskScore - a.riskScore;
+        if (scoreDiff !== 0) {
+          return scoreDiff;
+        }
+        return a.daysSinceActivity - b.daysSinceActivity;
       })
-      .map((project): AdminTopProjectMetric => ({
+      .slice(0, 10)
+      .map((entry) => ({
+        projectId: entry.project.id,
+        title: entry.project.title,
+        reason: entry.reason.join(' · ') || '리스크 요인 정밀 점검 필요',
+        riskScore: entry.riskScore,
+        daysSinceActivity: entry.daysSinceActivity,
+        lastActivityAt: entry.project.eventSummary?.latestAt ?? null,
+      }));
+
+    const topMatchProjects = enrichedProjects
+      .map(({ project }) => ({
         id: project.id,
         title: project.title,
         category: project.category,
@@ -188,9 +257,7 @@ export class ProjectsService {
         matchCount: project.matchCount,
         committedAmountMin: project.committedAmountMin,
         committedAmountMax: project.committedAmountMax,
-      }));
-
-    const topMatchProjects = [...projects]
+      }))
       .sort((a, b) => {
         const matchCountDiff = b.matchCount - a.matchCount;
         if (matchCountDiff !== 0) {
@@ -201,7 +268,18 @@ export class ProjectsService {
       })
       .slice(0, 8);
 
-    const topSignalProjects = [...projects]
+    const topSignalProjects = enrichedProjects
+      .map(({ project }) => ({
+        id: project.id,
+        title: project.title,
+        category: project.category,
+        accessMode: project.accessMode,
+        signalScore: project.signalScore ?? 0,
+        investorCount: project.investorCount,
+        matchCount: project.matchCount,
+        committedAmountMin: project.committedAmountMin,
+        committedAmountMax: project.committedAmountMax,
+      }))
       .sort((a, b) => (b.signalScore ?? 0) - (a.signalScore ?? 0))
       .slice(0, 6);
 
@@ -229,6 +307,28 @@ export class ProjectsService {
       totalEvents: this.events.length,
     };
 
+    const health = this.buildAdminHealthIndicator({
+      totalProjects,
+      verifiedProjects,
+      totalInvestors,
+      totalCommittedAmount,
+      conversionFunnel,
+      totalEvents: this.events.length,
+      averageResponseMs: this.calculateAverageResponseMs(),
+      riskProjectCount: riskProjects.length,
+    });
+
+    const recommendations = this.buildAdminRecommendations({
+      health,
+      riskProjects,
+      totalProjects,
+      totalInvestors,
+      totalSignals: this.events.length,
+      verifiedProjects,
+      riskProjectCount: riskProjects.length,
+      conversionFunnel,
+    });
+
     return {
       conversionFunnel,
       eventTrend14d,
@@ -238,6 +338,9 @@ export class ProjectsService {
       topSignalProjects,
       categoryPerformance,
       proposalRangeDistribution: rangeMetrics,
+      riskProjects,
+      health,
+      recommendations,
       lastUpdatedAt: now.toISOString(),
     };
   }
@@ -640,6 +743,210 @@ export class ProjectsService {
     return metrics
       .filter((metric) => metric.proposalCount > 0 || metric.totalMinAmount > 0 || metric.totalMaxAmount > 0)
       .sort((a, b) => b.proposalCount - a.proposalCount);
+  }
+
+  private calculateProjectRiskScore(params: {
+    project: Project;
+    isVerified: boolean;
+    eventCount: number;
+    daysSinceActivity: number;
+    matchCount: number;
+    investorCount: number;
+    signalScore: number;
+  }) {
+    let score = 0;
+
+    if (!params.isVerified) {
+      score += 30;
+    }
+    if (params.eventCount === 0) {
+      score += 28;
+    } else if (params.daysSinceActivity >= 30) {
+      score += 26;
+    } else if (params.daysSinceActivity >= 14) {
+      score += 16;
+    }
+
+    if (params.matchCount === 0 && params.investorCount === 0) {
+      score += 20;
+    }
+    if (params.signalScore < 45) {
+      score += 12;
+    }
+
+    if (params.project.validation.responseTimeMs && params.project.validation.responseTimeMs > 2500) {
+      score += 8;
+    }
+
+    return Math.min(100, Math.max(0, score));
+  }
+
+  private buildAdminHealthIndicator(params: {
+    totalProjects: number;
+    verifiedProjects: number;
+    totalInvestors: number;
+    totalCommittedAmount: number;
+    conversionFunnel: AdminFunnelMetric;
+    totalEvents: number;
+    averageResponseMs: number | null;
+    riskProjectCount: number;
+  }): AdminHealthIndicator {
+    const verifiedHealth = this.calculateRate(params.verifiedProjects, Math.max(1, params.totalProjects));
+    const hasPreviewOrOutbound = params.conversionFunnel.previewCount > 0 || params.conversionFunnel.outboundCount > 0;
+
+    const conversionHealth = hasPreviewOrOutbound
+      ? Math.round(
+          (params.conversionFunnel.previewToMatchRate * 0.65) + (params.conversionFunnel.outboundToMatchRate * 0.35),
+        )
+      : params.conversionFunnel.matchPerProjectRate;
+
+    const engagementHealth = Math.min(
+      100,
+      Math.round((params.totalEvents / Math.max(1, params.totalProjects)) * 18),
+    );
+
+    const responseHealth = params.averageResponseMs === null
+      ? 70
+      : Math.max(0, Math.min(100, Math.round(100 - Math.max(0, params.averageResponseMs - 250) / 40)));
+
+    const warningCount =
+      (verifiedHealth < 80 ? 1 : 0) +
+      (conversionHealth < 50 ? 1 : 0) +
+      (engagementHealth < 35 ? 1 : 0) +
+      (responseHealth < 50 ? 1 : 0) +
+      (params.riskProjectCount > 0 ? 1 : 0);
+
+    return {
+      healthScore: Math.round(
+        verifiedHealth * 0.35 +
+        conversionHealth * 0.3 +
+        engagementHealth * 0.2 +
+        responseHealth * 0.15,
+      ),
+      verifiedHealth,
+      conversionHealth,
+      engagementHealth,
+      responseHealth,
+      riskCount: params.riskProjectCount,
+      warningCount,
+    };
+  }
+
+  private buildAdminRecommendations(params: {
+    health: AdminHealthIndicator;
+    riskProjects: AdminRiskProject[];
+    totalProjects: number;
+    totalInvestors: number;
+    totalSignals: number;
+    verifiedProjects: number;
+    riskProjectCount: number;
+    conversionFunnel: AdminFunnelMetric;
+  }): AdminActionRecommendation[] {
+    const recommendations: AdminActionRecommendation[] = [];
+
+    const investorToProjectRate =
+      params.totalProjects > 0 ? Math.round((params.totalInvestors / params.totalProjects) * 1000) / 10 : 0;
+    const avgSignalsPerProject =
+      params.totalProjects > 0 ? Math.round((params.totalSignals / params.totalProjects) * 10) / 10 : 0;
+
+    if (params.verifiedProjects === 0 && params.totalProjects > 0) {
+      recommendations.push({
+        priority: 'high',
+        area: '검증 게이트',
+        title: '검증률이 0%입니다',
+        why: '승인/신뢰가 보장된 프로젝트가 없어 투자자 여정 전환율이 낮을 수 있습니다.',
+        nextAction: '가이드 문구를 강화하고 재검증 실패 사유를 즉시 피드백해 제출 실패율을 낮추세요.',
+        expectedImpact: '검증 성공률이 오르면 매칭 제안 전환까지의 신뢰 구간이 개선됩니다.',
+      });
+    }
+
+    if (params.riskProjectCount >= 3) {
+      const topRiskReason = params.riskProjects[0]?.reason ?? '지표 이탈';
+      recommendations.push({
+        priority: 'high',
+        area: '리스크 관리',
+        title: '리스크 프로젝트 집중 조치',
+        why: `현재 위험 프로젝트 ${params.riskProjectCount}건이 임계값(45) 이상으로 누적되어 있습니다.`,
+        nextAction: `우선 ${Math.min(3, params.riskProjectCount)}개 프로젝트를 리마인드해 이벤트 유입·투자 반응을 확인하세요. 대표 사유: ${topRiskReason}`,
+        expectedImpact: '고위험 프로젝트 이탈을 줄이면 전체 전환율과 평균 신뢰도를 함께 개선할 수 있습니다.',
+      });
+    }
+
+    if (params.health.conversionHealth < 35) {
+      recommendations.push({
+        priority: 'high',
+        area: '퍼널 개선',
+        title: '프리뷰→매칭 동선 전환 강화',
+        why: `현재 프로젝트 전환률이 ${params.conversionFunnel.previewToMatchRate}% 수준입니다.`,
+        nextAction: '외부열람 이후 제안 작성 CTA의 문구를 재배치하고, 매칭 마감 리마인드 메시지를 운영하세요.',
+        expectedImpact: '매칭 제안 수 및 투자자 문의 전환이 동시에 개선될 가능성이 높습니다.',
+      });
+    }
+
+    if (params.health.engagementHealth < 35) {
+      recommendations.push({
+        priority: 'medium',
+        area: '활동성',
+        title: '프로젝트별 활동량 최소화 정책 필요',
+        why: `프로젝트당 평균 이벤트가 ${avgSignalsPerProject}건으로 낮아 운영 히트율이 제한됩니다.`,
+        nextAction: '최근 7일 이벤트 없는 프로젝트를 필터로 분리해, 홍보·리마인드 알림을 자동 발송하세요.',
+        expectedImpact: '짧은 주기 이벤트가 늘면 운영 대시보드의 트래픽 지표와 매칭 수가 개선될 수 있습니다.',
+      });
+    }
+
+    if (params.health.responseHealth < 50) {
+      recommendations.push({
+        priority: 'medium',
+        area: '인프라',
+        title: '라이브 URL 응답성 이슈 완화',
+        why: '평균 응답 시간이 임계값을 넘어 검증 소요와 신뢰도 점수에 영향을 줍니다.',
+        nextAction: '캐시 헤더/타임아웃 정책 점검 후 URL 검증 재시도 정책을 짧은 주기로 정비하세요.',
+        expectedImpact: '검증 통과 속도가 높아져 신규 등록 체감속도와 운영 신뢰가 향상됩니다.',
+      });
+    }
+
+    if (params.health.conversionHealth >= 40 && params.health.engagementHealth >= 40 && params.totalProjects > 0) {
+      recommendations.push({
+        priority: 'low',
+        area: '수익 모델',
+        title: '월 구독 전환 퍼널 준비',
+        why: `현재 프로젝트당 투자자 수치가 ${investorToProjectRate}%로 안정적인 초기 단계입니다.`,
+        nextAction: '메이커/투자자 전환 가정을 리드 기반 수익 시나리오로 2개 구간 분리해 A/B 테스트하세요.',
+        expectedImpact: '실측 전환율을 기반으로 수익 포인트를 조정하면 ARPU를 빠르게 비교할 수 있습니다.',
+      });
+    }
+
+    if (params.totalSignals === 0) {
+      recommendations.push({
+        priority: 'low',
+        area: '수익 안정성',
+        title: '초기 트래픽 유입 설계 필요',
+        why: '이벤트가 누적되지 않으면 매칭·리드 기반 수익 흐름이 시작되지 않습니다.',
+        nextAction: '카테고리별 큐레이션 채널(테마 뉴스레터/커뮤니티 노출)로 첫 조회를 유도하세요.',
+        expectedImpact: '데이터가 쌓이면 시그널 기반 권장 파트너 매칭 효율이 개선됩니다.',
+      });
+    }
+
+    const priorityValue: Record<AdminActionRecommendation['priority'], number> = {
+      high: 2,
+      medium: 1,
+      low: 0,
+    };
+    return recommendations.sort(
+      (a, b) => priorityValue[b.priority] - priorityValue[a.priority] || a.area.localeCompare(b.area),
+    );
+  }
+
+  private calculateAverageResponseMs() {
+    const checkedProjects = this.projects.filter((project) => project.validation.responseTimeMs);
+    if (checkedProjects.length === 0) {
+      return null;
+    }
+
+    return Math.round(
+      checkedProjects.reduce((sum, project) => sum + (project.validation.responseTimeMs ?? 0), 0) /
+      checkedProjects.length,
+    );
   }
 
   private buildEventTrend(referenceDate: Date): AdminEventTrendPoint[] {

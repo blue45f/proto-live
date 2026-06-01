@@ -101,6 +101,36 @@ export interface AdminRangeMetric {
   averageAmount: number;
 }
 
+export type AdminAlertPriority = 'high' | 'medium' | 'low';
+
+export interface AdminActionRecommendation {
+  priority: AdminAlertPriority;
+  area: string;
+  title: string;
+  why: string;
+  nextAction: string;
+  expectedImpact: string;
+}
+
+export interface AdminRiskProject {
+  projectId: number;
+  title: string;
+  reason: string;
+  riskScore: number;
+  daysSinceActivity: number;
+  lastActivityAt: string | null;
+}
+
+export interface AdminHealthIndicator {
+  healthScore: number;
+  verifiedHealth: number;
+  conversionHealth: number;
+  engagementHealth: number;
+  responseHealth: number;
+  riskCount: number;
+  warningCount: number;
+}
+
 export interface AdminDashboardMetrics {
   conversionFunnel: AdminFunnelMetric;
   eventTrend14d: AdminEventTrendPoint[];
@@ -110,6 +140,9 @@ export interface AdminDashboardMetrics {
   topSignalProjects: AdminTopProjectMetric[];
   categoryPerformance: AdminCategoryMetric[];
   proposalRangeDistribution: AdminRangeMetric[];
+  riskProjects: AdminRiskProject[];
+  health: AdminHealthIndicator;
+  recommendations: AdminActionRecommendation[];
   lastUpdatedAt: string;
 }
 
