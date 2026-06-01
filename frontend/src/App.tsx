@@ -13,6 +13,7 @@ import {
   ChevronDown,
   ChevronUp,
   CheckCircle2,
+  DollarSign,
   TrendingUp,
   Clock3,
   ExternalLink,
@@ -55,6 +56,7 @@ import {
   fetchProjects,
   fetchProjectEvents,
   getApiErrorMessage,
+  investInProject,
   recordProjectEvent,
   refreshAllProjects,
   refreshProject,
@@ -64,6 +66,128 @@ import ToastContainer, { toast } from './components/ToastContainer';
 
 const DIALOG_FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+type AppView = 'market' | 'admin';
+
+type RevenueModelConfig = {
+  makerMonthlyFee: number;
+  investorMonthlyFee: number;
+  leadCaptureFee: number;
+  makerConversionRate: number;
+  investorConversionRate: number;
+  closeLeadRate: number;
+  successFeeRate: number;
+};
+
+const ADMIN_REVENUE_CONFIG_STORAGE_KEY = 'protolive:admin-revenue:v1';
+
+const DEFAULT_REVENUE_CONFIG: RevenueModelConfig = {
+  makerMonthlyFee: 25000,
+  investorMonthlyFee: 19000,
+  leadCaptureFee: 8000,
+  makerConversionRate: 18,
+  investorConversionRate: 14,
+  closeLeadRate: 12,
+  successFeeRate: 3.5,
+};
+
+const REVENUE_PRESETS: Array<{ id: string; name: string; label: string; description: string; config: RevenueModelConfig }> =
+  [
+    {
+      id: 'lean',
+      name: 'Lean',
+      label: '보수적 베이직',
+      description: '월 1회 운영 중심, 수익은 적지만 안정적으로 시작',
+      config: {
+        ...DEFAULT_REVENUE_CONFIG,
+        makerMonthlyFee: 15000,
+        investorMonthlyFee: 12000,
+        leadCaptureFee: 4000,
+        makerConversionRate: 10,
+        investorConversionRate: 8,
+        closeLeadRate: 8,
+      },
+    },
+    {
+      id: 'growth',
+      name: 'Growth',
+      label: '성장형 믹스',
+      description: '검증·매칭 비용을 함께 고려한 실전 운영형 모델',
+      config: DEFAULT_REVENUE_CONFIG,
+    },
+    {
+      id: 'scale',
+      name: 'Scale',
+      label: '확장형 프리미엄',
+      description: '고빈도 투자 활동을 전제로 강하게 수익률을 당겨가는 시나리오',
+      config: {
+        ...DEFAULT_REVENUE_CONFIG,
+        makerMonthlyFee: 42000,
+        investorMonthlyFee: 33000,
+        leadCaptureFee: 12000,
+        makerConversionRate: 25,
+        investorConversionRate: 20,
+        closeLeadRate: 18,
+        successFeeRate: 5,
+      },
+    },
+  ];
+
+const MIN_REVENUE_RATE = 0;
+const MAX_REVENUE_RATE = 100;
+const DECIMAL_DIGITS = 1;
+
+type RevenueModelFieldKind = 'currency' | 'percent';
+
+const REVENUE_MODEL_FIELDS: Array<{
+  key: keyof RevenueModelConfig;
+  label: string;
+  helper: string;
+  kind: RevenueModelFieldKind;
+}> = [
+  {
+    key: 'makerMonthlyFee',
+    label: '메이커 월 정액',
+    helper: '검증된 프로젝트가 월 1회 플랜 이용한다는 가정',
+    kind: 'currency',
+  },
+  {
+    key: 'investorMonthlyFee',
+    label: '투자자 월 정액',
+    helper: '활성 투자자에게 부과되는 월 구독료',
+    kind: 'currency',
+  },
+  {
+    key: 'leadCaptureFee',
+    label: '리드 캡처 단가',
+    helper: '매칭·프리뷰·아웃바운드 이벤트를 리드로 가정할 때',
+    kind: 'currency',
+  },
+  {
+    key: 'makerConversionRate',
+    label: '메이커 전환률',
+    helper: '검증 프로젝트 중 유효 플랜 전환 비율',
+    kind: 'percent',
+  },
+  {
+    key: 'investorConversionRate',
+    label: '투자자 전환률',
+    helper: '총 투자자 중 유효 과금으로 전환하는 비율',
+    kind: 'percent',
+  },
+  {
+    key: 'closeLeadRate',
+    label: '리드→거래 전환률',
+    helper: '리드가 실제 거래로 이어지는 비율',
+    kind: 'percent',
+  },
+  {
+    key: 'successFeeRate',
+    label: '거래 성공 수수료율',
+    helper: '클로징 금액 대비 성과 수수료 비율',
+    kind: 'percent',
+  },
+];
 
 function getDialogFocusableElements(container: HTMLElement | null) {
   if (!container) return [];
@@ -142,6 +266,52 @@ function clampSort(value: string | null) {
   return FUNDING_SORT_OPTIONS.includes(value as (typeof FUNDING_SORT_OPTIONS)[number])
     ? (value as ProjectListQuery['sort'])
     : 'signal';
+}
+
+function readAdminRevenueConfig(): RevenueModelConfig {
+  if (typeof window === 'undefined') {
+    return { ...DEFAULT_REVENUE_CONFIG };
+  }
+
+  try {
+    const raw = localStorage.getItem(ADMIN_REVENUE_CONFIG_STORAGE_KEY);
+    if (!raw) return { ...DEFAULT_REVENUE_CONFIG };
+
+    const parsed = JSON.parse(raw) as Partial<RevenueModelConfig>;
+    return {
+      makerMonthlyFee: safePositiveNumber(parsed.makerMonthlyFee, DEFAULT_REVENUE_CONFIG.makerMonthlyFee),
+      investorMonthlyFee: safePositiveNumber(
+        parsed.investorMonthlyFee,
+        DEFAULT_REVENUE_CONFIG.investorMonthlyFee,
+      ),
+      leadCaptureFee: safePositiveNumber(parsed.leadCaptureFee, DEFAULT_REVENUE_CONFIG.leadCaptureFee),
+      makerConversionRate: clampRate(safeNumber(parsed.makerConversionRate, DEFAULT_REVENUE_CONFIG.makerConversionRate)),
+      investorConversionRate: clampRate(
+        safeNumber(parsed.investorConversionRate, DEFAULT_REVENUE_CONFIG.investorConversionRate),
+      ),
+      closeLeadRate: clampRate(safeNumber(parsed.closeLeadRate, DEFAULT_REVENUE_CONFIG.closeLeadRate)),
+      successFeeRate: clampRate(safeNumber(parsed.successFeeRate, DEFAULT_REVENUE_CONFIG.successFeeRate), 0.1, 30),
+    };
+  } catch {
+    return { ...DEFAULT_REVENUE_CONFIG };
+  }
+}
+
+function safePositiveNumber(value: unknown, fallback: number) {
+  if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
+    return Math.floor(value);
+  }
+
+  return fallback;
+}
+
+function safeNumber(value: unknown, fallback: number) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  return fallback;
+}
+
+function clampRate(value: number, min = MIN_REVENUE_RATE, max = MAX_REVENUE_RATE) {
+  return Math.max(min, Math.min(max, value));
 }
 
 function readFilterPreset(): RawFilterSnapshot {
@@ -352,6 +522,40 @@ function formatWon(amount: number) {
   return `₩${Math.round(amount / 10000).toLocaleString('ko-KR')}만`;
 }
 
+function formatCurrency(amount: number) {
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return '₩0';
+  }
+
+  return new Intl.NumberFormat('ko-KR', {
+    style: 'currency',
+    currency: 'KRW',
+    maximumFractionDigits: 0,
+  }).format(Math.round(amount));
+}
+
+function formatRate(value: number) {
+  return `${value.toFixed(DECIMAL_DIGITS)}%`;
+}
+
+function normalizeAmountInput(value: number) {
+  if (Number.isNaN(value)) return 0;
+  return Math.max(0, Math.floor(value));
+}
+
+function readInitialView(): AppView {
+  if (typeof window === 'undefined') {
+    return 'market';
+  }
+
+  const url = new URL(window.location.href);
+  return url.searchParams.get('view') === 'admin' ? 'admin' : 'market';
+}
+
+function isPercentValue(value: number) {
+  return value >= MIN_REVENUE_RATE && value <= MAX_REVENUE_RATE;
+}
+
 function formatRelativeTime(value?: string) {
   if (!value) return '아직 없음';
   const then = new Date(value).getTime();
@@ -388,6 +592,11 @@ export default function App() {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [view, setView] = useState<AppView>(readInitialView());
+  const [adminRevenueConfig, setAdminRevenueConfig] = useState<RevenueModelConfig>(
+    readAdminRevenueConfig,
+  );
+  const [investingProjectIds, setInvestingProjectIds] = useState(new Set<number>());
 
   const [searchQuery, setSearchQuery] = useState(filterPreset.q ?? '');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -652,6 +861,53 @@ export default function App() {
 
   const favoriteProjectCount = favoriteProjectIds.size;
 
+  const isAdminView = view === 'admin';
+  const revenueProjection = useMemo(() => {
+    const verifiedProjectShare = stats.totalProjects > 0 ? stats.verifiedProjects / stats.totalProjects : 0;
+    const averageCommittedPerInvestor = stats.totalInvestors > 0 ? stats.totalCommittedAmount / stats.totalInvestors : 0;
+    const monthlyMakerPlanRevenue = stats.totalProjects * adminRevenueConfig.makerMonthlyFee *
+      (adminRevenueConfig.makerConversionRate / 100);
+    const monthlyInvestorPlanRevenue = stats.totalInvestors * adminRevenueConfig.investorMonthlyFee *
+      (adminRevenueConfig.investorConversionRate / 100);
+    const monthlySignalFee = stats.totalSignals * adminRevenueConfig.leadCaptureFee;
+    const projectedDealPoolMonthly =
+      Math.max(0, stats.totalInvestors) * averageCommittedPerInvestor * (adminRevenueConfig.closeLeadRate / 100);
+    const monthlyTransactionFee = projectedDealPoolMonthly * (adminRevenueConfig.successFeeRate / 100);
+    const totalMonthlyRevenue = Math.round(
+      monthlyMakerPlanRevenue + monthlyInvestorPlanRevenue + monthlySignalFee + monthlyTransactionFee,
+    );
+
+    return {
+      verifiedProjectShare,
+      averageCommittedPerInvestor,
+      monthlyMakerPlanRevenue: Math.round(monthlyMakerPlanRevenue),
+      monthlyInvestorPlanRevenue: Math.round(monthlyInvestorPlanRevenue),
+      monthlySignalFee: Math.round(monthlySignalFee),
+      monthlyTransactionFee: Math.round(monthlyTransactionFee),
+      totalMonthlyRevenue,
+      annualRevenue: totalMonthlyRevenue * 12,
+    };
+  }, [adminRevenueConfig, stats]);
+
+  const projectedTopProjects = useMemo(
+    () =>
+      [...projects]
+        .map((project) => {
+          const investorRecurring = project.investorCount *
+            adminRevenueConfig.investorMonthlyFee * (adminRevenueConfig.investorConversionRate / 100);
+          const matchSignalFee = project.matchCount * adminRevenueConfig.leadCaptureFee;
+          const projectedDeal = (project.matchCount * (adminRevenueConfig.closeLeadRate / 100)) *
+            (project.committedAmountMax * (adminRevenueConfig.successFeeRate / 100));
+          return {
+            project,
+            monthlyScore: Math.round(investorRecurring + matchSignalFee + projectedDeal),
+          };
+        })
+        .sort((a, b) => b.monthlyScore - a.monthlyScore)
+        .slice(0, 5),
+    [adminRevenueConfig, projects],
+  );
+
   const applyFundingRange = useCallback((range: FundingRange) => {
     setMinFundingAmount(range.minAmount);
     setMaxFundingAmount(range.maxAmount);
@@ -777,6 +1033,14 @@ export default function App() {
       return;
     }
 
+    localStorage.setItem(ADMIN_REVENUE_CONFIG_STORAGE_KEY, JSON.stringify(adminRevenueConfig));
+  }, [adminRevenueConfig]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     localStorage.setItem(FILTER_UI_STORAGE_KEY, JSON.stringify({ showAdvancedFilters }));
   }, [showAdvancedFilters]);
 
@@ -836,6 +1100,10 @@ export default function App() {
       params.set('favorites', 'true');
     }
 
+    if (view === 'admin') {
+      params.set('view', 'admin');
+    }
+
     const query = params.toString();
     window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
 
@@ -867,6 +1135,7 @@ export default function App() {
     page,
     pageSize,
     showFavoritesOnly,
+    view,
     sortMode,
   ]);
 
@@ -891,6 +1160,45 @@ export default function App() {
 
     setIsSubmitOpen(true);
   }, [accessMode, apiOnline, category, config.accessModes, config.categories]);
+
+  const closeModalStack = useCallback(() => {
+    setIsSubmitOpen(false);
+    setMatchingProject(null);
+    setPreviewProject(null);
+    setPreviewEvents([]);
+    setIframeLoading(false);
+    setIsMobileProjectTimelineOpen(false);
+  }, []);
+
+  const switchView = useCallback((nextView: AppView) => {
+    if (nextView === view) {
+      return;
+    }
+
+    setView(nextView);
+    closeModalStack();
+  }, [closeModalStack, view]);
+
+  const applyRevenueModelPreset = useCallback((nextConfig: RevenueModelConfig) => {
+    setAdminRevenueConfig(nextConfig);
+    toast('info', '수익 모델 템플릿 적용', '관리자 수익 가정을 새 템플릿으로 교체했습니다.');
+  }, []);
+
+  const updateRevenueInput = useCallback((key: keyof RevenueModelConfig, rawValue: string) => {
+    const parsed = Number.parseFloat(rawValue);
+    if (key === 'successFeeRate' || key === 'makerConversionRate' || key === 'investorConversionRate' || key === 'closeLeadRate') {
+      setAdminRevenueConfig((current) => ({
+        ...current,
+        [key]: isPercentValue(Number.isFinite(parsed) ? parsed : 0) ? parsed : current[key],
+      }));
+      return;
+    }
+
+    setAdminRevenueConfig((current) => ({
+      ...current,
+      [key]: normalizeAmountInput(parsed),
+    }));
+  }, []);
 
   const activeFilterCount = activeFilters.length;
 
@@ -941,6 +1249,38 @@ export default function App() {
       toast('error', '클립보드 복사 실패', '브라우저 권한을 확인하고 다시 시도해 주세요.');
     }
   }, []);
+
+  const copyAdminRevenueSnapshot = useCallback(async () => {
+    const snapshot = {
+      timestamp: new Date().toISOString(),
+      view: 'admin',
+      revenueConfig: adminRevenueConfig,
+      derivedProjection: revenueProjection,
+      filters: {
+        q: debouncedSearch,
+        category: normalizedCategory,
+        accessMode: normalizedAccessMode,
+        sortMode,
+        minSignal,
+        minFundingAmount,
+        maxFundingAmount,
+        onlyVerified,
+      },
+      projectTotals: {
+        totalProjects: stats.totalProjects,
+        totalInvestors: stats.totalInvestors,
+        verifiedProjects: stats.verifiedProjects,
+        totalSignals: stats.totalSignals,
+      },
+    };
+
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(snapshot, null, 2));
+      toast('success', '수익 가정 저장', '현재 관리자 수익 모델/지표 스냅샷이 클립보드에 복사되었습니다.');
+    } catch {
+      toast('error', '복사 실패', '클립보드 권한을 확인하고 다시 시도하세요.');
+    }
+  }, [adminRevenueConfig, debouncedSearch, minFundingAmount, maxFundingAmount, minSignal, normalizedAccessMode, normalizedCategory, onlyVerified, revenueProjection, sortMode, stats.totalProjects, stats.totalInvestors, stats.totalSignals, stats.verifiedProjects]);
 
   const handleRefreshAll = useCallback(async () => {
     if (!apiOnline || isRefreshing) {
@@ -1217,6 +1557,29 @@ export default function App() {
     }
   }
 
+  async function handleInvestProject(project: Project) {
+    setInvestingProjectIds((current) => new Set(current).add(project.id));
+
+    try {
+      const updated = await investInProject(project.id);
+      setProjects((current) => upsertProject(current, updated));
+      await loadSnapshot();
+      toast(
+        'match',
+        '투자 의향 유입',
+        `${project.title}에 빠른 투자 의향이 기록되고 매칭 파이프라인에 반영되었습니다.`,
+      );
+    } catch (error) {
+      toast('error', '투자 기록 실패', getApiErrorMessage(error, '빠른 투자 등록에 실패했습니다.'));
+    } finally {
+      setInvestingProjectIds((current) => {
+        const next = new Set(current);
+        next.delete(project.id);
+        return next;
+      });
+    }
+  }
+
   async function handleOpenPreview(project: Project) {
     if (project.accessMode === 'screened') {
       toast(
@@ -1284,12 +1647,32 @@ export default function App() {
                 </span>
               </div>
               <p className="truncate text-xs font-medium text-stone-400">
-                검증된 MVP만 검토하는 실시간 투자 매칭 워크스페이스
+                {isAdminView ? '수익 모델·운영 지표를 실험하는 관리자 대시보드' : '검증된 MVP만 검토하는 실시간 투자 매칭 워크스페이스'}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
+            <div className="hidden items-center gap-2 rounded-full border border-stone-700/80 bg-stone-900/70 px-3 py-2 text-xs font-bold md:flex">
+              <button
+                type="button"
+                onClick={() => switchView('market')}
+                className={`rounded-full px-2 py-1 transition ${
+                  isAdminView ? 'text-stone-400 hover:text-stone-100' : 'bg-cyan-300 text-slate-950'
+                }`}
+              >
+                시장
+              </button>
+              <button
+                type="button"
+                onClick={() => switchView('admin')}
+                className={`rounded-full px-2 py-1 transition ${
+                  isAdminView ? 'bg-cyan-300 text-slate-950' : 'text-stone-400 hover:text-stone-100'
+                }`}
+              >
+                관리자
+              </button>
+            </div>
             <div
               className={`hidden items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold md:flex ${
                 apiOnline
@@ -1329,7 +1712,189 @@ export default function App() {
       </header>
 
       <main className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8">
-        <section className="space-y-6">
+        {isAdminView ? (
+          <section className="col-span-full space-y-6">
+            <div className="rounded-xl border border-cyan-900/50 bg-[oklch(18%_0.018_205)] p-5 shadow-[0_24px_80px_oklch(8%_0.02_205/0.45)]">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-300/10 px-3 py-1 text-xs font-black text-cyan-100">
+                    <DollarSign className="h-3.5 w-3.5" />
+                    Revenue Model 시뮬레이션 모드
+                  </p>
+                  <h2 className="text-2xl font-black tracking-tight text-stone-50 sm:text-3xl">
+                    수익 가정을 바꿔 보면서 운영 정책을 설계하세요.
+                  </h2>
+                  <p className="mt-3 max-w-[70ch] text-sm leading-6 text-stone-300">
+                    유저 수, 검증률, 현재 시장 신호를 바탕으로 월/연 매출을 빠르게 계산해
+                    정책 의사결정에 쓰는 내부 용 대시보드입니다.
+                  </p>
+                </div>
+                <div className="rounded-lg border border-stone-700/70 bg-stone-950/55 p-3 text-xs text-stone-400">
+                  <div className="flex items-center gap-2 font-black text-stone-200">
+                    <CalendarClock className="h-4 w-4 text-cyan-200" />
+                    최근 동기화
+                  </div>
+                  <p className="mt-1">{formatRelativeTime(stats.lastUpdatedAt)}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-2">
+              <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-lime-200" />
+                    <h3 className="font-black text-stone-100">프로젝션 기본 가정</h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void copyAdminRevenueSnapshot()}
+                    className="inline-flex min-h-8 items-center gap-2 rounded-lg border border-cyan-300/50 bg-cyan-300/10 px-3 text-xs font-black text-cyan-100"
+                  >
+                    스냅샷 복사
+                  </button>
+                </div>
+                <div className="grid gap-3">
+                  {REVENUE_PRESETS.map((preset) => (
+                    <button
+                      type="button"
+                      key={preset.id}
+                      onClick={() => applyRevenueModelPreset(preset.config)}
+                      className={`rounded-lg border p-3 text-left transition ${
+                        JSON.stringify(preset.config) === JSON.stringify(adminRevenueConfig)
+                          ? 'border-cyan-300 bg-cyan-300/15 text-cyan-100'
+                          : 'border-stone-700 hover:border-cyan-300/60'
+                      }`}
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm font-black text-stone-100">{preset.label}</p>
+                        <span className="rounded-full border border-stone-700 px-2 py-1 text-[10px] font-black text-stone-400">{preset.name}</span>
+                      </div>
+                      <p className="mt-2 text-xs leading-5 text-stone-400">{preset.description}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+                <div className="mb-4 flex items-center gap-2">
+                  <ChartBarBig className="h-4 w-4 text-cyan-200" />
+                  <h3 className="font-black text-stone-100">월간 수익 지표</h3>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
+                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">월 누적 추정</p>
+                    <p className="mt-1 text-lg font-black text-stone-50">{formatCurrency(revenueProjection.totalMonthlyRevenue)}</p>
+                  </div>
+                  <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
+                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">연환산 추정</p>
+                    <p className="mt-1 text-lg font-black text-stone-50">{formatCurrency(revenueProjection.annualRevenue)}</p>
+                  </div>
+                  <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
+                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">메이커 전환율</p>
+                    <p className="mt-1 text-lg font-black text-stone-50">{formatRate(adminRevenueConfig.makerConversionRate)}</p>
+                  </div>
+                  <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
+                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">검증 프로젝트 비중</p>
+                    <p className="mt-1 text-lg font-black text-stone-50">
+                      {formatRate(revenueProjection.verifiedProjectShare * 100)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-4 xl:grid-cols-2">
+              <div className="space-y-3 rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-cyan-200" />
+                  <h3 className="font-black text-stone-100">수익 모델 파라미터</h3>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {REVENUE_MODEL_FIELDS.map((field) => (
+                    <label key={field.key} className="block rounded-lg border border-stone-700 bg-stone-950/55 p-3 text-xs">
+                      <span className="mb-1 block font-black text-stone-200">{field.label}</span>
+                      <input
+                        type="number"
+                        min={field.kind === 'percent' ? 0 : 0}
+                        max={field.kind === 'percent' ? 100 : undefined}
+                        step={field.kind === 'percent' ? 0.1 : 1000}
+                        value={
+                          field.kind === 'percent'
+                            ? adminRevenueConfig[field.key].toFixed(DECIMAL_DIGITS)
+                            : adminRevenueConfig[field.key]
+                        }
+                        onChange={(event) => {
+                          updateRevenueInput(field.key, event.target.value);
+                        }}
+                        className="mt-2 w-full rounded bg-stone-900 border border-stone-700 px-3 py-2 text-xs font-black text-stone-100"
+                      />
+                      <p className="mt-2 break-words text-[11px] leading-5 text-stone-500">{field.helper}</p>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-3 rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <Signal className="h-4 w-4 text-amber-200" />
+                  <h3 className="font-black text-stone-100">수익 구성 (월)</h3>
+                </div>
+                <div className="grid gap-3">
+                  <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">메이커 플랜 수익</p>
+                    <p className="mt-1 text-sm font-black text-stone-50">{formatCurrency(revenueProjection.monthlyMakerPlanRevenue)}</p>
+                  </div>
+                  <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">투자자 플랜 수익</p>
+                    <p className="mt-1 text-sm font-black text-stone-50">{formatCurrency(revenueProjection.monthlyInvestorPlanRevenue)}</p>
+                  </div>
+                  <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">리드 기반 수익</p>
+                    <p className="mt-1 text-sm font-black text-stone-50">{formatCurrency(revenueProjection.monthlySignalFee)}</p>
+                  </div>
+                  <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">성공 수수료 수익</p>
+                    <p className="mt-1 text-sm font-black text-stone-50">{formatCurrency(revenueProjection.monthlyTransactionFee)}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+              <div className="mb-4 flex items-center gap-2">
+                <Signal className="h-4 w-4 text-cyan-200" />
+                <h3 className="font-black text-stone-100">매출 기여도 상위 프로젝트</h3>
+              </div>
+              {projectedTopProjects.length === 0 ? (
+                <p className="rounded-lg border border-dashed border-stone-700 p-3 text-sm text-stone-500">
+                  현재 데이터로 계산 가능한 프로젝트가 없습니다.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {projectedTopProjects.map((entry, index) => (
+                    <div
+                      key={entry.project.id}
+                      className="grid rounded-lg border border-stone-700 bg-[oklch(15%_0.015_205)] p-3 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:gap-4"
+                    >
+                      <p className="text-sm font-black text-stone-100">#{index + 1}</p>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-black text-stone-100">{entry.project.title}</p>
+                        <p className="mt-1 text-xs text-stone-500">
+                          검증 시그널 {entry.project.signalScore ?? 0} · 매칭/뷰 {entry.project.matchCount}/{entry.project.investorCount}
+                        </p>
+                      </div>
+                      <p className="text-right text-sm font-black text-lime-200">
+                        {formatCurrency(entry.monthlyScore)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </section>
+        ) : (
+        <>
+          <section className="space-y-6">
           <div className="grid gap-4 lg:grid-cols-[1.45fr_0.55fr]">
             <div className="rounded-xl border border-cyan-900/50 bg-[oklch(18%_0.018_205)] p-5 shadow-[0_24px_80px_oklch(8%_0.02_205/0.45)]">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -1806,6 +2371,8 @@ export default function App() {
                   onMatch={() => setMatchingProject(project)}
                   onRefresh={() => void handleRefreshProject(project)}
                   onOutbound={() => void handleProjectEvent(project, 'outbound')}
+                  isInvesting={investingProjectIds.has(project.id)}
+                  onInvest={() => void handleInvestProject(project)}
                   isFavorite={favoriteProjectIds.has(project.id)}
                   onToggleFavorite={() => toggleFavorite(project.id)}
                 />
@@ -1938,7 +2505,9 @@ export default function App() {
               </div>
             )}
           </div>
-        </aside>
+          </aside>
+        </>
+        )}
       </main>
 
       {previewProject && (
@@ -2414,6 +2983,8 @@ function ProjectCard({
   onMatch,
   onRefresh,
   onOutbound,
+  onInvest,
+  isInvesting,
   onToggleFavorite,
   isFavorite,
 }: {
@@ -2424,6 +2995,8 @@ function ProjectCard({
   onMatch: () => void;
   onRefresh: () => void;
   onOutbound: () => void;
+  onInvest: () => void;
+  isInvesting: boolean;
   onToggleFavorite: () => void;
   isFavorite: boolean;
 }) {
@@ -2589,6 +3162,20 @@ function ProjectCard({
               >
                 <Briefcase className="h-4 w-4" />
               </button>
+              {isProtected ? null : (
+                <button
+                  type="button"
+                  onClick={onInvest}
+                  disabled={isInvesting}
+                  className={`grid min-h-10 place-items-center rounded-lg border border-green-300/35 text-xs font-black transition ${
+                    isInvesting ? 'cursor-wait opacity-70' : 'text-green-100 hover:bg-green-300/10'
+                  }`}
+                  aria-label={`${project.title} 빠른 투자 의향 기록`}
+                  title="빠른 투자 의향 기록"
+                >
+                  {isInvesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Briefcase className="h-4 w-4" />}
+                </button>
+              )}
             </div>
           </div>
         </div>
