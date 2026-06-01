@@ -16,6 +16,7 @@ export interface Project {
   description: string;
   liveUrl: string;
   category: string;
+  tags?: string[];
   accessMode: ProjectAccessMode;
   protectionNoticeAccepted?: boolean;
   thumbnail?: string | null;
@@ -27,10 +28,13 @@ export interface Project {
   createdAt: string;
   signalScore?: number;
   eventSummary?: ProjectEventSummary;
+  reviewSummary?: ProjectReviewSummary;
 }
 
 export type ProjectAccessMode = 'screened' | 'open';
 export type ProjectEventType = 'create' | 'preview' | 'outbound' | 'match' | 'refresh';
+export type ProjectReviewType = 'review' | 'support' | 'idea';
+export type ProjectReviewAuthorRole = 'maker' | 'investor' | 'member';
 
 export interface ProjectEventSummary {
   total: number;
@@ -43,6 +47,36 @@ export interface ProjectEvent {
   projectId: number;
   type: ProjectEventType;
   createdAt: string;
+}
+
+export interface ProjectReview {
+  id: number;
+  projectId: number;
+  parentId?: number | null;
+  authorEmail: string;
+  authorRole: ProjectReviewAuthorRole;
+  type: ProjectReviewType;
+  rating?: number | null;
+  body: string;
+  createdAt: string;
+}
+
+export interface ProjectReviewSummary {
+  total: number;
+  rootCount: number;
+  replyCount: number;
+  reviewCount: number;
+  supportCount: number;
+  ideaCount: number;
+  averageRating: number | null;
+  latestAt: string | null;
+  latest: {
+    id: number;
+    type: ProjectReviewType;
+    authorEmail: string;
+    body: string;
+    createdAt: string;
+  } | null;
 }
 
 export interface FundingRange {
@@ -108,6 +142,7 @@ export interface AdminTopProjectMetric {
   id: number;
   title: string;
   category: string;
+  tags?: string[];
   accessMode: ProjectAccessMode;
   signalScore: number;
   investorCount: number;
@@ -259,6 +294,7 @@ export interface CreateProjectPayload {
   description: string;
   liveUrl: string;
   category: string;
+  tags?: string[];
   accessMode: ProjectAccessMode;
   protectionNoticeAccepted: boolean;
 }
@@ -268,9 +304,24 @@ export interface CreateMatchPayload {
   message: string;
 }
 
+export interface CreateProjectReviewPayload {
+  email: string;
+  role?: ProjectReviewAuthorRole;
+  type: ProjectReviewType;
+  rating?: number;
+  parentId?: number;
+  body: string;
+}
+
+export interface CreateProjectReviewResponse {
+  review: ProjectReview;
+  project: Project;
+}
+
 export interface ProjectListQuery {
   q?: string;
   category?: string;
+  tag?: string;
   accessMode?: ProjectAccessMode;
   sort?: 'signal' | 'recent' | 'created' | 'funding';
   minSignal?: number;
@@ -422,6 +473,16 @@ export async function fetchProjectEvents(id: number) {
   return response.data;
 }
 
+export async function fetchProjectReviews(id: number) {
+  const response = await client.get<ProjectReview[]>(`/projects/${id}/reviews`);
+  return response.data;
+}
+
+export async function createProjectReview(id: number, payload: CreateProjectReviewPayload) {
+  const response = await client.post<CreateProjectReviewResponse>(`/projects/${id}/reviews`, payload);
+  return response.data;
+}
+
 export function extractProjects(payload: ProjectListPayload): Project[] {
   return Array.isArray(payload) ? payload : payload.data;
 }
@@ -435,6 +496,7 @@ function normalizeProjectQuery(query: ProjectListQuery): Record<string, string |
 
   if (query.q?.trim()) params.q = query.q.trim();
   if (query.category?.trim()) params.category = query.category.trim();
+  if (query.tag?.trim()) params.tag = query.tag.trim();
   if (query.accessMode) params.accessMode = query.accessMode;
   if (query.sort && query.sort !== 'signal') params.sort = query.sort;
   if (query.minSignal !== undefined && Number.isFinite(query.minSignal)) params.minSignal = query.minSignal;

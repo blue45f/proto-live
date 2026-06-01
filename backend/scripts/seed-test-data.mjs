@@ -30,10 +30,12 @@ const DEFAULT_STATE = {
   projects: [],
   proposals: [],
   events: [],
+  reviews: [],
   nextUserId: 1,
   nextProjectId: 1,
   nextProposalId: 1,
   nextEventId: 1,
+  nextReviewId: 1,
 };
 
 function createDefaultState() {
@@ -42,16 +44,20 @@ function createDefaultState() {
     projects: [],
     proposals: [],
     events: [],
+    reviews: [],
     nextUserId: DEFAULT_STATE.nextUserId,
     nextProjectId: DEFAULT_STATE.nextProjectId,
     nextProposalId: DEFAULT_STATE.nextProposalId,
     nextEventId: DEFAULT_STATE.nextEventId,
+    nextReviewId: DEFAULT_STATE.nextReviewId,
   };
 }
 
 const ALLOWED_ROLES = new Set(['maker', 'investor']);
 const ALLOWED_ACCESS_MODES = new Set(['screened', 'open']);
 const ALLOWED_EVENT_TYPES = new Set(['create', 'preview', 'outbound', 'match', 'refresh']);
+const ALLOWED_REVIEW_ROLES = new Set(['maker', 'investor', 'member']);
+const ALLOWED_REVIEW_TYPES = new Set(['review', 'support', 'idea']);
 
 const FUNDING_RANGES = {
   'pre-seed-10-30': { minAmount: 10_000_000, maxAmount: 30_000_000 },
@@ -81,6 +87,21 @@ function safeString(value, fallback = null) {
 
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : fallback;
+}
+
+function normalizeTags(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(
+      value
+        .map((tag) => safeString(tag, null))
+        .filter(Boolean)
+        .map((tag) => tag.slice(0, 24)),
+    ),
+  ).slice(0, 8);
 }
 
 function safeDateIso(value, fallback) {
@@ -138,10 +159,12 @@ function loadStoreState() {
     projects: Array.isArray(parsed.projects) ? parsed.projects : [],
     proposals: Array.isArray(parsed.proposals) ? parsed.proposals : [],
     events: Array.isArray(parsed.events) ? parsed.events : [],
+    reviews: Array.isArray(parsed.reviews) ? parsed.reviews : [],
     nextUserId: safeParseInt(parsed.nextUserId, DEFAULT_STATE.nextUserId),
     nextProjectId: safeParseInt(parsed.nextProjectId, DEFAULT_STATE.nextProjectId),
     nextProposalId: safeParseInt(parsed.nextProposalId, DEFAULT_STATE.nextProposalId),
     nextEventId: safeParseInt(parsed.nextEventId, DEFAULT_STATE.nextEventId),
+    nextReviewId: safeParseInt(parsed.nextReviewId, DEFAULT_STATE.nextReviewId),
   };
 }
 
@@ -172,7 +195,8 @@ function loadFixture(path) {
     Array.isArray(rawAccounts) ||
     Array.isArray(parsed.projects) ||
     Array.isArray(parsed.proposals) ||
-    Array.isArray(parsed.events);
+    Array.isArray(parsed.events) ||
+    Array.isArray(parsed.reviews);
 
   if (!hasAnySection) {
     throw new Error(`fixture에 accounts/projects/proposals/events 중 하나가 필요합니다: ${path}`);
@@ -183,10 +207,12 @@ function loadFixture(path) {
     projects: normalizeProjects(Array.isArray(parsed.projects) ? parsed.projects : []),
     proposals: normalizeProposals(Array.isArray(parsed.proposals) ? parsed.proposals : []),
     events: normalizeEvents(Array.isArray(parsed.events) ? parsed.events : []),
+    reviews: normalizeReviews(Array.isArray(parsed.reviews) ? parsed.reviews : []),
     nextUserId: safeParseInt(parsed.nextUserId, null),
     nextProjectId: safeParseInt(parsed.nextProjectId, null),
     nextProposalId: safeParseInt(parsed.nextProposalId, null),
     nextEventId: safeParseInt(parsed.nextEventId, null),
+    nextReviewId: safeParseInt(parsed.nextReviewId, null),
   };
 }
 
@@ -239,6 +265,7 @@ function normalizeProjects(projects) {
         description,
         liveUrl,
         category,
+        tags: normalizeTags(entry?.tags),
         accessMode: validatedAccessMode,
         protectionNoticeAccepted: safeBoolean(entry?.protectionNoticeAccepted, true),
         thumbnail: safeString(entry?.thumbnail, null),
@@ -316,6 +343,47 @@ function normalizeEvents(events) {
     .filter(Boolean);
 }
 
+function normalizeReviewRole(value) {
+  const role = normalizeStringLower(value);
+  return ALLOWED_REVIEW_ROLES.has(role) ? role : 'member';
+}
+
+function normalizeReviews(reviews) {
+  return reviews
+    .map((entry) => {
+      const id = safeParseInt(entry?.id, null);
+      const projectId = safeParseInt(entry?.projectId, null);
+      const parentId = safeParseInt(entry?.parentId, null);
+      const type = safeString(entry?.type, 'review');
+      const rating = safeParseInt(entry?.rating, null);
+      const authorEmail = normalizeEmail(entry?.authorEmail);
+      const body = safeString(entry?.body, null);
+
+      if (!Number.isInteger(id) || id <= 0) {
+        return null;
+      }
+      if (!Number.isInteger(projectId) || projectId <= 0) {
+        return null;
+      }
+      if (!authorEmail || !body || !ALLOWED_REVIEW_TYPES.has(type)) {
+        return null;
+      }
+
+      return {
+        id,
+        projectId,
+        parentId: Number.isInteger(parentId) && parentId > 0 ? parentId : null,
+        authorEmail,
+        authorRole: normalizeReviewRole(entry?.authorRole),
+        type,
+        rating: Number.isInteger(rating) && rating >= 1 && rating <= 5 ? rating : null,
+        body,
+        createdAt: safeDateIso(entry?.createdAt, new Date().toISOString()),
+      };
+    })
+    .filter(Boolean);
+}
+
 function upsertById(target, incoming) {
   const map = new Map(target.map((item) => [item.id, item]));
   let changed = 0;
@@ -347,6 +415,7 @@ function updateNextIdsFromItems(state, fixtureState) {
   const maxProjectId = Math.max(0, ...state.projects.map((project) => safeParseInt(project.id, 0)));
   const maxProposalId = Math.max(0, ...state.proposals.map((proposal) => safeParseInt(proposal.id, 0)));
   const maxEventId = Math.max(0, ...state.events.map((event) => safeParseInt(event.id, 0)));
+  const maxReviewId = Math.max(0, ...state.reviews.map((review) => safeParseInt(review.id, 0)));
 
   state.nextUserId = Math.max(
     state.nextUserId,
@@ -374,6 +443,13 @@ function updateNextIdsFromItems(state, fixtureState) {
     safeParseInt(fixtureState.nextEventId, 0),
     maxEventId + 1,
     DEFAULT_STATE.nextEventId,
+  );
+
+  state.nextReviewId = Math.max(
+    state.nextReviewId,
+    safeParseInt(fixtureState.nextReviewId, 0),
+    maxReviewId + 1,
+    DEFAULT_STATE.nextReviewId,
   );
 }
 
@@ -405,7 +481,7 @@ function reconcileProjectMetrics(state) {
 }
 
 function seed(state, fixtureState) {
-  const summary = { users: 0, projects: 0, proposals: 0, events: 0 };
+  const summary = { users: 0, projects: 0, proposals: 0, events: 0, reviews: 0 };
 
   const usersByEmail = new Map();
   for (const user of state.users) {
@@ -488,6 +564,11 @@ function seed(state, fixtureState) {
   state.events = eventResult.items;
   summary.events = eventResult.changed;
 
+  const reviewCandidates = fixtureState.reviews.filter((review) => validProjectIds.has(review.projectId));
+  const reviewResult = upsertById(state.reviews, reviewCandidates);
+  state.reviews = reviewResult.items;
+  summary.reviews = reviewResult.changed;
+
   reconcileProjectMetrics(state);
   state.projects = state.projects.map((project) => {
     const { ownerEmail, ...rest } = project;
@@ -503,7 +584,7 @@ function main() {
   const beforeState = isReset ? createDefaultState() : loadStoreState();
   const summary = seed(beforeState, fixtureState);
 
-  const changed = summary.users + summary.projects + summary.proposals + summary.events;
+  const changed = summary.users + summary.projects + summary.proposals + summary.events + summary.reviews;
 
   if (changed === 0 && !isReset) {
     console.log('변경 항목이 없어 시드를 건너뜁니다.');
@@ -512,13 +593,13 @@ function main() {
 
   if (isDryRun) {
     console.log(isReset ? '리셋 드라이 런 실행: 파일이 변경되지 않습니다.' : '드라이 런 실행: 파일이 변경되지 않습니다.');
-    console.log(`예상 변경 항목: 사용자 ${summary.users}개, 프로젝트 ${summary.projects}개, 제안 ${summary.proposals}개, 이벤트 ${summary.events}개`);
+    console.log(`예상 변경 항목: 사용자 ${summary.users}개, 프로젝트 ${summary.projects}개, 제안 ${summary.proposals}개, 이벤트 ${summary.events}개, 리뷰 ${summary.reviews}개`);
     return;
   }
 
   writeStoreState(beforeState);
   console.log(
-    `${isReset ? '테스트 데이터 리셋 완료' : '테스트 데이터 시드 완료'}: 사용자 ${summary.users}개, 프로젝트 ${summary.projects}개, 제안 ${summary.proposals}개, 이벤트 ${summary.events}개 동기화`,
+    `${isReset ? '테스트 데이터 리셋 완료' : '테스트 데이터 시드 완료'}: 사용자 ${summary.users}개, 프로젝트 ${summary.projects}개, 제안 ${summary.proposals}개, 이벤트 ${summary.events}개, 리뷰 ${summary.reviews}개 동기화`,
   );
 }
 

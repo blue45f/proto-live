@@ -48,10 +48,13 @@ import {
   ProjectAccessMode,
   ProjectEvent,
   ProjectEventType,
+  ProjectReview,
+  ProjectReviewType,
   ValidationSnapshot,
   hasPagination,
   createMatchProposal,
   createProject,
+  createProjectReview,
   fetchMarketConfig,
   fetchAdminDashboard,
   fetchAdminRevenueProjection,
@@ -59,8 +62,8 @@ import {
   extractProjects,
   fetchProjects,
   fetchProjectEvents,
+  fetchProjectReviews,
   getApiErrorMessage,
-  investInProject,
   recordProjectEvent,
   refreshAllProjects,
   refreshProject,
@@ -146,7 +149,7 @@ const REVENUE_PRESETS: Array<{ id: string; name: string; label: string; descript
       id: 'growth',
       name: 'Growth',
       label: '성장형 믹스',
-      description: '검증·매칭 비용을 함께 고려한 실전 운영형 모델',
+      description: '확인·연결 비용을 함께 고려한 실전 운영형 모델',
       config: DEFAULT_REVENUE_CONFIG,
     },
     {
@@ -186,8 +189,8 @@ const REVENUE_MODEL_FIELDS: Array<{
   }> = [
   {
     key: 'makerMonthlyFee',
-    label: '메이커 월 정액',
-    helper: '검증된 프로젝트가 월 1회 플랜 이용한다는 가정',
+    label: '창업자 월 정액',
+    helper: '확인된 사이트가 월 1회 플랜 이용한다는 가정',
     kind: 'currency',
   },
   {
@@ -199,7 +202,7 @@ const REVENUE_MODEL_FIELDS: Array<{
   {
     key: 'leadCaptureFee',
     label: '리드 캡처 단가',
-      helper: '매칭·미리보기·아웃바운드 이벤트를 리드로 가정할 때',
+      helper: '연결·미리보기·아웃바운드 이벤트를 리드로 가정할 때',
       kind: 'currency',
     },
     {
@@ -210,8 +213,8 @@ const REVENUE_MODEL_FIELDS: Array<{
     },
     {
       key: 'makerAcquisitionCost',
-      label: '메이커 획득비용(CAC)',
-      helper: '프로젝트 주도형 메이커 1명을 유입/온보딩하는 데 필요한 비용',
+      label: '창업자 획득비용(CAC)',
+      helper: '사이트 주도형 창업자 1명을 유입/온보딩하는 데 필요한 비용',
       kind: 'currency',
     },
     {
@@ -222,8 +225,8 @@ const REVENUE_MODEL_FIELDS: Array<{
     },
     {
       key: 'makerConversionRate',
-      label: '메이커 전환률',
-      helper: '검증 프로젝트 중 유효 플랜 전환 비율',
+      label: '창업자 전환률',
+      helper: '확인된 사이트 중 유효 플랜 전환 비율',
       kind: 'percent',
   },
   {
@@ -322,43 +325,43 @@ const EMPTY_ADMIN_DASHBOARD: AdminDashboardSnapshot = {
     benchmarkGaps: [
       {
         key: 'verifiedProjectShare',
-        label: '검증 프로젝트 비중',
+        label: '확인된 사이트 비중',
         actual: 0,
         target: 68,
         gap: -68,
         unit: 'percent',
         status: 'critical',
-        comment: '검증 프로젝트 비중이 목표 대비 68% 부족입니다.',
+        comment: '확인된 사이트 비중이 목표 대비 68% 부족입니다.',
       },
       {
         key: 'previewToMatchRate',
-        label: '미리보기→매칭 전환',
+        label: '미리보기→연결 전환',
         actual: 0,
         target: 12,
         gap: -12,
         unit: 'percent',
         status: 'critical',
-        comment: '미리보기→매칭 전환이 목표 대비 12% 부족입니다.',
+        comment: '미리보기→연결 전환이 목표 대비 12% 부족입니다.',
       },
       {
         key: 'outboundToMatchRate',
-        label: '아웃바운드→매칭 전환',
+        label: '아웃바운드→연결 전환',
         actual: 0,
         target: 18,
         gap: -18,
         unit: 'percent',
         status: 'critical',
-        comment: '아웃바운드→매칭 전환이 목표 대비 18% 부족입니다.',
+        comment: '아웃바운드→연결 전환이 목표 대비 18% 부족입니다.',
       },
       {
         key: 'matchPerProjectRate',
-        label: '프로젝트당 매칭율',
+        label: '사이트당 연결율',
         actual: 0,
         target: 30,
         gap: -30,
         unit: 'percent',
         status: 'critical',
-        comment: '프로젝트당 매칭율이 목표 대비 30% 부족입니다.',
+        comment: '사이트당 연결율이 목표 대비 30% 부족입니다.',
       },
       {
         key: 'monthlyRevenue',
@@ -427,12 +430,26 @@ const EMPTY_CONFIG: MarketConfig = {
 
 const FILTER_PRESET_STORAGE_KEY = 'protolive:filters:v1';
 const FILTER_UI_STORAGE_KEY = 'protolive:filters-ui:v1';
+const LIST_VIEW_STORAGE_KEY = 'protolive:list-view:v1';
+
+type ProjectListViewMode = 'compact' | 'cards' | 'reviews';
+
+const PROJECT_LIST_VIEW_OPTIONS: Array<{
+  id: ProjectListViewMode;
+  label: string;
+  helper: string;
+}> = [
+  { id: 'compact', label: '간단 목록', helper: '빠르게 훑어보기' },
+  { id: 'cards', label: '큰 카드', helper: '스크린샷 중심' },
+  { id: 'reviews', label: '리뷰 중심', helper: '회원 반응 먼저' },
+];
 
 const FUNDING_SORT_OPTIONS: ProjectListQuery['sort'][] = ['signal', 'recent', 'created', 'funding'];
 
 type RawFilterSnapshot = {
   q?: string;
   category?: string;
+  tag?: string;
   accessMode?: string;
   sort?: string;
   page?: number;
@@ -460,6 +477,17 @@ function parseBoolean(value: unknown, fallback: boolean) {
   if (typeof value === 'boolean') return value;
   if (typeof value === 'string') return toBoolean(value, fallback);
   return fallback;
+}
+
+function parseTagInput(value: string) {
+  return Array.from(
+    new Set(
+      value
+        .split(/[,\n#]+/)
+        .map((tag) => tag.trim().replace(/\s+/g, ' '))
+        .filter((tag) => tag.length >= 2 && tag.length <= 24),
+    ),
+  ).slice(0, 8);
 }
 
 function clampPageSize(value: number) {
@@ -599,6 +627,7 @@ function readFilterPreset(): RawFilterSnapshot {
   const fallback: RawFilterSnapshot = {
     q: '',
     category: 'All',
+    tag: 'All',
     accessMode: 'All',
     sort: 'signal',
     page: 1,
@@ -628,6 +657,7 @@ function readFilterPreset(): RawFilterSnapshot {
   const saved = {
     q: url.searchParams.get('q') ?? null,
     category: url.searchParams.get('category') ?? null,
+    tag: url.searchParams.get('tag') ?? null,
     accessMode: url.searchParams.get('accessMode') ?? null,
     sort: url.searchParams.get('sort') ?? null,
     page: url.searchParams.get('page'),
@@ -644,6 +674,7 @@ function readFilterPreset(): RawFilterSnapshot {
     return {
       q: stored.q ?? fallback.q,
       category: stored.category ?? fallback.category,
+      tag: stored.tag ?? fallback.tag,
       accessMode: stored.accessMode ?? fallback.accessMode,
       sort: clampSort(stored.sort ?? fallback.sort ?? null) as string,
       page: Math.max(1, safeInt(stored.page?.toString() ?? null, fallback.page ?? 1)),
@@ -665,6 +696,7 @@ function readFilterPreset(): RawFilterSnapshot {
   return {
     q: saved.q ?? fallback.q,
     category: saved.category ?? fallback.category,
+    tag: saved.tag ?? fallback.tag,
     accessMode: saved.accessMode ?? fallback.accessMode,
     sort: clampSort(saved.sort) as string,
     page: safeInt(saved.page, fallback.page ?? 1),
@@ -677,22 +709,31 @@ function readFilterPreset(): RawFilterSnapshot {
   };
 }
 
+function readProjectListViewMode(): ProjectListViewMode {
+  if (typeof window === 'undefined') {
+    return 'compact';
+  }
+
+  const raw = localStorage.getItem(LIST_VIEW_STORAGE_KEY);
+  return raw === 'cards' || raw === 'reviews' || raw === 'compact' ? raw : 'compact';
+}
+
 const benchmarkCopy: Record<string, { title: string; body: string }> = {
   live_demo_required: {
-    title: '실시간 데모 게이트',
-    body: '공인망 URL 검증을 통과한 제품만 시장에 노출되어, 검증된 프로젝트만 탐색 대상으로 남습니다.',
+    title: '사이트 등록 전 확인',
+    body: '공인망 사이트 확인을 통과한 제품만 시장에 노출되어, 확인된 사이트만 탐색 대상으로 남습니다.',
   },
   verification_telemetry: {
-    title: '검증 텔레메트리',
-    body: '응답 코드, 응답 시간, 검사 시각을 투자 판단 신호로 노출해 상태 인식을 빠르게 유지합니다.',
+    title: '열림 상태',
+    body: '응답 시간과 최근 확인 시각을 쉽게 보여줍니다.',
   },
   investor_intent_capture: {
-    title: '의향 구조화',
-    body: '관심 표현을 금액 구간과 메시지로 기록해 매칭 수치·매칭 의향으로 바로 환산합니다.',
+    title: '관심 남기기',
+    body: '관심 금액과 메시지를 남겨 다음 연락으로 이어갑니다.',
   },
   real_attention_scoring: {
-    title: '주의력 점수',
-    body: '검색 조회·미리보기·매칭 이벤트는 다음 단계 랭킹 가중치로 연결 가능한 신호를 축적합니다.',
+    title: '관심 점수',
+    body: '검색, 보기, 리뷰 요청을 모아 어떤 사이트가 주목받는지 보여줍니다.',
   },
 };
 
@@ -702,24 +743,24 @@ const differentiationRows: Array<{
   protolive: string;
 }> = [
   {
-    label: '런칭 디렉터리',
+    label: '일반 소개 페이지',
     usual: '노출, 투표, 댓글 중심',
     protolive: '응답 코드와 미리보기 가능 상태를 먼저 봅니다.',
   },
   {
-    label: '데이터룸',
+    label: '자료실',
     usual: '문서 열람과 페이지 분석 중심',
     protolive: '작동 중인 제품 URL과 접근 보호를 같은 레일에서 다룹니다.',
   },
   {
-    label: '투자자 CRM',
+    label: '투자자 관리',
     usual: '연락처, 파이프라인, 업데이트 중심',
-    protolive: '관심 행동을 금액 의향과 프로젝트 신호로 연결합니다.',
+    protolive: '관심 행동을 금액 의향과 사이트 신호로 연결합니다.',
   },
   {
-    label: '회사 DB',
+    label: '회사 목록',
     usual: '정적 프로필과 외부 데이터 검색 중심',
-    protolive: '최신 검증 시간, 응답 속도, 매칭 이벤트가 화면을 갱신합니다.',
+    protolive: '최신 확인 시간, 응답 속도, 연결 이벤트가 화면을 갱신합니다.',
   },
 ];
 
@@ -741,7 +782,7 @@ const eventCopy: Record<ProjectEventType, { icon: LucideIcon; label: string; ton
   },
   match: {
     icon: Briefcase,
-    label: '매칭',
+    label: '연결',
     tone: 'border-amber-300/30 bg-amber-300/10 text-amber-100',
   },
   refresh: {
@@ -750,6 +791,49 @@ const eventCopy: Record<ProjectEventType, { icon: LucideIcon; label: string; ton
     tone: 'border-stone-500/30 bg-stone-800/50 text-stone-200',
   },
 };
+
+const reviewTypeCopy: Record<ProjectReviewType, { label: string; helper: string; tone: string }> = {
+  review: {
+    label: '평가 리뷰',
+    helper: '좋았던 점, 불편했던 점, 별점을 남겨주세요.',
+    tone: 'border-amber-300/35 bg-amber-300/10 text-amber-100',
+  },
+  support: {
+    label: '성장 도움',
+    helper: '고객 연결, 테스트, 운영 조언처럼 실제 성장에 도움 되는 제안을 남겨주세요.',
+    tone: 'border-lime-300/35 bg-lime-300/10 text-lime-100',
+  },
+  idea: {
+    label: '아이디어',
+    helper: '다음 기능, 더 쉬운 사용법, 새로운 고객군 아이디어를 남겨주세요.',
+    tone: 'border-cyan-300/35 bg-cyan-300/10 text-cyan-100',
+  },
+};
+
+function maskEmail(email: string) {
+  const [name, domain] = email.split('@');
+  if (!domain) return email;
+  const safeName = name.length <= 2 ? `${name[0] ?? '*'}*` : `${name.slice(0, 2)}***`;
+  return `${safeName}@${domain}`;
+}
+
+function getRoleLabel(role: string) {
+  if (role === 'maker') return '창업자';
+  if (role === 'investor') return '투자자';
+  return '회원';
+}
+
+function getRootReviews(reviews: ProjectReview[]) {
+  return reviews.filter((review) => !review.parentId);
+}
+
+function getRepliesByParent(reviews: ProjectReview[]) {
+  return reviews.reduce<Record<number, ProjectReview[]>>((acc, review) => {
+    if (!review.parentId) return acc;
+    acc[review.parentId] = [...(acc[review.parentId] ?? []), review];
+    return acc;
+  }, {});
+}
 
 function getResponseTimeTone(responseTimeMs?: number) {
   if (typeof responseTimeMs !== 'number') {
@@ -885,6 +969,20 @@ function normalizeScenarioInputValue(value: number) {
   return Math.round(clamped * 100) / 100;
 }
 
+function readInitialProjectId(): number | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const match = window.location.pathname.match(/\/projects\/(\d+)\/?$/);
+  if (!match) {
+    return null;
+  }
+
+  const id = Number.parseInt(match[1], 10);
+  return Number.isFinite(id) ? id : null;
+}
+
 function readInitialView(): AppView {
   if (typeof window === 'undefined') {
     return 'market';
@@ -1005,11 +1103,11 @@ function getRecommendationAreaMeta(area: string) {
     };
   }
 
-  if (area === '검증 게이트') {
+  if (area === '확인 게이트') {
     return {
       icon: TimerReset,
       tone: 'border-violet-300/45 bg-violet-950/30 text-violet-100',
-      label: '검증 게이트',
+      label: '확인 게이트',
     };
   }
 
@@ -1052,21 +1150,21 @@ function sortAdminRecommendationsByPriority(recommendations: AdminActionRecommen
 }
 
 const DRIVER_ACTION_HINT: Record<string, string> = {
-  makerMonthlyFee: '메이커 가격 정책은 A/B로 분기화하세요. 기본형/비즈니스형 플랜 혜택을 분리해 2주 단위로 전환률을 추적합니다.',
+  makerMonthlyFee: '창업자 가격 정책은 A/B로 분기화하세요. 기본형/비즈니스형 플랜 혜택을 분리해 2주 단위로 전환률을 추적합니다.',
   investorMonthlyFee: '투자자용 플랜은 업셀링 문구(성과 리포트, 우선 지원권)와 함께 노출해 가격 동의 전환 장벽을 낮춥니다.',
   leadCaptureFee: '채널별 리드 단가 대비 실제 전환율이 좋은 채널을 선별하고, 저품질 채널은 즉시 배제해 재배치하세요.',
   makerConversionRate:
-    '메이커 온보딩 완료율을 올리세요. 라이브 점검 가이드, 체크리스트 자동 알림, 업로드 품질 규정 준수율로 전환을 2주 내 개선합니다.',
+    '창업자 온보딩 완료율을 올리세요. 라이브 점검 가이드, 체크리스트 자동 알림, 업로드 품질 규정 준수율로 전환을 2주 내 개선합니다.',
   investorConversionRate:
-    '투자자 참여 유입 후 24시간 내 첫 팔로업, 사례 기반 제안 메시지, 담당자 매칭 예약을 기본 플로우로 넣어 전환을 단축합니다.',
+    '투자자 참여 유입 후 24시간 내 첫 팔로업, 사례 기반 제안 메시지, 담당자 연결 예약을 기본 플로우로 넣어 전환을 단축합니다.',
   closeLeadRate:
-    '매칭 건 단위로 1차 리마인드·성공 KPI 템플릿을 운영해 리드 닫기 절차를 표준화하고 반송률을 줄입니다.',
+    '연결 건 단위로 1차 리마인드·성공 KPI 템플릿을 운영해 리드 닫기 절차를 표준화하고 반송률을 줄입니다.',
   successFeeRate:
     '수수료율 인상은 계약 문구 업데이트와 거래 완료 보상 플로우 안정화 후 단계적으로 적용해 이탈 없이 진행하세요.',
 };
 
 function getDriverActionHint(driverKey: string) {
-  return DRIVER_ACTION_HINT[driverKey] ?? '현재 데이터 기반으로 병목 구간을 실험군 단위로 분해해 개선 포인트를 검증하세요.';
+  return DRIVER_ACTION_HINT[driverKey] ?? '현재 데이터 기반으로 병목 구간을 실험군 단위로 분해해 개선 포인트를 확인하세요.';
 }
 
 function formatPaybackValue(months: number) {
@@ -1096,6 +1194,7 @@ export default function App() {
   const [isApplyingAllAdminRecommendations, setIsApplyingAllAdminRecommendations] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [view, setView] = useState<AppView>(readInitialView());
+  const [detailProjectId, setDetailProjectId] = useState<number | null>(readInitialProjectId);
   const [session, setSession] = useState<AuthSession | null>(() => readSession());
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const testAccounts = useMemo<TestAccount[]>(() => listTestAccounts(), []);
@@ -1103,6 +1202,7 @@ export default function App() {
     return {
       maker: testAccounts.filter((account) => account.role === 'maker'),
       investor: testAccounts.filter((account) => account.role === 'investor'),
+      member: testAccounts.filter((account) => account.role === 'member'),
     };
   }, [testAccounts]);
   const [loginEmail, setLoginEmail] = useState(() => {
@@ -1148,11 +1248,12 @@ export default function App() {
   const [debouncedAdminRevenueConfig, setDebouncedAdminRevenueConfig] = useState<RevenueModelConfig>(adminRevenueConfig);
   const [debouncedScenarioMultipliers, setDebouncedScenarioMultipliers] =
     useState<number[]>(adminScenarioMultipliers);
-  const [investingProjectIds, setInvestingProjectIds] = useState(new Set<number>());
 
   const [searchQuery, setSearchQuery] = useState(filterPreset.q ?? '');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(filterPreset.category ?? 'All');
+  const [selectedTag, setSelectedTag] = useState(filterPreset.tag ?? 'All');
+  const [projectListView, setProjectListView] = useState<ProjectListViewMode>(readProjectListViewMode);
   const [selectedAccessMode, setSelectedAccessMode] = useState<'All' | ProjectAccessMode>(
     filterPreset.accessMode === 'open' || filterPreset.accessMode === 'screened'
       ? filterPreset.accessMode
@@ -1199,6 +1300,7 @@ export default function App() {
   const [description, setDescription] = useState('');
   const [liveUrl, setLiveUrl] = useState('');
   const [category, setCategory] = useState('');
+  const [tagInput, setTagInput] = useState('');
   const [accessMode, setAccessMode] = useState<ProjectAccessMode>('screened');
   const [protectionNoticeAccepted, setProtectionNoticeAccepted] = useState(false);
   const [urlCheckStatus, setUrlCheckStatus] = useState<'idle' | 'checking' | 'success' | 'error'>(
@@ -1220,6 +1322,18 @@ export default function App() {
   const [fundingRangeId, setFundingRangeId] = useState('');
   const [matchMessage, setMatchMessage] = useState('');
   const [isSendingMatch, setIsSendingMatch] = useState(false);
+  const [reviewProject, setReviewProject] = useState<Project | null>(null);
+  const [projectReviews, setProjectReviews] = useState<ProjectReview[]>([]);
+  const [isProjectReviewsLoading, setIsProjectReviewsLoading] = useState(false);
+  const [reviewType, setReviewType] = useState<ProjectReviewType>('review');
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewBody, setReviewBody] = useState('');
+  const [replyToReview, setReplyToReview] = useState<ProjectReview | null>(null);
+  const [isSendingReview, setIsSendingReview] = useState(false);
+  const detailProject = useMemo(
+    () => projects.find((project) => project.id === detailProjectId) ?? null,
+    [detailProjectId, projects],
+  );
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(() => {
     const hasAdvancedFilterPreset =
       (filterPreset.accessMode !== 'All' && filterPreset.accessMode !== undefined) ||
@@ -1249,11 +1363,45 @@ export default function App() {
   const previewDialogRef = useRef<HTMLElement>(null);
   const diligenceDialogRef = useRef<HTMLElement>(null);
   const matchModalRef = useRef<HTMLElement>(null);
+  const reviewModalRef = useRef<HTMLElement>(null);
   const loginModalRef = useRef<HTMLElement>(null);
   const submitModalRef = useRef<HTMLElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const [isMobileProjectTimelineOpen, setIsMobileProjectTimelineOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const onPopState = () => {
+      setDetailProjectId(readInitialProjectId());
+      setView(readInitialView());
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  useEffect(() => {
+    if (!detailProjectId) {
+      return;
+    }
+
+    fetchProjectReviews(detailProjectId)
+      .then((reviews) => setProjectReviews(reviews))
+      .catch((error) => {
+        toast('error', '리뷰 불러오기 실패', getApiErrorMessage(error, '리뷰와 답글을 불러오지 못했습니다.'));
+      })
+      .finally(() => setIsProjectReviewsLoading(false));
+
+    fetchProjectEvents(detailProjectId)
+      .then((events) => setDiligenceEvents(events))
+      .catch(() => setDiligenceEvents([]))
+      .finally(() => setIsDiligenceEventsLoading(false));
+  }, [detailProjectId]);
+
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;
@@ -1273,14 +1421,29 @@ export default function App() {
 
   useEffect(() => {
     if (session && view === 'admin' && !canAccessAdmin) {
-      toast('error', '접근 제한', '관리자 화면은 메이커 계정에서만 접근할 수 있습니다.');
+      toast('error', '접근 제한', '관리자 화면은 창업자 계정에서만 접근할 수 있습니다.');
     }
   }, [session, view, canAccessAdmin]);
+
+  const categoryOptions = useMemo(() => ['All', ...config.categories], [config.categories]);
+  const tagOptions = useMemo(
+    () => [
+      'All',
+      ...Array.from(
+        new Set([
+          ...projects.flatMap((project) => project.tags ?? []),
+          ...(selectedTag === 'All' ? [] : [selectedTag]),
+        ]),
+      ).sort((a, b) => a.localeCompare(b, 'ko-KR')),
+    ],
+    [projects, selectedTag],
+  );
 
   const normalizedCategory =
     selectedCategory === 'All' || config.categories.includes(selectedCategory)
       ? selectedCategory
       : 'All';
+  const normalizedTag = selectedTag === 'All' || tagOptions.includes(selectedTag) ? selectedTag : 'All';
   const normalizedAccessMode =
     selectedAccessMode === 'All' || config.accessModes.some((mode) => mode.id === selectedAccessMode)
       ? selectedAccessMode
@@ -1292,6 +1455,7 @@ export default function App() {
     return {
       q: debouncedSearch,
       category: normalizedCategory === 'All' ? undefined : normalizedCategory,
+      tag: normalizedTag === 'All' ? undefined : normalizedTag,
       accessMode: normalizedAccessMode === 'All' ? undefined : normalizedAccessMode,
       sort: sortMode,
       page,
@@ -1312,6 +1476,7 @@ export default function App() {
     onlyVerified,
     normalizedAccessMode,
     normalizedCategory,
+    normalizedTag,
     sortMode,
     page,
     pageSize,
@@ -1349,6 +1514,17 @@ export default function App() {
       });
     }
 
+    if (normalizedTag !== 'All') {
+      filters.push({
+        id: 'tag',
+        label: `태그: #${normalizedTag}`,
+        onClear: () => {
+          setSelectedTag('All');
+          setPage(1);
+        },
+      });
+    }
+
     if (normalizedAccessMode !== 'All') {
       filters.push({
         id: 'accessMode',
@@ -1366,7 +1542,7 @@ export default function App() {
           ? '최신 신호순'
           : sortMode === 'created'
             ? '등록순'
-            : '투자규모순';
+            : '예상 투자금순';
       filters.push({
         id: 'sortMode',
         label: `정렬: ${sortLabel}`,
@@ -1380,7 +1556,7 @@ export default function App() {
     if (onlyVerified) {
       filters.push({
         id: 'verified',
-        label: '검증된 프로젝트만',
+        label: '확인된 사이트만',
         onClear: () => {
           setOnlyVerified(false);
           setPage(1);
@@ -1402,7 +1578,7 @@ export default function App() {
     if (minSignal > 0) {
       filters.push({
         id: 'minSignal',
-        label: `최소 시그널 ${minSignal}`,
+        label: `최소 관심 ${minSignal}`,
         onClear: () => {
           setMinSignal(0);
           setPage(1);
@@ -1438,6 +1614,7 @@ export default function App() {
     onlyVerified,
     normalizedAccessMode,
     normalizedCategory,
+    normalizedTag,
     showFavoritesOnly,
     sortMode,
     hasFundingRangeError,
@@ -1545,6 +1722,7 @@ export default function App() {
     setSearchQuery('');
     setDebouncedSearch('');
     setSelectedCategory('All');
+    setSelectedTag('All');
     setSelectedAccessMode('All');
     setSortMode('signal');
     setMinSignal(0);
@@ -1581,21 +1759,21 @@ export default function App() {
       setOnlyVerified(true);
       setSortMode('funding');
       moveToMarket();
-      toast('info', '추천 액션 적용', '검증 프로젝트를 투자 규모순으로 열어 매칭 CTA 점검 대상을 좁혔습니다.');
+      toast('info', '추천 액션 적용', '확인된 사이트를 투자 규모순으로 열어 연결 CTA 점검 대상을 좁혔습니다.');
       return true;
     }
 
     if (entry.area === '활동성') {
       setSortMode('recent');
       moveToMarket();
-      toast('info', '추천 액션 적용', '최신 신호순으로 전환해 활동이 낮은 프로젝트를 빠르게 비교합니다.');
+      toast('info', '추천 액션 적용', '최신 신호순으로 전환해 활동이 낮은 사이트를 빠르게 비교합니다.');
       return true;
     }
 
-    if (entry.area === '인프라' || entry.area === '검증 게이트') {
+    if (entry.area === '인프라' || entry.area === '확인 게이트') {
       setSortMode('recent');
       moveToMarket();
-      toast('info', '추천 액션 적용', '최근 등록/검증 흐름으로 이동해 URL 응답 상태를 재점검합니다.');
+      toast('info', '추천 액션 적용', '최근 등록/확인 흐름으로 이동해 URL 응답 상태를 재점검합니다.');
       return true;
     }
 
@@ -1846,6 +2024,10 @@ export default function App() {
       params.set('category', normalizedCategory);
     }
 
+    if (normalizedTag !== 'All') {
+      params.set('tag', normalizedTag);
+    }
+
     if (normalizedAccessMode !== 'All') {
       params.set('accessMode', normalizedAccessMode);
     }
@@ -1905,6 +2087,7 @@ export default function App() {
       JSON.stringify({
         q: trimmedSearch,
         category: normalizedCategory,
+        tag: normalizedTag,
         accessMode: normalizedAccessMode,
         sort: sortMode,
         page,
@@ -1923,6 +2106,7 @@ export default function App() {
     maxFundingAmount,
     minSignal,
     normalizedCategory,
+    normalizedTag,
     normalizedAccessMode,
     onlyVerified,
     page,
@@ -1932,19 +2116,26 @@ export default function App() {
     sortMode,
   ]);
 
-  const categoryOptions = useMemo(() => ['All', ...config.categories], [config.categories]);
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    localStorage.setItem(LIST_VIEW_STORAGE_KEY, projectListView);
+  }, [projectListView]);
+
   const accessModeOptions: Array<'All' | ProjectAccessMode> = ['All', ...config.accessModes.map((item) => item.id)];
   const activeFundingRange = config.fundingRanges.find((range) => range.id === fundingRangeId);
 
   const openSubmitDialog = useCallback(() => {
     if (!session) {
       setIsLoginOpen(true);
-      toast('error', '로그인 필요', '프로젝트 제출은 로그인 후 이용할 수 있습니다.');
+      toast('error', '로그인 필요', '사이트 제출은 로그인 후 이용할 수 있습니다.');
       return;
     }
 
     if (!canSubmitProject) {
-      toast('error', '권한 제한', '프로젝트 등록은 메이커 계정만 가능합니다.');
+      toast('error', '권한 제한', '사이트 등록은 창업자 계정만 가능합니다.');
       return;
     }
 
@@ -2012,7 +2203,7 @@ export default function App() {
     }
 
     if (!canMatch) {
-      toast('error', '권한 제한', '매칭/투자 의향은 투자자 계정에서만 가능합니다.');
+      toast('error', '권한 제한', '연결/투자 관심은 투자자 계정에서만 가능합니다.');
       return false;
     }
 
@@ -2027,7 +2218,7 @@ export default function App() {
     }
 
     if (!canAccessAdmin) {
-      toast('error', '접근 제한', '관리자 페이지는 메이커 계정에서만 이용할 수 있습니다.');
+      toast('error', '접근 제한', '관리자 페이지는 창업자 계정에서만 이용할 수 있습니다.');
       return false;
     }
 
@@ -2132,13 +2323,6 @@ export default function App() {
     return rankById;
   }, [projects]);
 
-  const highestCommittedAmount = useMemo(() => {
-    if (projects.length === 0) {
-      return 1;
-    }
-
-    return Math.max(1, ...projects.map((project) => project.committedAmountMax));
-  }, [projects]);
 
   const averageSignalDensity = useMemo(() => {
     if (stats.totalProjects <= 0) return 0;
@@ -2293,15 +2477,15 @@ export default function App() {
           ['요약', '목표 달성 부족분', snapshot.derivedProjection.targetGap.shortfall],
           ['요약', '투자자 LTV', snapshot.derivedProjection.investorLtvEstimate],
           ['요약', '투자자 Payback', snapshot.derivedProjection.investorPaybackMonths],
-          ['요약', '메이커 Payback', snapshot.derivedProjection.makerPaybackMonths],
-          ['가정', '메이커 월 정액', snapshot.revenueConfig.makerMonthlyFee],
+          ['요약', '창업자 Payback', snapshot.derivedProjection.makerPaybackMonths],
+          ['가정', '창업자 월 정액', snapshot.revenueConfig.makerMonthlyFee],
           ['가정', '투자자 월 정액', snapshot.revenueConfig.investorMonthlyFee],
           ['가정', '리드 캡처 단가', snapshot.revenueConfig.leadCaptureFee],
-          ['가정', '메이커 전환율', snapshot.revenueConfig.makerConversionRate],
+          ['가정', '창업자 전환율', snapshot.revenueConfig.makerConversionRate],
           ['가정', '투자자 전환율', snapshot.revenueConfig.investorConversionRate],
           ['가정', '리드 전환율', snapshot.revenueConfig.closeLeadRate],
           ['가정', '수수료율', snapshot.revenueConfig.successFeeRate],
-          ['가정', '메이커 CAC', snapshot.revenueConfig.makerAcquisitionCost],
+          ['가정', '창업자 CAC', snapshot.revenueConfig.makerAcquisitionCost],
           ['가정', '투자자 CAC', snapshot.revenueConfig.investorAcquisitionCost],
           ['가정', '월 이탈률', snapshot.revenueConfig.estimatedMonthlyChurnRate],
         ];
@@ -2360,9 +2544,9 @@ export default function App() {
       const refreshed = await refreshAllProjects();
       setProjects(refreshed);
       await loadSnapshot();
-      toast('success', '검증 갱신 완료', '모든 프로젝트의 라이브 상태를 다시 확인했습니다.');
+      toast('success', '확인 갱신 완료', '모든 사이트의 라이브 상태를 다시 확인했습니다.');
     } catch {
-      toast('error', '갱신 실패', '백엔드 URL 검증 API 응답을 확인하세요.');
+      toast('error', '갱신 실패', '백엔드 사이트 확인 API 응답을 확인하세요.');
     } finally {
       setIsRefreshing(false);
     }
@@ -2433,7 +2617,9 @@ export default function App() {
   }, [config.refreshIntervalMs, isAdminView, loadSnapshot]);
 
   useEffect(() => {
-    const hasOverlayOpen = Boolean(previewProject || diligenceProject || matchingProject || isSubmitOpen || shouldShowLogin);
+    const hasOverlayOpen = Boolean(
+      previewProject || diligenceProject || matchingProject || reviewProject || isSubmitOpen || shouldShowLogin,
+    );
     if (!hasOverlayOpen) {
       return;
     }
@@ -2444,9 +2630,11 @@ export default function App() {
         ? diligenceDialogRef
         : matchingProject
           ? matchModalRef
-          : shouldShowLogin
-            ? loginModalRef
-            : submitModalRef;
+          : reviewProject
+            ? reviewModalRef
+            : shouldShowLogin
+              ? loginModalRef
+              : submitModalRef;
 
     if (!activeDialogRef.current) {
       return;
@@ -2480,6 +2668,16 @@ export default function App() {
 
         if (matchingProject) {
           setMatchingProject(null);
+          return;
+        }
+
+        if (reviewProject) {
+          setReviewProject(null);
+          setProjectReviews([]);
+          setReviewType('review');
+          setReviewRating(5);
+          setReviewBody('');
+          setReplyToReview(null);
           return;
         }
 
@@ -2524,12 +2722,12 @@ export default function App() {
         restoreTarget.focus();
       }
     };
-  }, [diligenceProject, matchingProject, previewProject, shouldShowLogin, isSubmitOpen]);
+  }, [diligenceProject, matchingProject, previewProject, reviewProject, shouldShowLogin, isSubmitOpen]);
 
   async function handleVerifyUrl() {
     if (!liveUrl.trim()) {
       setUrlCheckStatus('error');
-      setUrlCheckMessage('검증할 URL을 입력하세요.');
+      setUrlCheckMessage('확인할 URL을 입력하세요.');
       return;
     }
 
@@ -2544,7 +2742,7 @@ export default function App() {
       );
     } catch {
       setUrlCheckStatus('error');
-      setUrlCheckMessage('API 검증 요청이 실패했습니다. 백엔드 연결 상태를 확인하세요.');
+      setUrlCheckMessage('API 확인 요청이 실패했습니다. 백엔드 연결 상태를 확인하세요.');
     }
   }
 
@@ -2560,7 +2758,7 @@ export default function App() {
     }
 
     if (urlCheckStatus !== 'success') {
-      toast('error', 'URL 검증 필요', '실시간 URL 검증을 통과한 뒤 등록할 수 있습니다.');
+      toast('error', '사이트 확인 필요', '실시간 사이트 확인을 통과한 뒤 등록할 수 있습니다.');
       return;
     }
 
@@ -2572,6 +2770,7 @@ export default function App() {
         description,
         liveUrl,
         category,
+        tags: parseTagInput(tagInput),
         accessMode,
         protectionNoticeAccepted,
       });
@@ -2581,17 +2780,18 @@ export default function App() {
       setTitle('');
       setDescription('');
       setLiveUrl('');
+      setTagInput('');
       setAccessMode('screened');
       setProtectionNoticeAccepted(false);
       setUrlCheckStatus('idle');
       setUrlCheckMessage('');
       setIsSubmitOpen(false);
-      toast('success', '검증 등록 완료', `${created.title}이(가) 라이브 마켓에 등록되었습니다.`);
+      toast('success', '확인 등록 완료', `${created.title}이(가) 라이브 마켓에 등록되었습니다.`);
     } catch (error) {
       toast(
         'error',
         '등록 실패',
-        getApiErrorMessage(error, '프로젝트 등록에 실패했습니다.'),
+        getApiErrorMessage(error, '사이트 등록에 실패했습니다.'),
       );
     } finally {
       setIsSubmitting(false);
@@ -2606,7 +2806,7 @@ export default function App() {
               ...item,
               validation: {
                 ...item.validation,
-                message: '상태 재검증 중입니다.',
+                message: '상태 재확인 중입니다.',
               },
             }
           : item,
@@ -2618,9 +2818,9 @@ export default function App() {
       setProjects((current) => upsertProject(current, refreshed));
       setDiligenceProject((current) => (current?.id === refreshed.id ? refreshed : current));
       await loadSnapshot();
-      toast('success', '프로젝트 갱신', `${refreshed.title} 상태를 갱신했습니다.`);
+      toast('success', '사이트 갱신', `${refreshed.title} 상태를 갱신했습니다.`);
     } catch {
-      toast('error', '프로젝트 갱신 실패', `${project.title} 상태를 갱신하지 못했습니다.`);
+      toast('error', '사이트 갱신 실패', `${project.title} 상태를 갱신하지 못했습니다.`);
     }
   }
 
@@ -2635,10 +2835,65 @@ export default function App() {
     setDiligenceEvents([]);
   }
 
-  async function handleOpenDiligence(project: Project) {
-    setDiligenceProject(project);
-    setDiligenceEvents([]);
-    await loadDiligenceEvents(project.id);
+  function closeReviewDialog() {
+    setReviewProject(null);
+    setProjectReviews([]);
+    setReviewType('review');
+    setReviewRating(5);
+    setReviewBody('');
+    setReplyToReview(null);
+  }
+
+  async function handleSubmitReview(event: React.FormEvent) {
+    event.preventDefault();
+
+    const targetProject = reviewProject ?? detailProject;
+    if (!targetProject) return;
+
+    if (!session) {
+      closeReviewDialog();
+      setIsLoginOpen(true);
+      toast('error', '로그인이 필요합니다', '로그인한 회원만 평가, 리뷰, 답글을 남길 수 있습니다.');
+      return;
+    }
+
+    const body = reviewBody.trim();
+    if (body.length < 5) {
+      toast('error', '조금 더 자세히 적어주세요', '의견은 5자 이상 입력해야 합니다.');
+      return;
+    }
+
+    setIsSendingReview(true);
+    try {
+      const result = await createProjectReview(targetProject.id, {
+        email: session.email,
+        role: session.role,
+        type: replyToReview?.type ?? reviewType,
+        rating: replyToReview ? undefined : reviewType === 'review' ? reviewRating : undefined,
+        parentId: replyToReview?.id,
+        body,
+      });
+
+      setProjectReviews((current) =>
+        current.some((review) => review.id === result.review.id)
+          ? current.map((review) => (review.id === result.review.id ? result.review : review))
+          : [...current, result.review],
+      );
+      setProjects((current) => upsertProject(current, result.project));
+      setReviewProject((current) => (current?.id === result.project.id ? result.project : current));
+      await loadSnapshot();
+      setReviewBody('');
+      setReplyToReview(null);
+      toast(
+        'success',
+        replyToReview ? '답글 등록 완료' : '리뷰 등록 완료',
+        replyToReview ? '대댓글이 스레드에 추가되었습니다.' : '회원 의견이 사이트 성장 기록에 반영되었습니다.',
+      );
+    } catch (error) {
+      toast('error', '리뷰 저장 실패', getApiErrorMessage(error, '의견을 저장하지 못했습니다.'));
+    } finally {
+      setIsSendingReview(false);
+    }
   }
 
   async function handleProjectEvent(project: Project, type: 'preview' | 'outbound' | 'refresh') {
@@ -2655,33 +2910,6 @@ export default function App() {
     }
   }
 
-  async function handleInvestProject(project: Project) {
-    if (!handleRequireInvestorOnly()) {
-      return;
-    }
-
-    setInvestingProjectIds((current) => new Set(current).add(project.id));
-
-    try {
-      const updated = await investInProject(project.id);
-      setProjects((current) => upsertProject(current, updated));
-      await loadSnapshot();
-      toast(
-        'match',
-        '투자 의향 유입',
-        `${project.title}에 빠른 투자 의향이 기록되고 매칭 파이프라인에 반영되었습니다.`,
-      );
-    } catch (error) {
-      toast('error', '투자 기록 실패', getApiErrorMessage(error, '빠른 투자 등록에 실패했습니다.'));
-    } finally {
-      setInvestingProjectIds((current) => {
-        const next = new Set(current);
-        next.delete(project.id);
-        return next;
-      });
-    }
-  }
-
   async function handleOpenPreview(project: Project) {
     if (project.accessMode === 'screened') {
       if (!handleRequireInvestorOnly()) {
@@ -2690,8 +2918,8 @@ export default function App() {
 
       toast(
         'match',
-        '선별 공개 프로젝트',
-        'URL과 미리보기는 메이커 승인 또는 매칭 요청 이후 공유하는 흐름으로 보호합니다.',
+        '요청 후 공개 사이트',
+        'URL과 미리보기는 창업자 승인 또는 연결 요청 이후 공유하는 흐름으로 보호합니다.',
       );
       setMatchingProject(project);
       return;
@@ -2727,13 +2955,13 @@ export default function App() {
       await loadSnapshot();
       toast(
         'match',
-        '투자 의향 기록 완료',
+        '투자 관심 기록 완료',
         `${matchingProject.title}에 ${activeFundingRange.label} 구간의 의향이 반영되었습니다.`,
       );
       setMatchingProject(null);
       setMatchMessage('');
     } catch (error) {
-      toast('error', '매칭 실패', getApiErrorMessage(error, '투자 의향 기록에 실패했습니다.'));
+      toast('error', '연결 실패', getApiErrorMessage(error, '투자 관심 기록에 실패했습니다.'));
     } finally {
       setIsSendingMatch(false);
     }
@@ -2746,6 +2974,30 @@ export default function App() {
 
     setMatchingProject(project);
   }, [handleRequireInvestorOnly]);
+
+  const openProjectDetail = useCallback((project: Project) => {
+    setProjectReviews([]);
+    setDiligenceEvents([]);
+    setIsProjectReviewsLoading(true);
+    setIsDiligenceEventsLoading(true);
+    setDetailProjectId(project.id);
+    setView('market');
+    if (typeof window !== 'undefined') {
+      window.history.pushState({ projectId: project.id }, '', '/projects/' + project.id);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, []);
+
+  const closeProjectDetail = useCallback(() => {
+    setDetailProjectId(null);
+    setProjectReviews([]);
+    setDiligenceEvents([]);
+    setReplyToReview(null);
+    if (typeof window !== 'undefined') {
+      window.history.pushState({}, '', '/');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, []);
 
   return (
     <div className="protolive-shell min-h-screen bg-[oklch(14%_0.018_205)] text-stone-100">
@@ -2761,13 +3013,13 @@ export default function App() {
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="protolive-title text-xl font-black tracking-tight text-stone-50">ProtoLive</h1>
                 <span className="protolive-badge rounded-full border border-lime-400/30 bg-lime-300/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-lime-200">
-                  Live Diligence
+                  평가·리뷰·투자
                 </span>
               </div>
                 <p className="protolive-subtitle truncate text-xs font-medium text-stone-400">
                 {isAdminView
-                  ? '프로토타입 투자 매칭 플랫폼의 수익·운영 지표를 관리하는 관리자 대시보드'
-                  : '실시간으로 라이브 웹서비스 프로토타입을 투자자와 매칭해 주는 워크스페이스'}
+                  ? '프로토타입 투자 연결 플랫폼의 수익·운영 지표를 관리하는 관리자 대시보드'
+                  : '만든 사이트를 올리면 평가와 리뷰를 거쳐 투자 관심까지 이어집니다'}
               </p>
             </div>
           </div>
@@ -2781,7 +3033,7 @@ export default function App() {
                     isAdminView ? 'text-stone-400 hover:text-stone-100' : 'bg-cyan-300 text-slate-950'
                   }`}
                 >
-                  투자 매칭 시장
+                  프로토타입 둘러보기
                 </button>
                 <button
                   type="button"
@@ -2790,7 +3042,7 @@ export default function App() {
                     isAdminView ? 'bg-cyan-300 text-slate-950' : 'text-stone-400 hover:text-stone-100'
                   }`}
                 >
-                  운영 대시보드
+                  운영 현황
                 </button>
             </div>
             <div
@@ -2801,10 +3053,10 @@ export default function App() {
               }`}
             >
               <span className={`h-2 w-2 rounded-full ${apiOnline ? 'bg-lime-300' : 'bg-red-300'}`} />
-              {apiOnline ? 'API Online' : 'API Offline'}
+              {apiOnline ? '서버 연결됨' : 'API Offline'}
               </div>
               {isAuthenticated ? (
-                <div className="protolive-user-chip hidden shrink-0 items-center gap-2 rounded-full border border-stone-700/80 bg-stone-900/70 px-3 py-2 text-xs font-black lg:flex">
+                <div className="protolive-user-chip inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg border border-stone-700/80 bg-stone-900/70 px-3 py-2 text-xs font-black sm:rounded-full">
                   <span className="hidden max-w-28 truncate xl:inline">{session?.name}</span>
                   <span
                     className={`protolive-badge shrink-0 rounded-full border px-2 py-0.5 ${
@@ -2841,8 +3093,8 @@ export default function App() {
               onClick={() => void handleRefreshAll()}
               disabled={isRefreshing || !apiOnline || projects.length === 0}
               className="protolive-btn-grid grid min-h-11 min-w-11 place-items-center rounded-lg border border-stone-700/80 bg-stone-900/70 text-stone-300 transition hover:border-cyan-300/40 hover:text-cyan-100 disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label="전체 프로젝트 상태 새로고침"
-              title="전체 프로젝트 상태 새로고침 (⌘/Ctrl + R)"
+              aria-label="전체 사이트 상태 새로고침"
+              title="전체 사이트 상태 새로고침 (⌘/Ctrl + R)"
             >
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
@@ -2872,20 +3124,20 @@ export default function App() {
                 <div>
                   <p className="protolive-badge mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-300/10 px-3 py-1 text-xs font-black text-cyan-100">
                     <DollarSign className="h-3.5 w-3.5" />
-                    투자 매칭 수익 모델 모드
+                    투자 연결 수익 모델 모드
                   </p>
                   <h2 className="protolive-hero-title text-2xl font-black tracking-tight text-stone-50 sm:text-3xl">
                     투자 딜 성사율을 높이는 운영 정책을 수익 가정 기반으로 설계하세요.
                   </h2>
                   <p className="protolive-subtitle mt-3 max-w-[70ch] text-sm leading-6 text-stone-300">
-                    투자자 유입, 매칭 전환, 투자 의향 단계를 기준으로 월/연 매출과
-                    딜 파이프라인 성과를 즉시 계산해 의사결정에 쓰는 내부 운영 대시보드입니다.
+                    투자자 유입, 연결 전환, 투자 관심 단계를 기준으로 월/연 매출과
+                    딜 파이프라인 성과를 즉시 계산해 의사결정에 쓰는 내부 운영 현황입니다.
                   </p>
                 </div>
                 <div className="protolive-mini-tile rounded-lg border border-stone-700/70 bg-stone-950/55 p-3 text-xs text-stone-400">
                   <div className="flex items-center gap-2 font-black text-stone-200">
                     <CalendarClock className="h-4 w-4 text-cyan-200" />
-                    최근 동기화
+                    최근 업데이트
                   </div>
                   <p className="mt-1">{formatRelativeTime(adminDashboard.lastUpdatedAt)}</p>
                 </div>
@@ -2923,7 +3175,7 @@ export default function App() {
                   </div>
                   <div className="grid gap-2 text-xs">
                     <div className="flex justify-between border-b border-stone-800 pb-1 text-stone-400">
-                      <span>검증률</span>
+                      <span>확인 완료율</span>
                       <span className="text-stone-100">{formatRate(adminDashboard.health.verifiedHealth)}</span>
                     </div>
                     <div className="flex justify-between border-b border-stone-800 pb-1 text-stone-400">
@@ -2948,11 +3200,11 @@ export default function App() {
             <div className="protolive-panel rounded-xl border border-stone-800 bg-stone-950/65 p-4">
                 <div className="mb-4 flex items-center gap-2">
                   <Clock3 className="h-4 w-4 text-amber-200" />
-                  <h3 className="font-black text-stone-100">리스크 상위 프로젝트</h3>
+                  <h3 className="font-black text-stone-100">리스크 상위 사이트</h3>
                 </div>
                 {adminDashboard.riskProjects.length === 0 ? (
                   <p className="rounded-lg border border-dashed border-stone-700 p-3 text-sm text-stone-500">
-                    현재 추적 대상 리스크 프로젝트가 없습니다.
+                    현재 추적 대상 리스크 사이트가 없습니다.
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -3296,7 +3548,7 @@ export default function App() {
                     <p className="mt-1 break-words text-lg font-black text-stone-50">{formatCurrency(revenueProjection.annualRevenue)}</p>
                   </div>
                   <div className="min-w-0 rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
-                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">검증 프로젝트 비중</p>
+                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">확인된 사이트 비중</p>
                     <p className="mt-1 break-words text-lg font-black text-stone-50">
                       {formatRate(revenueProjection.verifiedProjectShare * 100)}
                     </p>
@@ -3312,7 +3564,7 @@ export default function App() {
                     <p className="mt-1 break-words text-lg font-black leading-6 text-stone-50">
                       {formatCurrency(revenueProjection.investorLtvEstimate)} · {revenueProjection.investorPaybackMonths}개월
                     </p>
-                    <p className="mt-1 text-[11px] text-stone-500">메이커 {revenueProjection.makerPaybackMonths}개월</p>
+                    <p className="mt-1 text-[11px] text-stone-500">창업자 {revenueProjection.makerPaybackMonths}개월</p>
                   </div>
                 </div>
               </div>
@@ -3326,25 +3578,25 @@ export default function App() {
                 </div>
                 <div className="grid gap-3">
                   <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">미리보기→매칭</p>
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">미리보기→연결</p>
                     <p className="mt-1 text-2xl font-black text-stone-50">
                       {formatRate(adminDashboard.conversionFunnel.previewToMatchRate)}
                     </p>
                     <p className="mt-2 text-xs text-stone-500">
-                      매칭 수치 {adminDashboard.conversionFunnel.matchCount}건 / 미리보기 {adminDashboard.conversionFunnel.previewCount}건
+                      연결 수치 {adminDashboard.conversionFunnel.matchCount}건 / 미리보기 {adminDashboard.conversionFunnel.previewCount}건
                     </p>
                   </div>
                   <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">아웃바운드→매칭</p>
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">아웃바운드→연결</p>
                     <p className="mt-1 text-2xl font-black text-stone-50">
                       {formatRate(adminDashboard.conversionFunnel.outboundToMatchRate)}
                     </p>
                     <p className="mt-2 text-xs text-stone-500">
-                      매칭 수치 {adminDashboard.conversionFunnel.matchCount}건 / 외부열람 {adminDashboard.conversionFunnel.outboundCount}건
+                      연결 수치 {adminDashboard.conversionFunnel.matchCount}건 / 외부열람 {adminDashboard.conversionFunnel.outboundCount}건
                     </p>
                   </div>
                   <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">프로젝트당 매칭율</p>
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">사이트당 연결율</p>
                     <p className="mt-1 text-2xl font-black text-stone-50">
                       {formatRate(adminDashboard.conversionFunnel.matchPerProjectRate)}
                     </p>
@@ -3405,7 +3657,7 @@ export default function App() {
                 </div>
                 <div className="space-y-2">
                   {[['create', '등록', adminDashboard.eventTotals.create], ['preview', '미리보기', adminDashboard.eventTotals.preview],
-                    ['outbound', '외부열람', adminDashboard.eventTotals.outbound], ['match', '매칭', adminDashboard.eventTotals.match],
+                    ['outbound', '외부열람', adminDashboard.eventTotals.outbound], ['match', '연결', adminDashboard.eventTotals.match],
                     ['refresh', '갱신', adminDashboard.eventTotals.refresh]].map(([type, label, count]) => (
                     <div key={type} className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-2">
                       <div className="flex items-center justify-between text-xs font-black text-stone-300">
@@ -3455,7 +3707,7 @@ export default function App() {
                 </div>
                 <div className="grid gap-3">
                   <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">메이커 플랜 수익</p>
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">창업자 플랜 수익</p>
                     <p className="mt-1 text-sm font-black text-stone-50">{formatCurrency(revenueProjection.monthlyMakerPlanRevenue)}</p>
                   </div>
                   <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
@@ -3524,11 +3776,11 @@ export default function App() {
               <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
                 <div className="mb-4 flex items-center gap-2">
                   <Signal className="h-4 w-4 text-cyan-200" />
-                  <h3 className="font-black text-stone-100">매출 기여도 상위 프로젝트</h3>
+                  <h3 className="font-black text-stone-100">매출 기여도 상위 사이트</h3>
                 </div>
                 {adminDashboard.topMatchProjects.length === 0 ? (
                   <p className="rounded-lg border border-dashed border-stone-700 p-3 text-sm text-stone-500">
-                    현재 데이터로 계산 가능한 프로젝트가 없습니다.
+                    현재 데이터로 계산 가능한 사이트가 없습니다.
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -3541,7 +3793,7 @@ export default function App() {
                         <div className="min-w-0">
                           <p className="truncate text-sm font-black text-stone-100">{entry.title}</p>
                           <p className="mt-1 text-xs text-stone-500">
-                            매칭/투자가입 {entry.matchCount}/{entry.investorCount} · 투자 신호 {entry.signalScore} · {entry.accessMode}
+                            연결/투자가입 {entry.matchCount}/{entry.investorCount} · 투자 신호 {entry.signalScore} · {entry.accessMode}
                           </p>
                         </div>
                         <p className="text-right text-sm font-black text-lime-200">
@@ -3556,11 +3808,11 @@ export default function App() {
               <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
                 <div className="mb-4 flex items-center gap-2">
                   <Signal className="h-4 w-4 text-cyan-200" />
-                  <h3 className="font-black text-stone-100">신호 기준 상위 프로젝트</h3>
+                  <h3 className="font-black text-stone-100">신호 기준 상위 사이트</h3>
                 </div>
                 {adminDashboard.topSignalProjects.length === 0 ? (
                   <p className="rounded-lg border border-dashed border-stone-700 p-3 text-sm text-stone-500">
-                    현재 데이터로 계산 가능한 프로젝트가 없습니다.
+                    현재 데이터로 계산 가능한 사이트가 없습니다.
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -3573,7 +3825,7 @@ export default function App() {
                         <div className="min-w-0">
                           <p className="truncate text-sm font-black text-stone-100">{entry.title}</p>
                           <p className="mt-1 text-xs text-stone-500">
-                            투자 신호 {entry.signalScore} · 매칭/투자가입 {entry.matchCount}/{entry.investorCount}
+                            투자 신호 {entry.signalScore} · 연결/투자가입 {entry.matchCount}/{entry.investorCount}
                           </p>
                         </div>
                         <p className="text-right text-sm font-black text-cyan-200">
@@ -3594,7 +3846,7 @@ export default function App() {
                 </div>
                 {adminDashboard.categoryPerformance.length === 0 ? (
                   <p className="rounded-lg border border-dashed border-stone-700 p-3 text-sm text-stone-500">
-                    분류할 프로젝트가 아직 없습니다.
+                    분류할 사이트가 아직 없습니다.
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -3615,7 +3867,7 @@ export default function App() {
                               style={{ width: `${ratio}%` }}
                             />
                           </div>
-                          <p className="text-xs text-stone-500">매칭 {item.matchCount}건 · 총 커밋 {formatWon(item.committedAmountMax)}</p>
+                          <p className="text-xs text-stone-500">연결 {item.matchCount}건 · 총 커밋 {formatWon(item.committedAmountMax)}</p>
                         </div>
                       );
                     })}
@@ -3626,11 +3878,11 @@ export default function App() {
               <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
                 <div className="mb-4 flex items-center gap-2">
                   <Signal className="h-4 w-4 text-cyan-200" />
-                  <h3 className="font-black text-stone-100">매칭 제안 구간</h3>
+                  <h3 className="font-black text-stone-100">연결 제안 구간</h3>
                 </div>
                 {adminDashboard.proposalRangeDistribution.length === 0 ? (
                   <p className="rounded-lg border border-dashed border-stone-700 p-3 text-sm text-stone-500">
-                    매칭 제안이 아직 없습니다.
+                    연결 제안이 아직 없습니다.
                   </p>
                 ) : (
                   <div className="space-y-3">
@@ -3672,13 +3924,13 @@ export default function App() {
                 <div className="min-w-0 max-w-3xl">
                   <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-300/10 px-3 py-1 text-xs font-bold text-cyan-100">
                     <Radar className="h-3.5 w-3.5" />
-                    프로토타입 투자 매칭 시장
+                    프로토타입 프로토타입 둘러보기
                   </p>
                   <h2 className="overflow-wrap-anywhere text-2xl font-black tracking-tight text-stone-50 sm:text-3xl">
-                    작동하는 웹서비스를 투자 검토 흐름으로 바로 연결합니다
+                    사이트 주소만 등록하면 평가와 투자 검토가 시작됩니다
                   </h2>
                   <p className="mt-3 max-w-[72ch] overflow-wrap-anywhere text-sm leading-6 text-stone-300">
-                    메이커는 라이브 URL을 검증해 등록하고, 투자자는 실제 제품 화면과 행동 신호를 보며 구조화된 투자 의향을 남깁니다.
+                    창업자는 만든 사이트를 올리고, 투자자는 실제 화면을 보고 리뷰한 뒤 투자 관심을 남길 수 있습니다.
                   </p>
                   <div className="mt-5 grid gap-2 sm:grid-cols-3">
                     <div className="protolive-flow-step min-w-0 rounded-lg border border-cyan-300/30 bg-cyan-300/10 px-3 py-3">
@@ -3686,24 +3938,24 @@ export default function App() {
                         <span className="text-xs font-black text-cyan-100">01</span>
                         <Globe2 className="h-4 w-4 text-cyan-100" />
                       </div>
-                      <p className="text-sm font-black text-stone-50">URL 검증</p>
-                      <p className="mt-1 text-xs leading-5 text-stone-400">공인망 응답과 상태 코드를 먼저 확인합니다.</p>
+                      <p className="text-sm font-black text-stone-50">사이트 확인</p>
+                      <p className="mt-1 text-xs leading-5 text-stone-400">입력한 주소가 열리는지 먼저 확인합니다.</p>
                     </div>
                     <div className="protolive-flow-step min-w-0 rounded-lg border border-lime-300/35 bg-lime-300/10 px-3 py-3">
                       <div className="mb-3 flex items-center justify-between gap-2">
                         <span className="text-xs font-black text-lime-100">02</span>
                         <Activity className="h-4 w-4 text-lime-100" />
                       </div>
-                      <p className="text-sm font-black text-stone-50">라이브 실사</p>
-                      <p className="mt-1 text-xs leading-5 text-stone-400">미리보기, 새 탭, 재검증 행동을 신호로 쌓습니다.</p>
+                      <p className="text-sm font-black text-stone-50">화면 리뷰</p>
+                      <p className="mt-1 text-xs leading-5 text-stone-400">투자자가 직접 보고 의견과 관심을 남깁니다.</p>
                     </div>
                     <div className="protolive-flow-step min-w-0 rounded-lg border border-amber-300/35 bg-amber-300/10 px-3 py-3">
                       <div className="mb-3 flex items-center justify-between gap-2">
                         <span className="text-xs font-black text-amber-100">03</span>
                         <Briefcase className="h-4 w-4 text-amber-100" />
                       </div>
-                      <p className="text-sm font-black text-stone-50">투자 의향</p>
-                      <p className="mt-1 text-xs leading-5 text-stone-400">금액 구간과 메시지를 매칭 데이터로 저장합니다.</p>
+                      <p className="text-sm font-black text-stone-50">투자 관심</p>
+                      <p className="mt-1 text-xs leading-5 text-stone-400">관심 금액과 메시지를 남겨 다음 대화로 이어집니다.</p>
                     </div>
                   </div>
                 </div>
@@ -3711,22 +3963,22 @@ export default function App() {
                   <div className="mb-4 flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 font-black text-stone-100">
                       <Gauge className="h-4 w-4 text-lime-200" />
-                      실시간 매칭 상태
+                      현재 진행 상황
                     </div>
                     <span className={`h-2.5 w-2.5 rounded-full ${apiOnline ? 'bg-lime-300' : 'bg-red-300'}`} />
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div className="rounded-lg border border-stone-800 bg-stone-950/70 p-3">
-                      <p className="text-stone-500">검증률</p>
+                      <p className="text-stone-500">확인 완료율</p>
                       <p className="mt-1 text-lg font-black text-stone-50">{stats.verificationRate}%</p>
                     </div>
                     <div className="rounded-lg border border-stone-800 bg-stone-950/70 p-3">
-                      <p className="text-stone-500">매칭 신호</p>
+                      <p className="text-stone-500">관심 활동</p>
                       <p className="mt-1 text-lg font-black text-stone-50">{stats.totalSignals}</p>
                     </div>
                     <div className="col-span-2 rounded-lg border border-stone-800 bg-stone-950/70 p-3">
                       <div className="flex items-center justify-between gap-3">
-                        <span className="text-stone-500">등록 프로젝트</span>
+                        <span className="text-stone-500">등록된 사이트</span>
                         <span className="font-black text-stone-100">{stats.totalProjects}개</span>
                       </div>
                       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-stone-800">
@@ -3739,7 +3991,7 @@ export default function App() {
                   </div>
                   <p className="mt-3 flex items-center gap-2 text-stone-500">
                     <Clock3 className="h-3.5 w-3.5 text-cyan-200" />
-                    최근 동기화 {formatRelativeTime(stats.lastUpdatedAt)}
+                    최근 업데이트 {formatRelativeTime(stats.lastUpdatedAt)}
                   </p>
                 </div>
               </div>
@@ -3753,6 +4005,43 @@ export default function App() {
             publicProjectCount={publicProjectCount}
             fastestResponseProject={fastestResponseProject}
           />
+
+          {detailProjectId && (
+            detailProject ? (
+              <ProjectDetailRoute
+                project={detailProject}
+                events={diligenceEvents}
+                reviews={projectReviews}
+                session={session}
+                isEventsLoading={isDiligenceEventsLoading}
+                isReviewsLoading={isProjectReviewsLoading}
+                reviewType={reviewType}
+                reviewRating={reviewRating}
+                reviewBody={reviewBody}
+                replyToReview={replyToReview}
+                isSendingReview={isSendingReview}
+                onBack={closeProjectDetail}
+                onPreview={() => void handleOpenPreview(detailProject)}
+                onMatch={() => void handleOpenMatchDialog(detailProject)}
+                onRefresh={() => void handleRefreshProject(detailProject)}
+                onOutbound={() => void handleProjectEvent(detailProject, 'outbound')}
+                onSubmitReview={handleSubmitReview}
+                onReviewTypeChange={setReviewType}
+                onReviewRatingChange={setReviewRating}
+                onReviewBodyChange={setReviewBody}
+                onReplyTo={setReplyToReview}
+                onCancelReply={() => setReplyToReview(null)}
+                onLogin={() => {
+                  closeReviewDialog();
+                  setIsLoginOpen(true);
+                }}
+              />
+            ) : (
+              <div className="rounded-xl border border-stone-800 bg-stone-950/60 p-6 text-sm text-stone-300">
+                사이트 상세 정보를 불러오는 중입니다. 잠시만 기다려주세요.
+              </div>
+            )
+          )}
 
           {!apiOnline && !isInitialLoading && (
             <div className="rounded-xl border border-red-400/25 bg-red-950/30 p-4 text-sm text-red-100">
@@ -3769,6 +4058,8 @@ export default function App() {
             </div>
           )}
 
+          {!detailProjectId && (
+            <>
           <div className="rounded-xl border border-stone-800 bg-[oklch(17%_0.018_205)] p-4">
             <div className="space-y-3">
               <div className="protolive-chip-row flex flex-wrap items-center gap-2">
@@ -3786,7 +4077,7 @@ export default function App() {
                         : 'border-stone-700 bg-stone-950/50 text-stone-300 hover:border-cyan-300/40 hover:text-cyan-100'
                     }`}
                   >
-                    {item}
+                    {item === 'All' ? '전체' : item}
                   </button>
                 ))}
                 <button
@@ -3795,9 +4086,32 @@ export default function App() {
                   className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 text-xs font-black text-stone-300 hover:border-cyan-300/50 hover:text-cyan-100"
                 >
                   {showAdvancedFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                  {showAdvancedFilters ? '고급 필터 닫기' : '고급 필터 열기'}
+                  {showAdvancedFilters ? '필터 접기' : '필터 더보기'}
                 </button>
               </div>
+              {tagOptions.length > 1 && (
+                <div className="protolive-chip-row flex flex-wrap items-center gap-2">
+                  <span className="mr-1 text-xs font-black text-stone-500">태그</span>
+                  {tagOptions.slice(0, 24).map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => {
+                        setSelectedTag(item);
+                        setPage(1);
+                      }}
+                      aria-pressed={selectedTag === item}
+                      className={`min-h-9 rounded-full border px-3 text-xs font-black transition ${
+                        selectedTag === item
+                          ? 'border-cyan-300/60 bg-cyan-300 text-slate-950'
+                          : 'border-stone-700 bg-stone-950/50 text-stone-300 hover:border-cyan-300/40 hover:text-cyan-100'
+                      }`}
+                    >
+                      {item === 'All' ? '전체 태그' : `#${item}`}
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="relative w-full lg:w-[360px]">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
@@ -3808,33 +4122,28 @@ export default function App() {
                       setPage(1);
                       setSearchQuery(event.target.value);
                     }}
-                    placeholder="이름, 설명, URL, 카테고리 검색"
+                    placeholder="이름, 설명, URL, 카테고리, 태그 검색"
                     className="min-h-11 w-full rounded-lg border border-stone-700 bg-stone-950/70 pl-10 pr-3 text-sm text-stone-100 outline-none transition placeholder:text-stone-500 focus:border-cyan-300/60"
                   />
                 </div>
                 <div className="protolive-segmented flex w-full overflow-x-auto rounded-lg border border-stone-700 bg-stone-950/60 p-1 lg:w-auto">
-                  {[
-                    ['signal', '매칭 시그널순'],
-                    ['recent', '최근 신호'],
-                    ['created', '등록순'],
-                    ['funding', '투자규모'],
-                  ].map(([value, label]) => (
+                  {PROJECT_LIST_VIEW_OPTIONS.map((option) => (
                     <button
-                      key={value}
+                      key={option.id}
                       type="button"
-                      aria-label={`${label} 정렬 적용`}
-                      aria-pressed={sortMode === value}
-                      onClick={() => {
-                        setSortMode(value as typeof sortMode);
-                        setPage(1);
-                      }}
-                      className={`min-h-9 shrink-0 rounded-md px-3 text-xs font-black transition ${
-                        sortMode === value
-                          ? 'bg-cyan-300 text-slate-950'
+                      aria-label={`${option.label} 보기 적용`}
+                      aria-pressed={projectListView === option.id}
+                      onClick={() => setProjectListView(option.id)}
+                      className={`min-h-10 shrink-0 rounded-md px-3 text-left text-xs font-black transition ${
+                        projectListView === option.id
+                          ? 'bg-lime-300 text-slate-950'
                           : 'text-stone-400 hover:text-stone-100'
                       }`}
                     >
-                      {label}
+                      <span className="block">{option.label}</span>
+                      <span className={`block text-[10px] font-bold ${projectListView === option.id ? 'text-slate-700' : 'text-stone-500'}`}>
+                        {option.helper}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -3853,7 +4162,7 @@ export default function App() {
                         : 'border-stone-700 bg-stone-950/55 text-stone-300 hover:border-cyan-300/50 hover:text-cyan-100'
                     }`}
                   >
-                    상위 시그널 집중
+                    관심 많은 사이트
                   </button>
                   <button
                     type="button"
@@ -3870,7 +4179,7 @@ export default function App() {
                         : 'border-stone-700 bg-stone-950/55 text-stone-300 hover:border-cyan-300/50 hover:text-cyan-100'
                     }`}
                   >
-                    최근 반응 우선
+                    최근 움직임 우선
                   </button>
                   <button
                     type="button"
@@ -3885,12 +4194,12 @@ export default function App() {
                         : 'border-stone-700 bg-stone-950/55 text-stone-300 hover:border-cyan-300/50 hover:text-cyan-100'
                     }`}
                   >
-                    투자규모 많은 순
+                    예상 투자금 많은 순
                   </button>
                   <button
                     type="button"
                     aria-pressed={onlyVerified}
-                    aria-label={onlyVerified ? '검증만 보기 토글 해제' : '검증만 보기 토글'}
+                    aria-label={onlyVerified ? '확인된 사이트만 토글 해제' : '확인된 사이트만 토글'}
                     onClick={() => {
                       setOnlyVerified((current) => !current);
                       setPage(1);
@@ -3901,7 +4210,7 @@ export default function App() {
                       : 'border-stone-700 bg-stone-950/55 text-stone-300 hover:border-cyan-300/50 hover:text-cyan-100'
                   }`}
                 >
-                  {onlyVerified ? '검증만 보기 ON' : '검증만 보기'}
+                  {onlyVerified ? '확인된 사이트만 ON' : '확인된 사이트만'}
                 </button>
                 <button
                   type="button"
@@ -3923,7 +4232,7 @@ export default function App() {
                   disabled={favoriteProjectCount === 0}
                 >
                   <Star className={`h-4 w-4 ${showFavoritesOnly ? 'fill-amber-100 text-amber-100' : 'text-stone-300'}`} />
-                  {showFavoritesOnly ? '즐겨찾기 보기 ON' : '즐겨찾기 보기'}
+                  {showFavoritesOnly ? '저장한 사이트만 ON' : '저장한 사이트만'}
                 </button>
               </div>
               {showAdvancedFilters && (
@@ -3987,10 +4296,10 @@ export default function App() {
                           setPage(1);
                         }}
                       />
-                      <span>검증된 프로젝트만</span>
+                      <span>확인된 사이트만</span>
                     </label>
                     <label className="inline-flex items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2">
-                      최소 시그널
+                      최소 관심
                       <input
                         type="number"
                         min={0}
@@ -4174,25 +4483,27 @@ export default function App() {
                 hasActiveFilters={activeFilterCount > 0}
               />
             ) : (
-            <div className="grid gap-4">
+            <div
+              className={
+                projectListView === 'cards'
+                  ? 'grid gap-4 md:grid-cols-2'
+                  : 'grid gap-3'
+              }
+            >
               {visibleProjects.map((project) => (
                 <ProjectCard
                   key={project.id}
                   project={project}
+                  viewMode={projectListView}
                   signalRank={signalRankByProjectId.get(project.id) ?? null}
-                  highestCommittedAmount={highestCommittedAmount}
-                  onDiligence={() => void handleOpenDiligence(project)}
-                  onPreview={() => void handleOpenPreview(project)}
-                  onMatch={() => void handleOpenMatchDialog(project)}
-                  onRefresh={() => void handleRefreshProject(project)}
-                  onOutbound={() => void handleProjectEvent(project, 'outbound')}
-                  isInvesting={investingProjectIds.has(project.id)}
-                  onInvest={() => void handleInvestProject(project)}
+                  onOpenDetail={() => openProjectDetail(project)}
                   isFavorite={favoriteProjectIds.has(project.id)}
                   onToggleFavorite={() => toggleFavorite(project.id)}
                 />
               ))}
             </div>
+          )}
+            </>
           )}
         </section>
 
@@ -4201,7 +4512,7 @@ export default function App() {
             <div className="mb-4 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <ChartBarBig className="h-4 w-4 text-cyan-200" />
-                <h3 className="font-black text-stone-100">시장 건강도</h3>
+                <h3 className="font-black text-stone-100">전체 진행 현황</h3>
               </div>
               <span className="inline-flex items-center gap-1 rounded-full border border-stone-700 bg-stone-900/70 px-2 py-1 text-[10px] font-black text-stone-300">
                 <CalendarClock className="h-3 w-3" />
@@ -4210,7 +4521,7 @@ export default function App() {
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.015_205)] p-3">
-                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">검증률</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">확인 완료율</p>
                 <p className="mt-1 text-lg font-black text-stone-50">{stats.verificationRate}%</p>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-stone-800">
                   <div
@@ -4220,16 +4531,16 @@ export default function App() {
                 </div>
               </div>
               <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.015_205)] p-3">
-                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">프로젝트당 매칭 신호</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">사이트당 관심 활동</p>
                 <p className="mt-1 text-lg font-black text-stone-50">{averageSignalDensity}</p>
-                <p className="mt-2 text-xs text-stone-500">이상적으로는 프로젝트 노출 품질을 높이는 지표입니다.</p>
+                <p className="mt-2 text-xs text-stone-500">투자자가 실제로 살펴본 정도를 보여줍니다.</p>
               </div>
               <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.015_205)] p-3 sm:col-span-2">
-                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">실시간 활동</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">최근 활동</p>
                 <p className="mt-2 text-sm leading-6 text-stone-200">
-                  누적 이벤트: <span className="text-cyan-200">{stats.totalSignals}</span> ·
-                  등록 프로젝트: <span className="inline-flex items-center gap-1 text-lime-200"><Users className="h-3.5 w-3.5" />{stats.totalProjects}</span> ·
-                  투자가능 후보: <span className="text-amber-200">{stats.totalInvestors}</span>
+                  누적 활동: <span className="text-cyan-200">{stats.totalSignals}</span> ·
+                  등록된 사이트: <span className="inline-flex items-center gap-1 text-lime-200"><Users className="h-3.5 w-3.5" />{stats.totalProjects}</span> ·
+                  투자 후보: <span className="text-amber-200">{stats.totalInvestors}</span>
                 </p>
               </div>
             </div>
@@ -4240,11 +4551,11 @@ export default function App() {
           <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
             <div className="mb-4 flex items-center gap-2">
               <Gauge className="h-4 w-4 text-lime-200" />
-              <h3 className="font-black text-stone-100">투자자 매칭 랭킹</h3>
+              <h3 className="font-black text-stone-100">투자자가 많이 본 사이트</h3>
             </div>
             {stats.topSignals.length === 0 ? (
               <p className="text-sm leading-6 text-stone-400">
-                미리보기, 새 탭 열람, 투자 의향이 쌓이면 실시간 매칭 우선순위가 계산됩니다.
+                미리보기, 새 탭 열람, 투자 관심이 쌓이면 실시간 연결 우선순위가 계산됩니다.
               </p>
             ) : (
               <div className="space-y-3">
@@ -4262,7 +4573,7 @@ export default function App() {
                         <p className="mt-1 text-xs text-stone-500">{formatRelativeTime(item.latestEventAt ?? undefined)}</p>
                         <p className="mt-1 inline-flex items-center gap-2 text-[11px] font-black text-stone-400">
                           <TrendingUp className="h-3 w-3" />
-                          라이브 활동 점유 우선 반영
+                          최근 관심 활동 반영
                         </p>
                       </div>
                       <span className="inline-flex items-center gap-2 rounded-lg bg-lime-300 px-2 py-1 text-xs font-black text-slate-950">
@@ -4279,7 +4590,7 @@ export default function App() {
           <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
             <div className="mb-4 flex items-center gap-2">
               <Signal className="h-4 w-4 text-cyan-200" />
-              <h3 className="font-black text-stone-100">라이브 투자 신호 스택</h3>
+              <h3 className="font-black text-stone-100">투자 검토 흐름</h3>
             </div>
             <div className="space-y-3">
               {config.benchmarkSignals.map((signal) => {
@@ -4297,11 +4608,11 @@ export default function App() {
           <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
             <div className="mb-4 flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-amber-200" />
-              <h3 className="font-black text-stone-100">Category Flow</h3>
+              <h3 className="font-black text-stone-100">분야별 등록</h3>
             </div>
             {stats.categoryBreakdown.length === 0 ? (
               <p className="text-sm leading-6 text-stone-400">
-                아직 집계할 프로젝트가 없습니다. 첫 검증 등록 후 카테고리 분포가 실시간 계산됩니다.
+                아직 집계할 사이트가 없습니다. 첫 확인 등록 후 카테고리 분포가 실시간 계산됩니다.
               </p>
             ) : (
               <div className="space-y-3">
@@ -4358,13 +4669,13 @@ export default function App() {
             type="button"
             className="absolute inset-0 cursor-default"
             onClick={closePreview}
-            aria-label="프로젝트 미리보기 닫기"
+            aria-label="사이트 보기 닫기"
           />
           <section
             ref={previewDialogRef}
             role="dialog"
             aria-modal="true"
-            aria-label="라이브 프로젝트 미리보기"
+            aria-label="라이브 사이트 보기"
             tabIndex={-1}
             className="absolute right-0 top-0 flex h-full w-full flex-col border-l border-stone-700 bg-[oklch(13%_0.016_205)] shadow-2xl lg:w-[72vw] xl:w-[62vw] motion-safe:animate-panel-slide-in"
           >
@@ -4374,10 +4685,10 @@ export default function App() {
                 <p className="truncate text-xs text-stone-500">{previewProject.liveUrl}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <span className="inline-flex min-h-7 items-center gap-1 rounded-full border border-lime-300/35 bg-lime-950/50 px-2 py-1 text-[11px] font-black text-lime-100">
-                    매칭 시그널 {previewProject.signalScore ?? 0}
+                    연결 관심 {previewProject.signalScore ?? 0}
                   </span>
                   <span className="inline-flex min-h-7 items-center gap-1 rounded-full border border-stone-700 px-2 py-1 text-[11px] font-black text-stone-300">
-                    {previewProject.validation.success ? '검증 통과' : '검증 실패'}
+                    {previewProject.validation.success ? '확인 통과' : '확인 실패'}
                   </span>
                   <span className="inline-flex min-h-7 items-center gap-1 rounded-full border border-stone-700 px-2 py-1 text-[11px] font-black text-stone-300">
                     최근 활동 {previewProject.eventSummary?.total ?? 0}건
@@ -4395,7 +4706,7 @@ export default function App() {
                     setIframeLoading(true);
                   }}
                   className="grid min-h-10 min-w-10 place-items-center rounded-lg border border-stone-700 text-stone-300 hover:border-cyan-300/40 hover:text-cyan-100"
-                  aria-label="프로젝트 미리보기 새로고침"
+                  aria-label="사이트 보기 새로고침"
                 >
                   <RefreshCw className="h-4 w-4" />
                 </button>
@@ -4450,7 +4761,7 @@ export default function App() {
                       }}
                       className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg bg-lime-300 px-3 font-black text-slate-950"
                     >
-                      매칭 제안
+                      연결 제안
                     </button>
                   </div>
                 </div>
@@ -4471,7 +4782,7 @@ export default function App() {
                   className={`xl:block ${
                     isMobileProjectTimelineOpen ? 'block' : 'hidden'
                   }`}
-                  title="프로젝트 활동"
+                  title="사이트 활동"
                   titleId="preview-timeline-mobile"
                 />
               </div>
@@ -4480,16 +4791,47 @@ export default function App() {
         </div>
       )}
 
+      {reviewProject && (
+        <Modal
+          title="회원 리뷰와 성장 의견"
+          subtitle={reviewProject.title}
+          onClose={closeReviewDialog}
+          dialogRef={reviewModalRef}
+        >
+          <ProjectReviewWorkspace
+            project={reviewProject}
+            reviews={projectReviews}
+            isLoading={isProjectReviewsLoading}
+            session={session}
+            reviewType={reviewType}
+            reviewRating={reviewRating}
+            reviewBody={reviewBody}
+            replyToReview={replyToReview}
+            isSubmitting={isSendingReview}
+            onTypeChange={setReviewType}
+            onRatingChange={setReviewRating}
+            onBodyChange={setReviewBody}
+            onReplyTo={setReplyToReview}
+            onCancelReply={() => setReplyToReview(null)}
+            onLogin={() => {
+              closeReviewDialog();
+              setIsLoginOpen(true);
+            }}
+            onSubmit={handleSubmitReview}
+          />
+        </Modal>
+      )}
+
       {matchingProject && (
         <Modal
-          title="투자 의향 기록"
+          title="투자 관심 기록"
           subtitle={matchingProject.title}
           onClose={() => setMatchingProject(null)}
           dialogRef={matchModalRef}
         >
           <form onSubmit={handleSubmitMatch} className="space-y-4">
             <div className="rounded-lg border border-stone-800 bg-stone-950/50 p-3">
-                  <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-200">투자자 검증 포인트</p>
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-200">투자자 확인 포인트</p>
               <p className="mt-1 text-sm leading-6 text-stone-300">{matchingProject.description}</p>
             </div>
             <label className="block">
@@ -4507,14 +4849,14 @@ export default function App() {
               </select>
             </label>
             <label className="block">
-              <span className="mb-2 block text-xs font-black text-stone-300">메이커를 설득할 메시지</span>
+              <span className="mb-2 block text-xs font-black text-stone-300">창업자를 설득할 메시지</span>
               <textarea
                 required
                 maxLength={700}
                 rows={4}
                 value={matchMessage}
                 onChange={(event) => setMatchMessage(event.target.value)}
-                placeholder="실사 요청, 미팅 가능 일정, 관심 있는 지표를 남겨주세요."
+                placeholder="리뷰 요청, 미팅 가능 일정, 관심 있는 지표를 남겨주세요."
                 className="w-full resize-none rounded-lg border border-stone-700 bg-stone-950 px-3 py-3 text-sm leading-6 text-stone-100 outline-none placeholder:text-stone-500 focus:border-lime-300/60"
               />
             </label>
@@ -4542,7 +4884,7 @@ export default function App() {
       {isSubmitOpen && (
         <Modal
           title="라이브 프로토타입 등록"
-          subtitle="공인 URL 검증 후 마켓에 반영됩니다."
+          subtitle="공인 사이트 확인 후 마켓에 반영됩니다."
           onClose={() => setIsSubmitOpen(false)}
           dialogRef={submitModalRef}
         >
@@ -4553,7 +4895,7 @@ export default function App() {
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block">
-                <span className="mb-2 block text-xs font-black text-stone-300">프로젝트 이름</span>
+                <span className="mb-2 block text-xs font-black text-stone-300">사이트 이름</span>
                 <input
                   type="text"
                   required
@@ -4597,13 +4939,13 @@ export default function App() {
                   : [
                       {
                         id: 'screened' as ProjectAccessMode,
-                        label: '선별 공개',
-                        description: 'URL과 미리보기를 매칭 요청 뒤 공유합니다.',
+                        label: '요청 후 공개',
+                        description: 'URL과 미리보기를 연결 요청 뒤 공유합니다.',
                       },
                       {
                         id: 'open' as ProjectAccessMode,
-                        label: '공개 미리보기',
-                        description: '목록에서 바로 라이브 URL을 열람할 수 있습니다.',
+                        label: '바로 보기 가능',
+                        description: '목록에서 바로 사이트 주소을 열람할 수 있습니다.',
                       },
                     ]
                 ).map((mode) => (
@@ -4633,7 +4975,7 @@ export default function App() {
                   className="mt-1 h-4 w-4 rounded border-amber-300/50 bg-stone-950 accent-lime-300"
                 />
                 <span>
-                  제출 권한이 있는 서비스이며, 공개 URL 검증 및 선택한 공개 범위에 따라 외부 투자자에게
+                  제출 권한이 있는 서비스이며, 공개 사이트 확인 및 선택한 공개 범위에 따라 외부 투자자에게
                   정보가 노출될 수 있음을 확인합니다.
                 </span>
               </label>
@@ -4649,6 +4991,32 @@ export default function App() {
                 placeholder="투자자가 바로 검토할 수 있게 문제, 작동 범위, 차별점을 압축해 적어주세요."
                 className="w-full resize-none rounded-lg border border-stone-700 bg-stone-950 px-3 py-3 text-sm leading-6 text-stone-100 outline-none placeholder:text-stone-500 focus:border-lime-300/60"
               />
+            </label>
+            <label className="block">
+              <span className="mb-2 flex items-center justify-between gap-3 text-xs font-black text-stone-300">
+                <span>태그</span>
+                <span className="text-stone-500">쉼표로 구분, 최대 8개</span>
+              </span>
+              <input
+                type="text"
+                maxLength={180}
+                value={tagInput}
+                onChange={(event) => setTagInput(event.target.value)}
+                placeholder="예: 학부모, 식단, MVP, 생활편의"
+                className="min-h-11 w-full rounded-lg border border-stone-700 bg-stone-950 px-3 text-sm text-stone-100 outline-none placeholder:text-stone-500 focus:border-lime-300/60"
+              />
+              {parseTagInput(tagInput).length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {parseTagInput(tagInput).map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border border-cyan-300/35 bg-cyan-300/10 px-2.5 py-1 text-[11px] font-black text-cyan-100"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
             </label>
             <label className="block">
               <span className="mb-2 flex items-center justify-between gap-3 text-xs font-black text-stone-300">
@@ -4675,7 +5043,7 @@ export default function App() {
                   className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-cyan-300/40 px-4 text-sm font-black text-cyan-100 transition hover:bg-cyan-300/10 disabled:opacity-50"
                 >
                   {urlCheckStatus === 'checking' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe2 className="h-4 w-4" />}
-                  URL 검증
+                  사이트 확인
                 </button>
               </div>
             </label>
@@ -4707,7 +5075,7 @@ export default function App() {
                 className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-lime-300 text-sm font-black text-slate-950 disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-stone-400"
               >
                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <BadgeCheck className="h-4 w-4" />}
-                검증 등록
+                확인 등록
               </button>
             </div>
           </form>
@@ -4744,7 +5112,7 @@ export default function App() {
             <div className="rounded-lg border border-stone-700 bg-stone-950/55 p-3 text-xs text-stone-300">
               <p className="font-black text-stone-100">테스트 계정</p>
               <div className="mt-2 space-y-3">
-                <p className="text-[11px] font-black text-stone-400">메이커</p>
+                <p className="text-[11px] font-black text-stone-400">창업자</p>
                 <div className="grid gap-2">
                   {testAccountsByRole.maker.map((account) => (
                     <button
@@ -4764,6 +5132,23 @@ export default function App() {
                 <p className="text-[11px] font-black text-stone-400">투자자</p>
                 <div className="grid gap-2">
                   {testAccountsByRole.investor.map((account) => (
+                    <button
+                      key={account.id}
+                      type="button"
+                      onClick={() => {
+                        setLoginEmail(account.email);
+                        setLoginPassword(account.password);
+                      }}
+                      className="flex min-h-10 items-center justify-between gap-3 rounded-lg border border-stone-700 px-3 py-2 text-left text-stone-100 transition hover:border-cyan-300/50 hover:text-cyan-100"
+                    >
+                      <span>{account.name}</span>
+                      <span className="truncate text-stone-400">{account.email}</span>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] font-black text-stone-400">일반 회원</p>
+                <div className="grid gap-2">
+                  {testAccountsByRole.member.map((account) => (
                     <button
                       key={account.id}
                       type="button"
@@ -4818,7 +5203,7 @@ function DifferentiationPanel() {
     <section className="protolive-panel rounded-xl border border-stone-800 bg-stone-950/65 p-4">
       <div className="mb-4 flex items-center gap-2">
         <Layers3 className="h-4 w-4 text-amber-200" />
-        <h3 className="font-black text-stone-100">차별화 레이어</h3>
+        <h3 className="font-black text-stone-100">왜 다른가요?</h3>
       </div>
       <div className="space-y-2">
         {differentiationRows.map((row) => (
@@ -4846,18 +5231,18 @@ function ProofKpiRail({
 }) {
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-      <Metric icon={ShieldCheck} label="검증 프로젝트" value={`${stats.verifiedProjects}/${stats.totalProjects}`} />
-      <Metric icon={Gauge} label="검증률" value={`${stats.verificationRate}%`} />
+      <Metric icon={ShieldCheck} label="확인된 사이트" value={`${stats.verifiedProjects}/${stats.totalProjects}`} />
+      <Metric icon={Gauge} label="확인 완료율" value={`${stats.verificationRate}%`} />
       <Metric
         icon={TimerReset}
-        label="평균 응답"
+        label="평균 열림 속도"
         value={stats.averageResponseMs === null ? 'N/A' : `${stats.averageResponseMs}ms`}
       />
-      <Metric icon={ShieldCheck} label="선별 공개" value={`${protectedProjectCount}`} />
-      <Metric icon={Globe2} label="공개 미리보기" value={`${publicProjectCount}`} />
+      <Metric icon={ShieldCheck} label="요청 후 공개" value={`${protectedProjectCount}`} />
+      <Metric icon={Globe2} label="바로 보기 가능" value={`${publicProjectCount}`} />
       <Metric
         icon={Zap}
-        label="최고 응답"
+        label="가장 빠른 응답"
         value={fastestResponseProject?.validation.responseTimeMs ? `${fastestResponseProject.validation.responseTimeMs}ms` : 'N/A'}
       />
     </div>
@@ -4914,7 +5299,7 @@ function SignalTimeline({
           </div>
         ) : events.length === 0 ? (
           <div className="rounded-lg border border-dashed border-stone-700 p-4 text-sm leading-6 text-stone-400">
-            아직 이 프로젝트에 기록된 활동이 없습니다.
+            아직 이 사이트에 기록된 활동이 없습니다.
           </div>
         ) : (
           <div className="space-y-3">
@@ -4942,6 +5327,243 @@ function SignalTimeline({
         )}
       </div>
     </aside>
+  );
+}
+
+function ProjectReviewWorkspace({
+  project,
+  reviews,
+  isLoading,
+  session,
+  reviewType,
+  reviewRating,
+  reviewBody,
+  replyToReview,
+  isSubmitting,
+  onTypeChange,
+  onRatingChange,
+  onBodyChange,
+  onReplyTo,
+  onCancelReply,
+  onLogin,
+  onSubmit,
+}: {
+  project: Project;
+  reviews: ProjectReview[];
+  isLoading: boolean;
+  session: AuthSession | null;
+  reviewType: ProjectReviewType;
+  reviewRating: number;
+  reviewBody: string;
+  replyToReview: ProjectReview | null;
+  isSubmitting: boolean;
+  onTypeChange: (type: ProjectReviewType) => void;
+  onRatingChange: (rating: number) => void;
+  onBodyChange: (body: string) => void;
+  onReplyTo: (review: ProjectReview) => void;
+  onCancelReply: () => void;
+  onLogin: () => void;
+  onSubmit: (event: React.FormEvent) => void;
+}) {
+  const roots = getRootReviews(reviews);
+  const repliesByParent = getRepliesByParent(reviews);
+  const summary = project.reviewSummary;
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-200">Community signal</p>
+        <h3 className="mt-1 text-xl font-black tracking-tight text-stone-50">회원 리뷰와 성장 의견</h3>
+        <p className="mt-1 text-sm leading-6 text-stone-400">
+          투자자뿐 아니라 일반 회원도 평가, 아이디어, 도움 제안을 남길 수 있습니다.
+        </p>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-4">
+        <div className="rounded-lg border border-stone-800 bg-stone-950/50 p-3">
+          <p className="text-xs text-stone-500">전체 의견</p>
+          <p className="mt-1 text-lg font-black text-stone-50">{summary?.rootCount ?? roots.length}</p>
+        </div>
+        <div className="rounded-lg border border-stone-800 bg-stone-950/50 p-3">
+          <p className="text-xs text-stone-500">평균 별점</p>
+          <p className="mt-1 text-lg font-black text-stone-50">
+            {summary?.averageRating ? `${summary.averageRating.toFixed(1)}점` : '아직 없음'}
+          </p>
+        </div>
+        <div className="rounded-lg border border-stone-800 bg-stone-950/50 p-3">
+          <p className="text-xs text-stone-500">성장 도움</p>
+          <p className="mt-1 text-lg font-black text-lime-100">{summary?.supportCount ?? 0}</p>
+        </div>
+        <div className="rounded-lg border border-stone-800 bg-stone-950/50 p-3">
+          <p className="text-xs text-stone-500">대댓글</p>
+          <p className="mt-1 text-lg font-black text-cyan-100">{summary?.replyCount ?? 0}</p>
+        </div>
+      </div>
+
+      <form onSubmit={onSubmit} className="rounded-xl border border-stone-800 bg-stone-950/45 p-4">
+        {session ? (
+          <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-stone-400">
+            <span className="rounded-full border border-lime-300/35 bg-lime-300/10 px-2.5 py-1 font-black text-lime-100">
+              {getRoleLabel(session.role)}
+            </span>
+            <span>{maskEmail(session.email)} 님의 의견으로 저장됩니다.</span>
+          </div>
+        ) : (
+          <div className="mb-3 rounded-lg border border-amber-300/30 bg-amber-300/10 p-3 text-sm text-amber-100">
+            로그인한 회원만 평가와 답글을 남길 수 있습니다.
+            <button type="button" onClick={onLogin} className="ml-2 font-black underline underline-offset-4">
+              로그인하기
+            </button>
+          </div>
+        )}
+
+        {replyToReview ? (
+          <div className="mb-3 rounded-lg border border-cyan-300/30 bg-cyan-300/10 p-3 text-xs text-cyan-100">
+            <div className="flex items-start justify-between gap-3">
+              <p>
+                <span className="font-black">대댓글 작성 중</span>
+                <span className="ml-2 text-cyan-100/75">{maskEmail(replyToReview.authorEmail)} 의견에 답합니다.</span>
+              </p>
+              <button type="button" onClick={onCancelReply} className="font-black text-cyan-50">
+                취소
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-3 grid gap-2 sm:grid-cols-3">
+            {(Object.keys(reviewTypeCopy) as ProjectReviewType[]).map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => onTypeChange(type)}
+                className={`rounded-lg border p-3 text-left transition ${
+                  reviewType === type
+                    ? reviewTypeCopy[type].tone
+                    : 'border-stone-800 bg-stone-950/50 text-stone-300 hover:border-stone-600'
+                }`}
+              >
+                <span className="block text-sm font-black">{reviewTypeCopy[type].label}</span>
+                <span className="mt-1 block text-xs leading-5 opacity-80">{reviewTypeCopy[type].helper}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {!replyToReview && reviewType === 'review' && (
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span className="text-xs font-black text-stone-400">별점</span>
+            {[1, 2, 3, 4, 5].map((rating) => (
+              <button
+                key={rating}
+                type="button"
+                onClick={() => onRatingChange(rating)}
+                className={`min-h-9 rounded-lg border px-3 text-xs font-black ${
+                  reviewRating === rating
+                    ? 'border-amber-300 bg-amber-300 text-slate-950'
+                    : 'border-stone-700 text-stone-300'
+                }`}
+              >
+                {rating}점
+              </button>
+            ))}
+          </div>
+        )}
+
+        <label className="block">
+          <span className="mb-2 block text-xs font-black text-stone-300">
+            {replyToReview ? '답글 내용' : `${reviewTypeCopy[reviewType].label} 내용`}
+          </span>
+          <textarea
+            required
+            maxLength={700}
+            rows={4}
+            value={reviewBody}
+            onChange={(event) => onBodyChange(event.target.value)}
+            placeholder={
+              replyToReview
+                ? '상대 의견에 이어 답글을 남겨주세요.'
+                : '처음 보는 사람도 이해할 수 있게 좋았던 점, 아쉬운 점, 다음 아이디어를 적어주세요.'
+            }
+            className="w-full resize-none rounded-lg border border-stone-700 bg-stone-950 px-3 py-3 text-sm leading-6 text-stone-100 outline-none placeholder:text-stone-500 focus:border-lime-300/60"
+          />
+        </label>
+        <div className="mt-3 flex justify-end">
+          <button
+            type="submit"
+            disabled={isSubmitting || !session}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-lime-300 px-4 text-sm font-black text-slate-950 disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-stone-400"
+          >
+            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {replyToReview ? '답글 등록' : '의견 등록'}
+          </button>
+        </div>
+      </form>
+
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-black text-stone-100">회원 의견</h3>
+          <span className="text-xs text-stone-500">{isLoading ? '불러오는 중' : `${reviews.length}개`}</span>
+        </div>
+        {isLoading ? (
+          <div className="rounded-lg border border-stone-800 bg-stone-950/45 p-4 text-sm text-stone-400">
+            리뷰를 불러오는 중입니다.
+          </div>
+        ) : roots.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-stone-700 bg-stone-950/45 p-4 text-sm text-stone-400">
+            아직 리뷰가 없습니다. 첫 평가나 성장 아이디어를 남겨주세요.
+          </div>
+        ) : (
+          roots.map((review) => (
+            <div key={review.id} className="rounded-xl border border-stone-800 bg-stone-950/45 p-4">
+              <ReviewItem review={review} onReplyTo={onReplyTo} />
+              {(repliesByParent[review.id] ?? []).length > 0 && (
+                <div className="mt-3 space-y-2 border-t border-stone-800 pt-3">
+                  {(repliesByParent[review.id] ?? []).map((reply) => (
+                    <div key={reply.id} className="rounded-lg border border-stone-800 bg-stone-900/45 p-3">
+                      <ReviewItem review={reply} isReply onReplyTo={onReplyTo} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ReviewItem({
+  review,
+  isReply = false,
+  onReplyTo,
+}: {
+  review: ProjectReview;
+  isReply?: boolean;
+  onReplyTo: (review: ProjectReview) => void;
+}) {
+  return (
+    <div>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${reviewTypeCopy[review.type].tone}`}>
+          {isReply ? '답글' : reviewTypeCopy[review.type].label}
+        </span>
+        <span className="text-xs font-black text-stone-300">{maskEmail(review.authorEmail)}</span>
+        <span className="text-xs text-stone-500">{getRoleLabel(review.authorRole)}</span>
+        {review.rating ? <span className="text-xs font-black text-amber-100">{review.rating}점</span> : null}
+        <span className="text-xs text-stone-500">{formatRelativeTime(review.createdAt)}</span>
+      </div>
+      <p className="mt-2 overflow-wrap-anywhere text-sm leading-6 text-stone-200">{review.body}</p>
+      {!isReply && (
+        <button
+          type="button"
+          onClick={() => onReplyTo(review)}
+          className="mt-3 inline-flex min-h-9 items-center gap-2 rounded-lg border border-stone-700 px-3 text-xs font-black text-stone-300 hover:border-cyan-300/50 hover:text-cyan-100"
+        >
+          <Send className="h-3.5 w-3.5" />
+          답글 달기
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -4988,19 +5610,19 @@ function ProjectDiligencePanel({
     project.committedAmountMax > 0
       ? `${formatWon(project.committedAmountMin)} ~ ${formatWon(project.committedAmountMax)}`
       : '아직 구조화된 의향 없음';
-  const exposureLabel = isProtected ? '선별 공개, URL 마스킹' : '공개 미리보기, 새 탭 열람 가능';
+  const exposureLabel = isProtected ? '요청 후 공개, URL 마스킹' : '바로 보기 가능, 새 탭 열람 가능';
   const proofRows = [
     {
       icon: Globe2,
-      label: '라이브 링크 검증',
-      value: project.validation.success ? `HTTP ${project.validation.status ?? 'OK'}` : '검증 필요',
+      label: '라이브 링크 확인',
+      value: project.validation.success ? `HTTP ${project.validation.status ?? 'OK'}` : '확인 필요',
       detail: isProtected ? '공개 목록에서는 원본 URL을 숨기고 접근 요청으로 전환합니다.' : project.validation.finalUrl ?? project.liveUrl,
     },
     {
       icon: TimerReset,
       label: '응답 속도',
       value: project.validation.responseTimeMs ? `${project.validation.responseTimeMs}ms` : responseTone.label,
-      detail: `최근 검증 ${formatRelativeTime(project.validation.checkedAt)}`,
+      detail: `최근 확인 ${formatRelativeTime(project.validation.checkedAt)}`,
     },
     {
       icon: ShieldCheck,
@@ -5008,27 +5630,27 @@ function ProjectDiligencePanel({
       value: exposureLabel,
       detail: isProtected
         ? '투자자는 의향 메시지를 남긴 뒤 상세 접근을 요청합니다.'
-        : '미리보기와 새 탭 행동이 실시간 매칭 신호로 기록됩니다.',
+        : '미리보기와 새 탭 행동이 실시간 관심 활동로 기록됩니다.',
     },
     {
       icon: Signal,
-      label: '매칭 순위',
+      label: '연결 순위',
       value: signalRank === null ? `${project.signalScore ?? 0}점` : `#${signalRank} · ${project.signalScore ?? 0}점`,
       detail: `${signalQuality.label} 상태, 최근 활동 ${formatRelativeTime(latestEventAt ?? undefined)}`,
     },
   ];
   const decisionNotes = [
     project.validation.success
-      ? '검증 통과: 투자자가 작동 여부보다 제품 흐름과 시장 반응을 바로 검토할 수 있습니다.'
-      : '검증 보류: URL 응답 또는 보안 정책을 먼저 확인해야 합니다.',
+      ? '확인 통과: 투자자가 작동 여부보다 제품 흐름과 시장 반응을 바로 검토할 수 있습니다.'
+      : '확인 보류: URL 응답 또는 보안 정책을 먼저 확인해야 합니다.',
     isProtected
-      ? '보호 흐름: 원본 URL은 숨기고 매칭 요청 메시지로 접근 맥락을 기록해 매칭 신뢰도를 높입니다.'
-      : '공개 흐름: 미리보기와 새 탭 열람을 바로 허용하고 행동 데이터를 매칭 신호로 누적합니다.',
+      ? '보호 흐름: 원본 URL은 숨기고 연결 요청 메시지로 접근 맥락을 기록해 연결 신뢰도를 높입니다.'
+      : '공개 흐름: 미리보기와 새 탭 열람을 바로 허용하고 행동 데이터를 관심 활동로 누적합니다.',
     project.matchCount > 0
-      ? `투자 의향: ${project.matchCount}건, 최대 ${highestIntent}까지 구조화된 관심이 잡혔습니다.`
-      : '투자 의향: 아직 기록된 매칭이 없어 첫 제안 메시지 유도가 우선입니다.',
+      ? `투자 관심: ${project.matchCount}건, 최대 ${highestIntent}까지 구조화된 관심이 잡혔습니다.`
+      : '투자 관심: 아직 기록된 연결이 없어 첫 제안 메시지 유도가 우선입니다.',
     totalEvents > 0
-      ? `행동 신호: 총 ${totalEvents}건, 미리보기 ${eventCounts.preview}건, 매칭 ${eventCounts.match}건입니다.`
+      ? `행동 신호: 총 ${totalEvents}건, 미리보기 ${eventCounts.preview}건, 연결 ${eventCounts.match}건입니다.`
       : '행동 신호: 아직 활동이 없어 첫 미리보기와 외부 열람을 만드는 운영 액션이 필요합니다.',
   ];
 
@@ -5038,13 +5660,13 @@ function ProjectDiligencePanel({
         type="button"
         className="absolute inset-0 cursor-default"
         onClick={onClose}
-        aria-label="실사 리포트 닫기"
+        aria-label="리뷰 리포트 닫기"
       />
       <section
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-label={`${project.title} 실사 리포트`}
+        aria-label={`${project.title} 리뷰 리포트`}
         aria-describedby={descriptionId}
         tabIndex={-1}
         className="absolute right-0 top-0 flex h-full w-full flex-col border-l border-stone-700 bg-[oklch(13%_0.016_205)] shadow-2xl lg:w-[760px] motion-safe:animate-panel-slide-in"
@@ -5054,13 +5676,13 @@ function ProjectDiligencePanel({
             <div className="min-w-0">
               <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2.5 py-1 text-[11px] font-black text-cyan-100">
                 <Radar className="h-3.5 w-3.5" />
-                투자 매칭 실사 리포트
+                투자 연결 리뷰 리포트
               </p>
               <h2 id={titleId} className="truncate text-xl font-black text-stone-50">
                 {project.title}
               </h2>
               <p id={descriptionId} className="mt-1 text-sm leading-6 text-stone-400">
-                작동 증거, 보호 상태, 행동 신호, 투자 의향을 한 화면에서 검토합니다.
+                작동 증거, 보호 상태, 행동 신호, 투자 관심을 한 화면에서 검토합니다.
               </p>
             </div>
             <button
@@ -5078,7 +5700,7 @@ function ProjectDiligencePanel({
               {project.category}
             </span>
             <span className={`inline-flex min-h-7 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-black ${getValidationTone(project.validation)}`}>
-              {project.validation.success ? '검증 통과' : '검증 확인 필요'}
+              {project.validation.success ? '확인 통과' : '확인 확인 필요'}
             </span>
             <span className={`inline-flex min-h-7 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-black ${signalQuality.tone}`}>
               {signalQuality.label}
@@ -5173,7 +5795,7 @@ function ProjectDiligencePanel({
                     className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-lime-300 px-3 text-xs font-black text-slate-950"
                   >
                     <Briefcase className="h-4 w-4" />
-                    투자 의향 기록
+                    투자 관심 기록
                   </button>
                   <button
                     type="button"
@@ -5181,7 +5803,7 @@ function ProjectDiligencePanel({
                     className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-cyan-300/35 px-3 text-xs font-black text-cyan-100 hover:bg-cyan-300/10"
                   >
                     {isProtected ? <ShieldCheck className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
-                    {isProtected ? '투자자 접근 요청' : '프로젝트 미리보기'}
+                    {isProtected ? '리뷰 요청' : '사이트 보기'}
                   </button>
                   <button
                     type="button"
@@ -5189,7 +5811,7 @@ function ProjectDiligencePanel({
                     className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-stone-700 px-3 text-xs font-black text-stone-300 hover:border-cyan-300/40 hover:text-cyan-100"
                   >
                     <RefreshCw className="h-4 w-4" />
-                    상태 재검증
+                    상태 재확인
                   </button>
                 </div>
               </section>
@@ -5201,220 +5823,382 @@ function ProjectDiligencePanel({
   );
 }
 
-function ProjectCard({
+
+function ProjectDetailRoute({
   project,
-  signalRank,
-  highestCommittedAmount,
-  onDiligence,
+  events,
+  reviews,
+  session,
+  isEventsLoading,
+  isReviewsLoading,
+  reviewType,
+  reviewRating,
+  reviewBody,
+  replyToReview,
+  isSendingReview,
+  onBack,
   onPreview,
   onMatch,
   onRefresh,
   onOutbound,
-  onInvest,
-  isInvesting,
-  onToggleFavorite,
-  isFavorite,
+  onSubmitReview,
+  onReviewTypeChange,
+  onReviewRatingChange,
+  onReviewBodyChange,
+  onReplyTo,
+  onCancelReply,
+  onLogin,
 }: {
   project: Project;
-  signalRank: number | null;
-  highestCommittedAmount: number;
-  onDiligence: () => void;
+  events: ProjectEvent[];
+  reviews: ProjectReview[];
+  session: AuthSession | null;
+  isEventsLoading: boolean;
+  isReviewsLoading: boolean;
+  reviewType: ProjectReviewType;
+  reviewRating: number;
+  reviewBody: string;
+  replyToReview: ProjectReview | null;
+  isSendingReview: boolean;
+  onBack: () => void;
   onPreview: () => void;
   onMatch: () => void;
   onRefresh: () => void;
   onOutbound: () => void;
-  onInvest: () => void;
-  isInvesting: boolean;
-  onToggleFavorite: () => void;
-  isFavorite: boolean;
+  onSubmitReview: (event: React.FormEvent) => void;
+  onReviewTypeChange: (type: ProjectReviewType) => void;
+  onReviewRatingChange: (rating: number) => void;
+  onReviewBodyChange: (body: string) => void;
+  onReplyTo: (review: ProjectReview) => void;
+  onCancelReply: () => void;
+  onLogin: () => void;
 }) {
   const isProtected = project.accessMode === 'screened';
-  const signalQuality = getSignalQuality(project.signalScore);
   const responseTone = getResponseTimeTone(project.validation.responseTimeMs);
-  const signalRankText = signalRank === null ? null : `#${signalRank}`;
-  const signalTrendWidth = ((project.signalScore ?? 0) / 100) * 100;
-  const fundingPressurePercent = (project.committedAmountMax / highestCommittedAmount) * 100;
+  const reviewSummary = project.reviewSummary;
+  const latestReview = reviewSummary?.latest;
+  const tags = project.tags ?? [];
 
   return (
-    <article className="protolive-card rounded-xl border border-stone-800 bg-[oklch(18%_0.018_205)] p-4 transition duration-200 motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-cyan-300/50 motion-safe:hover:shadow-[0_18px_50px_oklch(8%_0.02_205/0.5)]">
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
-        <div className="min-w-0">
-          <div className="mb-3 flex flex-wrap items-center gap-2">
-            {signalRankText && (
-              <span className="inline-flex min-h-8 items-center justify-center rounded-lg border border-cyan-300/35 bg-cyan-950/70 px-2.5 text-[11px] font-black text-cyan-100">
-                {signalRankText} 랭크
-              </span>
-            )}
-            <span className="inline-flex min-h-8 items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/60 px-2.5 text-xs font-bold text-stone-300">
-              <Layers3 className="h-3.5 w-3.5 text-cyan-200" />
-              {project.category}
-            </span>
-            <span className={`inline-flex min-h-8 items-center gap-2 rounded-lg border px-2.5 text-xs font-black ${getValidationTone(project.validation)}`}>
-              {project.validation.success ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertTriangle className="h-3.5 w-3.5" />}
-              {project.validation.success ? `HTTP ${project.validation.status ?? 'OK'}` : 'Needs check'}
-            </span>
-            <span
-              className={`inline-flex min-h-8 items-center gap-2 rounded-lg border px-2.5 text-xs font-black ${responseTone.tone}`}
-            >
-              <TimerReset className="h-3.5 w-3.5" />
-              {project.validation.responseTimeMs ? `${project.validation.responseTimeMs}ms` : responseTone.label}
-            </span>
-            <span
-              className={`inline-flex min-h-8 items-center gap-2 rounded-lg border px-2.5 text-[11px] font-black ${signalQuality.tone}`}
-            >
-              {signalQuality.label}
-            </span>
-            {isProtected && (
-              <span className="inline-flex min-h-8 items-center gap-2 rounded-lg border border-amber-300/30 bg-amber-300/10 px-2.5 text-xs font-black text-amber-100">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                선별 공개
-              </span>
-            )}
-          </div>
-          <h3 className="text-xl font-black tracking-tight text-stone-50">{project.title}</h3>
-          <p className="mt-2 max-w-[82ch] overflow-wrap-anywhere text-sm leading-6 text-stone-300">
-            {project.description}
-          </p>
-          <div className="mt-4 flex min-w-0 items-center gap-2 text-xs text-stone-500">
-            <Globe2 className="h-4 w-4 flex-shrink-0 text-stone-400" />
-            <span className="truncate font-mono">{project.validation.finalUrl ?? project.liveUrl}</span>
-          </div>
-          <div className="mt-4 space-y-2">
-            <div className="h-1.5 overflow-hidden rounded-full bg-stone-800">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-cyan-200/80 to-lime-200/80"
-                style={{ width: `${Math.max(1, Math.min(100, signalTrendWidth))}%` }}
+    <div className="space-y-5 rounded-2xl border border-lime-300/20 bg-stone-950/55 p-4 sm:p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-stone-700 px-3 text-xs font-black text-stone-300 transition hover:border-lime-300/50 hover:text-lime-100"
+        >
+          목록으로 돌아가기
+        </button>
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="rounded-full border border-stone-700 bg-stone-900/70 px-3 py-1 font-black text-stone-300">
+            {project.category}
+          </span>
+          <span className={'rounded-full border px-3 py-1 font-black ' + getValidationTone(project.validation)}>
+            {project.validation.success ? '사이트 확인 완료' : '확인 필요'}
+          </span>
+          <span className={'rounded-full border px-3 py-1 font-black ' + responseTone.tone}>
+            {project.validation.responseTimeMs ? project.validation.responseTimeMs + 'ms' : responseTone.label}
+          </span>
+        </div>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
+        <div className="min-w-0 space-y-4">
+          <div className="overflow-hidden rounded-2xl border border-stone-700 bg-stone-950">
+            {project.thumbnail ? (
+              <img
+                src={project.thumbnail}
+                alt={project.title + ' 사이트 스크린샷'}
+                className="aspect-[16/10] w-full object-cover"
               />
-            </div>
-            <div className="flex items-center justify-between text-[11px] font-black text-stone-400">
-              <span>신호 강도</span>
-              <span className="text-stone-100">{project.signalScore ?? 0}</span>
-            </div>
-            <p className="text-xs text-stone-500">
-              매칭 투자 유입: {project.eventSummary?.counts.match ?? 0} · 미리보기: {project.eventSummary?.counts.preview ?? 0}
-            </p>
+            ) : (
+              <div className="grid aspect-[16/10] place-items-center text-sm font-black text-stone-500">
+                스크린샷 준비 중
+              </div>
+            )}
           </div>
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-lime-200">사이트 상세</p>
+            <h2 className="mt-2 overflow-wrap-anywhere text-3xl font-black tracking-tight text-stone-50">
+              {project.title}
+            </h2>
+            <p className="mt-3 max-w-3xl overflow-wrap-anywhere text-base leading-7 text-stone-300">
+              {project.description}
+            </p>
+            {tags.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-full border border-cyan-300/35 bg-cyan-300/10 px-2.5 py-1 text-[11px] font-black text-cyan-100"
+                  >
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="mt-4 flex min-w-0 items-center gap-2 rounded-lg border border-stone-800 bg-stone-950/60 px-3 py-2 text-xs text-stone-400">
+              <Globe2 className="h-4 w-4 flex-shrink-0 text-stone-500" />
+              <span className="truncate font-mono">{project.validation.finalUrl ?? project.liveUrl}</span>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-4">
+            <div className="rounded-xl border border-lime-300/20 bg-lime-300/10 p-3">
+              <p className="text-xs text-lime-100/75">회원 리뷰</p>
+              <p className="mt-1 text-xl font-black text-lime-100">{reviewSummary?.rootCount ?? 0}</p>
+            </div>
+            <div className="rounded-xl border border-amber-300/20 bg-amber-300/10 p-3">
+              <p className="text-xs text-amber-100/75">평균 별점</p>
+              <p className="mt-1 text-xl font-black text-amber-100">
+                {reviewSummary?.averageRating ? reviewSummary.averageRating.toFixed(1) + '점' : '없음'}
+              </p>
+            </div>
+            <div className="rounded-xl border border-cyan-300/20 bg-cyan-300/10 p-3">
+              <p className="text-xs text-cyan-100/75">대댓글</p>
+              <p className="mt-1 text-xl font-black text-cyan-100">{reviewSummary?.replyCount ?? 0}</p>
+            </div>
+            <div className="rounded-xl border border-stone-800 bg-stone-950/60 p-3">
+              <p className="text-xs text-stone-500">투자 관심</p>
+              <p className="mt-1 text-xl font-black text-stone-100">{project.matchCount}</p>
+            </div>
+          </div>
+          {latestReview && (
+            <div className="rounded-xl border border-stone-800 bg-stone-950/45 p-4">
+              <p className="text-xs font-black text-stone-500">최근 회원 의견</p>
+              <p className="mt-2 text-sm font-black text-stone-200">
+                {reviewTypeCopy[latestReview.type].label}이 새로 등록되었습니다.
+              </p>
+              <p className="mt-2 text-xs text-stone-500">
+                {reviewTypeCopy[latestReview.type].label} · {maskEmail(latestReview.authorEmail)} · {formatRelativeTime(latestReview.createdAt)}
+              </p>
+              <p className="mt-2 text-xs leading-5 text-stone-500">
+                전체 내용과 대댓글은 아래 커뮤니티 영역에서 확인하세요.
+              </p>
+            </div>
+          )}
         </div>
 
-        <div className="grid content-between gap-3">
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="rounded-lg border border-lime-300/20 bg-lime-300/10 p-3">
-              <p className="font-black text-lime-100">{project.signalScore ?? 0}</p>
-              <p className="mt-1 text-lime-100/70">매칭 신호</p>
-            </div>
-            <div className="rounded-lg border border-stone-800 bg-stone-950/55 p-3">
-              <p className="font-black text-stone-100">{project.matchCount}</p>
-              <p className="mt-1 text-stone-500">매칭 의향</p>
-            </div>
-            <div className="rounded-lg border border-stone-800 bg-stone-950/55 p-3">
-              <p className="font-black text-stone-100">{formatWon(project.committedAmountMax)}</p>
-              <p className="mt-1 text-stone-500">최대 매칭 금액</p>
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-stone-800">
-                <div
-                  className="h-full rounded-full bg-amber-300/80"
-                  style={{ width: `${Math.max(0, Math.min(100, fundingPressurePercent))}%` }}
-                />
-              </div>
-            </div>
-            <div className="rounded-lg border border-stone-800 bg-stone-950/55 p-3">
-              <p className="font-black text-stone-100">{project.eventSummary?.total ?? 0}</p>
-              <p className="mt-1 text-stone-500">매칭 신호</p>
-            </div>
-          </div>
-          <div className="grid gap-2">
-            <button
-              type="button"
-              onClick={onDiligence}
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-cyan-300/35 px-3 text-xs font-black text-cyan-100 transition hover:bg-cyan-300/10"
-              aria-label={`${project.title} 매칭 요약 열기`}
-            >
-              <Radar className="h-4 w-4" />
-              매칭 요약
-            </button>
-            <button
-              type="button"
-              onClick={onToggleFavorite}
-              className={`grid min-h-10 place-items-center rounded-lg border text-xs font-black transition ${
-                isFavorite
-                  ? 'border-amber-300/70 bg-amber-300/10 text-amber-100'
-                  : 'border-stone-700 text-stone-300 hover:border-stone-500'
-              }`}
-              aria-label={isFavorite ? `${project.title} 즐겨찾기 해제` : `${project.title} 즐겨찾기 추가`}
-              title={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
-            >
-              <Star className={`h-4 w-4 ${isFavorite ? 'fill-amber-100' : ''}`} />
-            </button>
-            <button
-              type="button"
-              onClick={isProtected ? onMatch : onPreview}
-              className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-lg text-xs font-black transition ${
-                isProtected
-                  ? 'border border-amber-300/35 text-amber-100 hover:bg-amber-300/10'
-                  : 'bg-cyan-300 text-slate-950 hover:bg-cyan-200'
-              }`}
-            >
-              {isProtected ? <ShieldCheck className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
-              {isProtected ? '투자자 접근 요청' : '프로젝트 미리보기'}
-            </button>
-            <div className="grid grid-cols-3 gap-2">
-              {isProtected ? (
-                <button
-                  type="button"
-                  onClick={onMatch}
-                  className="grid min-h-10 place-items-center rounded-lg border border-stone-700 text-amber-100 transition hover:border-amber-300/40 hover:bg-amber-300/10"
-                  aria-label={`${project.title} 투자자 접근 요청`}
-                  title="투자자 접근 요청"
-                >
-                  <ShieldCheck className="h-4 w-4" />
-                </button>
-              ) : (
+        <div className="min-w-0 space-y-4">
+          <div className="rounded-2xl border border-stone-800 bg-stone-950/55 p-4">
+            <h3 className="text-lg font-black text-stone-50">다음에 할 일</h3>
+            <p className="mt-1 text-sm leading-6 text-stone-400">
+              사이트를 직접 보고, 회원 의견을 남기고, 필요하면 창업자에게 투자 관심이나 성장 도움을 제안하세요.
+            </p>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={onPreview}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-cyan-300 px-3 text-sm font-black text-slate-950 transition hover:bg-cyan-200"
+              >
+                <Sparkles className="h-4 w-4" />
+                {isProtected ? '공개 요청' : '사이트 보기'}
+              </button>
+              <button
+                type="button"
+                onClick={onMatch}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-lime-300 px-3 text-sm font-black text-slate-950 transition hover:bg-lime-200"
+              >
+                <Briefcase className="h-4 w-4" />
+                투자 관심 남기기
+              </button>
+              {!isProtected && (
                 <a
                   href={project.liveUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   referrerPolicy="no-referrer"
                   onClick={onOutbound}
-                  className="grid min-h-10 place-items-center rounded-lg border border-stone-700 text-stone-300 transition hover:border-lime-300/40 hover:text-lime-100"
-                  aria-label={`${project.title} 새 탭 미리보기`}
-                  title="새 탭 미리보기"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-stone-700 px-3 text-sm font-black text-stone-200 transition hover:border-cyan-300/50 hover:text-cyan-100"
                 >
                   <ExternalLink className="h-4 w-4" />
+                  새 탭으로 열기
                 </a>
               )}
               <button
                 type="button"
                 onClick={onRefresh}
-                className="grid min-h-10 place-items-center rounded-lg border border-stone-700 text-stone-300 transition hover:border-cyan-300/40 hover:text-cyan-100"
-                aria-label={`${project.title} 상태 재검증`}
-                title="상태 재검증"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-stone-700 px-3 text-sm font-black text-stone-200 transition hover:border-lime-300/50 hover:text-lime-100"
               >
                 <RefreshCw className="h-4 w-4" />
+                상태 다시 확인
               </button>
-              <button
-                type="button"
-                onClick={onMatch}
-                className="grid min-h-10 place-items-center rounded-lg border border-amber-300/35 text-amber-100 transition hover:bg-amber-300/10"
-                aria-label={`${project.title} 투자 의향 기록`}
-                title="투자 의향 기록"
-              >
-                <Briefcase className="h-4 w-4" />
-              </button>
-              {isProtected ? null : (
-                <button
-                  type="button"
-                  onClick={onInvest}
-                  disabled={isInvesting}
-                  className={`grid min-h-10 place-items-center rounded-lg border border-green-300/35 text-xs font-black transition ${
-                    isInvesting ? 'cursor-wait opacity-70' : 'text-green-100 hover:bg-green-300/10'
-                  }`}
-                  aria-label={`${project.title} 빠른 투자 의향 기록`}
-                  title="빠른 투자 의향 기록"
-                >
-                  {isInvesting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Briefcase className="h-4 w-4" />}
-                </button>
-              )}
             </div>
           </div>
+
+          <div className="rounded-2xl border border-stone-800 bg-stone-950/55 p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h3 className="text-sm font-black text-stone-100">사이트 활동</h3>
+              <span className="text-xs text-stone-500">{isEventsLoading ? '불러오는 중' : events.length + '개'}</span>
+            </div>
+            {events.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-stone-700 p-3 text-sm text-stone-500">
+                아직 활동 기록이 없습니다.
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {events.slice(0, 5).map((event) => {
+                  const meta = eventCopy[event.type];
+                  const Icon = meta.icon;
+                  return (
+                    <div key={event.id} className="flex items-center justify-between gap-3 rounded-lg border border-stone-800 bg-stone-950/45 p-3 text-xs">
+                      <span className="inline-flex items-center gap-2 font-black text-stone-200">
+                        <Icon className="h-3.5 w-3.5 text-cyan-200" />
+                        {meta.label}
+                      </span>
+                      <span className="text-stone-500">{formatRelativeTime(event.createdAt)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <ProjectReviewWorkspace
+        project={project}
+        reviews={reviews}
+        isLoading={isReviewsLoading}
+        session={session}
+        reviewType={reviewType}
+        reviewRating={reviewRating}
+        reviewBody={reviewBody}
+        replyToReview={replyToReview}
+        isSubmitting={isSendingReview}
+        onTypeChange={onReviewTypeChange}
+        onRatingChange={onReviewRatingChange}
+        onBodyChange={onReviewBodyChange}
+        onReplyTo={onReplyTo}
+        onCancelReply={onCancelReply}
+        onLogin={onLogin}
+        onSubmit={onSubmitReview}
+      />
+    </div>
+  );
+}
+
+function ProjectCard({
+  project,
+  viewMode,
+  signalRank,
+  onOpenDetail,
+  onToggleFavorite,
+  isFavorite,
+}: {
+  project: Project;
+  viewMode: ProjectListViewMode;
+  signalRank: number | null;
+  onOpenDetail: () => void;
+  onToggleFavorite: () => void;
+  isFavorite: boolean;
+}) {
+  const isProtected = project.accessMode === 'screened';
+  const responseTone = getResponseTimeTone(project.validation.responseTimeMs);
+  const signalRankText = signalRank === null ? null : '#' + signalRank;
+  const tags = project.tags ?? [];
+  const latestReview = project.reviewSummary?.latest;
+  const isCardView = viewMode === 'cards';
+  const isReviewView = viewMode === 'reviews';
+
+  return (
+    <article
+      className={`protolive-card rounded-xl border border-stone-800 bg-[oklch(18%_0.018_205)] transition duration-200 motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-lime-300/45 ${
+        isCardView ? 'p-4' : 'p-3'
+      }`}
+    >
+      <div
+        className={
+          isCardView
+            ? 'grid gap-3'
+            : isReviewView
+              ? 'grid gap-3 sm:grid-cols-[124px_minmax(0,1fr)_auto] sm:items-center'
+              : 'grid gap-3 sm:grid-cols-[148px_minmax(0,1fr)_auto] sm:items-center'
+        }
+      >
+        <button type="button" onClick={onOpenDetail} className="protolive-shot-card overflow-hidden rounded-xl border border-stone-700 bg-stone-950/60 text-left">
+          {project.thumbnail ? (
+            <img
+              src={project.thumbnail}
+              alt={project.title + ' 사이트 스크린샷'}
+              className="aspect-[16/10] w-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <div className="grid aspect-[16/10] place-items-center text-xs font-black text-stone-500">스크린샷 준비 중</div>
+          )}
+        </button>
+        <div className="min-w-0">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            {signalRankText && (
+              <span className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-2.5 py-1 text-[11px] font-black text-cyan-100">
+                {signalRankText} 추천
+              </span>
+            )}
+            <span className="rounded-full border border-stone-700 bg-stone-950/60 px-2.5 py-1 text-[11px] font-black text-stone-300">
+              {project.category}
+            </span>
+            <span className={'rounded-full border px-2.5 py-1 text-[11px] font-black ' + getValidationTone(project.validation)}>
+              {project.validation.success ? '확인 완료' : '확인 필요'}
+            </span>
+            <span className={'rounded-full border px-2.5 py-1 text-[11px] font-black ' + responseTone.tone}>
+              {project.validation.responseTimeMs ? project.validation.responseTimeMs + 'ms' : responseTone.label}
+            </span>
+            {isProtected && <span className="rounded-full border border-amber-300/30 bg-amber-300/10 px-2.5 py-1 text-[11px] font-black text-amber-100">요청 후 공개</span>}
+          </div>
+          <button type="button" onClick={onOpenDetail} className="block max-w-full text-left">
+            <h3 className="overflow-wrap-anywhere text-lg font-black tracking-tight text-stone-50">{project.title}</h3>
+          </button>
+          <p className="mt-1 max-w-[72ch] overflow-wrap-anywhere text-sm leading-6 text-stone-300">{project.description}</p>
+          {tags.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {tags.slice(0, isCardView ? 6 : 4).map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-2 py-0.5 text-[11px] font-black text-cyan-100"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+          {isReviewView && latestReview && (
+            <div className="mt-3 rounded-lg border border-stone-800 bg-stone-950/55 p-3">
+              <p className="text-[11px] font-black text-stone-500">최근 회원 의견</p>
+              <p className="mt-1 overflow-wrap-anywhere text-sm leading-6 text-stone-200">{latestReview.body}</p>
+              <p className="mt-2 text-xs text-stone-500">
+                {reviewTypeCopy[latestReview.type].label} · {maskEmail(latestReview.authorEmail)}
+              </p>
+            </div>
+          )}
+          <div className="mt-3 flex flex-wrap gap-2 text-xs text-stone-500">
+            <span>리뷰 {project.reviewSummary?.rootCount ?? 0}</span>
+            <span>답글 {project.reviewSummary?.replyCount ?? 0}</span>
+            <span>투자 관심 {project.matchCount}</span>
+            <span>최근 {formatRelativeTime(project.reviewSummary?.latestAt ?? project.eventSummary?.latestAt ?? undefined)}</span>
+          </div>
+        </div>
+        <div className={isCardView ? 'grid grid-cols-2 gap-2' : 'grid gap-2 sm:min-w-[132px]'}>
+          <button
+            type="button"
+            onClick={onOpenDetail}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-lime-300 px-4 text-sm font-black text-slate-950 transition hover:bg-lime-200"
+          >
+            상세 보기
+            <ArrowUpRight className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={onToggleFavorite}
+            className={'inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 text-xs font-black transition ' + (
+              isFavorite
+                ? 'border-amber-300/70 bg-amber-300/10 text-amber-100'
+                : 'border-stone-700 text-stone-300 hover:border-stone-500'
+            )}
+            aria-label={isFavorite ? project.title + ' 즐겨찾기 해제' : project.title + ' 즐겨찾기 추가'}
+          >
+            <Star className={'h-4 w-4 ' + (isFavorite ? 'fill-amber-100' : '')} />
+            저장
+          </button>
         </div>
       </div>
     </article>
@@ -5437,18 +6221,18 @@ function EmptyState({
       <div className="mx-auto grid h-14 w-14 place-items-center rounded-lg bg-lime-300 text-slate-950">
         <ShieldCheck className="h-7 w-7" />
       </div>
-      <h3 className="mt-5 text-xl font-black text-stone-50">아직 검증된 라이브 프로젝트가 없습니다.</h3>
+      <h3 className="mt-5 text-xl font-black text-stone-50">아직 확인된 라이브 사이트가 없습니다.</h3>
       <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-stone-400">
-        샘플 데이터를 보여주지 않습니다. 백엔드 API에 실제 제출된 프로젝트만 노출해 투자자가 가짜
+        샘플 데이터를 보여주지 않습니다. 백엔드 API에 실제 제출된 사이트만 노출해 투자자가 가짜
         신호와 실제 신호를 혼동하지 않도록 했습니다.
       </p>
               {hasActiveFilters ? (
                 <p className="mx-auto mt-3 max-w-xl text-xs leading-6 text-stone-500">
-                  현재 조건으로 조회 가능한 항목이 없습니다. 조건을 넓히거나 필터를 초기화하면 더 많은 프로젝트를 확인할 수 있습니다.
+                  현재 조건으로 조회 가능한 항목이 없습니다. 조건을 넓히거나 필터를 초기화하면 더 많은 사이트를 확인할 수 있습니다.
                 </p>
               ) : (
         <p className="mx-auto mt-3 max-w-xl text-xs leading-6 text-stone-500">
-          API 연결이 정상인 상태에서 등록된 프로젝트가 있으면 실시간 검증 대시보드에서 즉시 확인할 수 있습니다.
+          API 연결이 정상인 상태에서 등록된 사이트가 있으면 실시간 확인 대시보드에서 즉시 확인할 수 있습니다.
         </p>
       )}
       <button
@@ -5458,7 +6242,7 @@ function EmptyState({
         className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg bg-lime-300 px-4 text-sm font-black text-slate-950 disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-stone-400"
       >
         <Plus className="h-4 w-4" />
-        첫 프로젝트 검증 등록
+        첫 사이트 확인 등록
       </button>
       {hasActiveFilters && (
         <button
@@ -5515,7 +6299,7 @@ function Modal({
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
         tabIndex={-1}
-        className="protolive-modal relative max-h-[92vh] w-full max-w-xl overflow-y-auto rounded-xl border border-stone-700 bg-[oklch(16%_0.018_205)] p-5 shadow-2xl"
+        className="protolive-modal relative max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-stone-700 bg-[oklch(16%_0.018_205)] p-5 shadow-2xl"
       >
         <div className="mb-5 flex items-start justify-between gap-3 border-b border-stone-800 pb-4">
           <div>

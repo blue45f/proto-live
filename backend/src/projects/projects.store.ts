@@ -5,6 +5,7 @@ import {
   MatchProposal,
   Project,
   ProjectEvent,
+  ProjectReview,
   ProjectsState,
 } from './project.models';
 
@@ -20,10 +21,15 @@ interface SerializedProjectEvent extends Omit<ProjectEvent, 'createdAt'> {
   createdAt: string;
 }
 
-interface SerializedProjectsState extends Omit<ProjectsState, 'projects' | 'proposals' | 'events'> {
+interface SerializedProjectReview extends Omit<ProjectReview, 'createdAt'> {
+  createdAt: string;
+}
+
+interface SerializedProjectsState extends Omit<ProjectsState, 'projects' | 'proposals' | 'events' | 'reviews'> {
   projects: SerializedProject[];
   proposals: SerializedMatchProposal[];
   events: SerializedProjectEvent[];
+  reviews: SerializedProjectReview[];
 }
 
 function defaultStorePath(): string {
@@ -44,6 +50,10 @@ function serializeState(state: ProjectsState): SerializedProjectsState {
     events: state.events.map((event) => ({
       ...event,
       createdAt: event.createdAt.toISOString(),
+    })),
+    reviews: state.reviews.map((review) => ({
+      ...review,
+      createdAt: review.createdAt.toISOString(),
     })),
   };
 }
@@ -71,10 +81,18 @@ function deserializeState(state: SerializedProjectsState): ProjectsState {
           createdAt: new Date(event.createdAt),
         }))
       : [],
+    reviews: Array.isArray(state.reviews)
+      ? state.reviews.map((review) => ({
+          ...review,
+          parentId: review.parentId ?? null,
+          createdAt: new Date(review.createdAt),
+        }))
+      : [],
     nextUserId: Number.isInteger(state.nextUserId) ? state.nextUserId : 1,
     nextProjectId: Number.isInteger(state.nextProjectId) ? state.nextProjectId : 1,
     nextProposalId: Number.isInteger(state.nextProposalId) ? state.nextProposalId : 1,
     nextEventId: Number.isInteger(state.nextEventId) ? state.nextEventId : 1,
+    nextReviewId: Number.isInteger(state.nextReviewId) ? state.nextReviewId : 1,
   };
 }
 

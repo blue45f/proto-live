@@ -13,6 +13,8 @@ import {
   Project,
   ProjectEvent,
   ProjectEventType,
+  ProjectReview,
+  ProjectReviewSummary,
   AdminDashboardMetrics,
   AdminEventTrendPoint,
   AdminFunnelMetric,
@@ -33,6 +35,7 @@ import {
 } from './project.models';
 import { CreateMatchProposalDto } from './dto/create-match-proposal.dto';
 import { CreateProjectDto } from './dto/create-project.dto';
+import { CreateProjectReviewDto } from './dto/create-project-review.dto';
 import { calculateProjectSignalScore, summarizeProjectEvents } from './project-signals';
 import { JsonProjectsStore } from './projects.store';
 import {
@@ -61,10 +64,12 @@ export class ProjectsService {
   private projects: Project[];
   private proposals: MatchProposal[];
   private events: ProjectEvent[];
+  private reviews: ProjectReview[];
   private nextUserId: number;
   private nextProjectId: number;
   private nextProposalId: number;
   private nextEventId: number;
+  private nextReviewId: number;
 
   constructor() {
     const state = this.store.read();
@@ -72,10 +77,12 @@ export class ProjectsService {
     this.projects = state.projects;
     this.proposals = state.proposals;
     this.events = state.events;
+    this.reviews = state.reviews;
     this.nextUserId = state.nextUserId;
     this.nextProjectId = state.nextProjectId;
     this.nextProposalId = state.nextProposalId;
     this.nextEventId = state.nextEventId;
+    this.nextReviewId = state.nextReviewId;
   }
 
   getAdminRevenueProjection(
@@ -651,6 +658,7 @@ export class ProjectsService {
 
   private buildFilteredProjects(query: ProjectQueryInput): Project[] {
     const searchText = (query.q ?? '').trim().toLowerCase();
+    const selectedTag = (query.tag ?? '').trim().toLowerCase();
     const minSignal = query.minSignal;
     const minFundingAmount = query.minFundingAmount;
     const maxFundingAmount = query.maxFundingAmount;
@@ -662,6 +670,10 @@ export class ProjectsService {
         }
 
         if (query.accessMode && project.accessMode !== query.accessMode) {
+          return false;
+        }
+
+        if (selectedTag && !(project.tags ?? []).some((tag) => tag.toLowerCase() === selectedTag)) {
           return false;
         }
 
@@ -683,6 +695,7 @@ export class ProjectsService {
             project.description,
             project.category,
             project.liveUrl,
+            ...(project.tags ?? []),
           ]
             .join(' ')
             .toLowerCase();
@@ -752,6 +765,13 @@ export class ProjectsService {
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
+  getProjectReviews(id: number): ProjectReview[] {
+    this.findProject(id);
+    return this.reviews
+      .filter((review) => review.projectId === id)
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  }
+
   async refreshProject(id: number): Promise<Project> {
     const project = this.findProject(id);
     project.validation = await this.validateUrl(project.liveUrl);
@@ -770,7 +790,7 @@ export class ProjectsService {
   }
 
   async createProject(data: CreateProjectDto): Promise<Project> {
-    const { email, title, description, liveUrl, category, accessMode, protectionNoticeAccepted, thumbnail } = data;
+    const { email, title, description, liveUrl, category, accessMode, protectionNoticeAccepted, thumbnail, tags } = data;
 
     if (!PROJECT_CATEGORIES.includes(category as ProjectCategory)) {
       throw new BadRequestException('유효한 카테고리를 선택해주세요.');
@@ -797,6 +817,7 @@ export class ProjectsService {
       description: description.trim(),
       liveUrl: normalizePublicHttpUrl(liveUrl).href,
       category: category as ProjectCategory,
+      tags: this.normalizeTags(tags),
       accessMode: accessMode as ProjectAccessMode,
       protectionNoticeAccepted,
       thumbnail: thumbnail ?? null,
@@ -840,6 +861,48 @@ export class ProjectsService {
     this.persist();
     this.logger.log(`Match proposal recorded for project ${id}`);
     return this.hydrateProject(project);
+  }
+
+  createProjectReview(id: number, data: CreateProjectReviewDto): { review: ProjectReview; project: Project } {
+    const project = this.findProject(id);
+    const parentId = data.parentId ?? null;
+    const parentReview = parentId
+      ? this.reviews.find((review) => review.id === parentId && review.projectId === id)
+      : null;
+
+    if (parentId && !parentReview) {
+      throw new BadRequestException('답글을 남길 원본 리뷰를 찾을 수 없습니다.');
+    }
+
+    if (parentReview?.parentId) {
+      throw new BadRequestException('대댓글에는 추가 답글을 남길 수 없습니다.');
+    }
+
+    const body = data.body.trim();
+    if (body.length < 5) {
+      throw new BadRequestException('의견은 5자 이상 입력해주세요.');
+    }
+
+    const review: ProjectReview = {
+      id: this.nextReviewId++,
+      projectId: id,
+      parentId,
+      authorEmail: data.email.trim().toLowerCase(),
+      authorRole: data.role ?? 'member',
+      type: parentReview?.type ?? data.type,
+      rating: parentId ? null : data.rating ?? null,
+      body,
+      createdAt: new Date(),
+    };
+
+    this.reviews.push(review);
+    this.persist();
+    this.logger.log(`Project review recorded for project ${id}`);
+
+    return {
+      review,
+      project: this.hydrateProject(project),
+    };
   }
 
   recordProjectEvent(id: number, type: ProjectEventType): Project {
@@ -895,13 +958,30 @@ export class ProjectsService {
       projects: this.projects,
       proposals: this.proposals,
       events: this.events,
+      reviews: this.reviews,
       nextUserId: this.nextUserId,
       nextProjectId: this.nextProjectId,
       nextProposalId: this.nextProposalId,
       nextEventId: this.nextEventId,
+      nextReviewId: this.nextReviewId,
     };
 
     this.store.write(state);
+  }
+
+  private normalizeTags(tags: string[] | undefined): string[] {
+    if (!Array.isArray(tags)) {
+      return [];
+    }
+
+    return Array.from(
+      new Set(
+        tags
+          .map((tag) => tag.trim())
+          .filter((tag) => tag.length > 0)
+          .map((tag) => tag.slice(0, 24)),
+      ),
+    ).slice(0, 8);
   }
 
   private addProjectEvent(projectId: number, type: ProjectEventType): ProjectEvent {
@@ -1601,6 +1681,7 @@ export class ProjectsService {
 
   private hydrateProject(project: Project): Project {
     const events = this.events.filter((event) => event.projectId === project.id);
+    const reviews = this.reviews.filter((review) => review.projectId === project.id);
     const accessMode = project.accessMode ?? 'open';
     const displayUrl = accessMode === 'screened' ? this.redactUrl(project.liveUrl) : project.liveUrl;
     const displayFinalUrl =
@@ -1619,6 +1700,38 @@ export class ProjectsService {
       },
       signalScore: calculateProjectSignalScore(project, events),
       eventSummary: summarizeProjectEvents(events),
+      reviewSummary: this.summarizeProjectReviews(reviews),
+    };
+  }
+
+  private summarizeProjectReviews(reviews: ProjectReview[]): ProjectReviewSummary {
+    const rootReviews = reviews.filter((review) => !review.parentId);
+    const ratings = rootReviews
+      .map((review) => review.rating)
+      .filter((rating): rating is number => typeof rating === 'number' && Number.isFinite(rating));
+    const latest = [...reviews].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0] ?? null;
+
+    return {
+      total: reviews.length,
+      rootCount: rootReviews.length,
+      replyCount: reviews.length - rootReviews.length,
+      reviewCount: rootReviews.filter((review) => review.type === 'review').length,
+      supportCount: rootReviews.filter((review) => review.type === 'support').length,
+      ideaCount: rootReviews.filter((review) => review.type === 'idea').length,
+      averageRating:
+        ratings.length === 0
+          ? null
+          : Math.round((ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length) * 10) / 10,
+      latestAt: latest ? latest.createdAt.toISOString() : null,
+      latest: latest
+        ? {
+            id: latest.id,
+            type: latest.type,
+            authorEmail: latest.authorEmail,
+            body: latest.body,
+            createdAt: latest.createdAt.toISOString(),
+          }
+        : null,
     };
   }
 

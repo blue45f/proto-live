@@ -4,6 +4,7 @@ import { ProjectsService, ProjectListPage } from './projects.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { ValidateUrlDto } from './dto/validate-url.dto';
 import { CreateMatchProposalDto } from './dto/create-match-proposal.dto';
+import { CreateProjectReviewDto } from './dto/create-project-review.dto';
 import { RecordProjectEventDto } from './dto/record-project-event.dto';
 import { GetProjectsQueryDto, ProjectQueryInput } from './dto/get-projects-query.dto';
 import { AdminRevenueProjectionQueryDto } from './dto/admin-revenue-projection-query.dto';
@@ -93,6 +94,15 @@ export class ProjectsController {
   }
 
   /**
+   * GET /api/projects/:id/reviews
+   * 로그인 회원이 남긴 평가, 리뷰, 성장 지원 의견과 대댓글을 반환합니다.
+   */
+  @Get(':id/reviews')
+  getProjectReviews(@Param('id', ParseIntPipe) id: number) {
+    return this.projectsService.getProjectReviews(id);
+  }
+
+  /**
    * POST /api/projects/validate
    * 프로젝트 제출 전 URL 유효성을 사전 검증합니다.
    */
@@ -132,6 +142,18 @@ export class ProjectsController {
   }
 
   /**
+   * POST /api/projects/:id/reviews
+   * 로그인 회원의 평가/리뷰/성장지원 의견 또는 대댓글을 저장합니다.
+   */
+  @Post(':id/reviews')
+  createProjectReview(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: CreateProjectReviewDto,
+  ) {
+    return this.projectsService.createProjectReview(id, body);
+  }
+
+  /**
    * POST /api/projects/:id/match
    * 투자자 의향서를 기록하고 프로젝트 매칭 지표를 갱신합니다.
    */
@@ -158,6 +180,7 @@ function normalizeProjectQuery(query: GetProjectsQueryDto): ProjectQueryInput {
     category: query.category,
     accessMode: query.accessMode,
     q: query.q,
+    tag: query.tag,
     minSignal: query.minSignal,
     minFundingAmount: query.minFundingAmount,
     maxFundingAmount: query.maxFundingAmount,

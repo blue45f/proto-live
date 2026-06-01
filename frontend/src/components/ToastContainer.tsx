@@ -109,7 +109,7 @@ export default function ToastContainer() {
             </div>
             <button
               onClick={() => removeToast(t.id)}
-              className="min-h-8 min-w-8 flex-shrink-0 rounded-lg text-stone-400 transition-colors hover:bg-stone-950/40 hover:text-stone-100"
+              className="min-h-11 min-w-11 flex-shrink-0 rounded-lg text-stone-400 transition-colors hover:bg-stone-950/40 hover:text-stone-100"
               aria-label="알림 닫기"
             >
               <X className="mx-auto h-4 w-4" />

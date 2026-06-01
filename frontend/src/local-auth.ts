@@ -1,6 +1,6 @@
 import testAccounts from './data/test-accounts.json';
 
-export type AuthRole = 'maker' | 'investor';
+export type AuthRole = 'maker' | 'investor' | 'member';
 
 export interface TestAccount {
   id: number;
@@ -39,7 +39,7 @@ function readSessionRaw() {
     const parsed = JSON.parse(raw) as Partial<AuthSession>;
     const email = typeof parsed.email === 'string' ? normalizeEmail(parsed.email) : null;
     const name = typeof parsed.name === 'string' ? parsed.name.trim() : '';
-    const role = parsed.role === 'investor' ? 'investor' : 'maker';
+    const role = parsed.role === 'investor' || parsed.role === 'member' ? parsed.role : 'maker';
 
     if (!email || !name) {
       return null;
@@ -72,7 +72,9 @@ export function clearSession() {
 }
 
 export function resolveRoleLabel(role: AuthRole) {
-  return role === 'maker' ? '메이커' : '투자자';
+  if (role === 'maker') return '창업자';
+  if (role === 'investor') return '투자자';
+  return '일반 회원';
 }
 
 export function authenticateUser(email: string, password: string): AuthSession | null {

@@ -46,6 +46,7 @@ test('getAllProjects supports category/search/access mode query filters', async 
         description: 'Realtime dashboard with trusted demo and clear KPI updates',
         liveUrl: 'https://alpha.example.com',
         category: 'AI & SaaS' as ProjectCategory,
+        tags: ['MVP', 'review-loop', 'dashboard'],
         accessMode: 'open' as ProjectAccessMode,
         protectionNoticeAccepted: true,
         investorCount: 2,
@@ -69,6 +70,7 @@ test('getAllProjects supports category/search/access mode query filters', async 
         description: 'Verified idea validation workflow',
         liveUrl: 'https://beta.example.com',
         category: 'AI & SaaS' as ProjectCategory,
+        tags: ['notes', 'research'],
         accessMode: 'open' as ProjectAccessMode,
         protectionNoticeAccepted: true,
         investorCount: 1,
@@ -92,6 +94,7 @@ test('getAllProjects supports category/search/access mode query filters', async 
         description: 'Draft screened private project',
         liveUrl: 'https://gamma.example.com',
         category: 'DevTools' as ProjectCategory,
+        tags: ['private', 'developer'],
         accessMode: 'screened' as ProjectAccessMode,
         protectionNoticeAccepted: true,
         investorCount: 0,
@@ -115,6 +118,7 @@ test('getAllProjects supports category/search/access mode query filters', async 
         description: 'Commerce stack with verified landing',
         liveUrl: 'https://delta.example.com',
         category: 'FinTech' as ProjectCategory,
+        tags: ['commerce', 'payments'],
         accessMode: 'open' as ProjectAccessMode,
         protectionNoticeAccepted: true,
         investorCount: 0,
@@ -163,6 +167,12 @@ test('getAllProjects supports category/search/access mode query filters', async 
     const searchIds = searchHits.map((project) => project.id).sort((a, b) => a - b);
     assert.deepEqual(searchIds, [1, 2, 4]);
 
+    const taggedProjects = await service.getAllProjects({ tag: 'MVP' });
+    assert.deepEqual(taggedProjects.map((project) => project.id), [1]);
+
+    const tagSearchHits = await service.getAllProjects({ q: 'review-loop' });
+    assert.deepEqual(tagSearchHits.map((project) => project.id), [1]);
+
     const highSignal = await service.getAllProjects({ minSignal: 70, sort: 'signal' });
     assert.equal(highSignal.length, 2);
     assert.deepEqual(highSignal.map((project) => project.id).sort((a, b) => a - b), [1, 4]);
@@ -173,6 +183,107 @@ test('getAllProjects supports category/search/access mode query filters', async 
 
     const created = await service.getAllProjects({ sort: 'created' });
     assert.deepEqual(created.map((project) => project.id), [1, 2, 3, 4]);
+  });
+});
+
+test('createProjectReview records reviews and one-level replies with summaries', async () => {
+  await withSeededService((state) => {
+    state.users.push({ id: 1, email: 'maker@protolive.local', role: 'maker' });
+    state.projects.push({
+      id: 1,
+      userId: 1,
+      title: 'Community Ready Project',
+      description: 'review thread target',
+      liveUrl: 'https://community.example.com',
+      category: 'Social' as ProjectCategory,
+      tags: ['community', 'reviews'],
+      accessMode: 'open' as ProjectAccessMode,
+      protectionNoticeAccepted: true,
+      investorCount: 0,
+      matchCount: 0,
+      committedAmountMin: 0,
+      committedAmountMax: 0,
+      validation: {
+        success: true,
+        status: 200,
+        message: 'ok',
+        checkedAt: '2026-06-01T00:00:00.000Z',
+        finalUrl: 'https://community.example.com',
+        responseTimeMs: 80,
+      },
+      createdAt: new Date('2026-06-01T12:00:00.000Z'),
+    });
+
+    state.nextUserId = 2;
+    state.nextProjectId = 2;
+    state.nextProposalId = 1;
+    state.nextEventId = 1;
+    state.nextReviewId = 1;
+  }, async (service) => {
+    const first = service.createProjectReview(1, {
+      email: 'member@protolive.local',
+      role: 'member',
+      type: 'review',
+      rating: 4,
+      body: '처음 보는 사용자도 바로 이해할 수 있어서 좋습니다.',
+    });
+
+    assert.equal(first.review.id, 1);
+    assert.equal(first.review.parentId, null);
+    assert.equal(first.review.rating, 4);
+    assert.equal(first.project.reviewSummary?.rootCount, 1);
+    assert.equal(first.project.reviewSummary?.replyCount, 0);
+    assert.equal(first.project.reviewSummary?.averageRating, 4);
+
+    const reply = service.createProjectReview(1, {
+      email: 'maker@protolive.local',
+      role: 'maker',
+      type: 'idea',
+      parentId: first.review.id,
+      body: '의견 감사합니다. 첫 화면 설명을 더 짧게 다듬겠습니다.',
+    });
+
+    assert.equal(reply.review.parentId, first.review.id);
+    assert.equal(reply.review.type, 'review');
+    assert.equal(reply.review.rating, null);
+    assert.equal(reply.project.reviewSummary?.rootCount, 1);
+    assert.equal(reply.project.reviewSummary?.replyCount, 1);
+    assert.equal(reply.project.reviewSummary?.total, 2);
+
+    const reviews = service.getProjectReviews(1);
+    assert.deepEqual(reviews.map((review) => review.id), [1, 2]);
+
+    assert.throws(
+      () =>
+        service.createProjectReview(1, {
+          email: 'member2@protolive.local',
+          role: 'member',
+          type: 'idea',
+          parentId: reply.review.id,
+          body: '대댓글에 다시 답글을 남기는 케이스입니다.',
+        }),
+      (error: unknown) => {
+        assert.ok(error instanceof BadRequestException);
+        assert.equal((error as BadRequestException).message, '대댓글에는 추가 답글을 남길 수 없습니다.');
+        return true;
+      },
+    );
+
+    assert.throws(
+      () =>
+        service.createProjectReview(1, {
+          email: 'member2@protolive.local',
+          role: 'member',
+          type: 'idea',
+          parentId: 999,
+          body: '존재하지 않는 원글에 답글을 남기는 케이스입니다.',
+        }),
+      (error: unknown) => {
+        assert.ok(error instanceof BadRequestException);
+        assert.equal((error as BadRequestException).message, '답글을 남길 원본 리뷰를 찾을 수 없습니다.');
+        return true;
+      },
+    );
   });
 });
 

@@ -1,5 +1,6 @@
 import {
   IsEmail,
+  IsArray,
   Equals,
   IsNotEmpty,
   IsIn,
@@ -7,6 +8,8 @@ import {
   IsString,
   IsUrl,
   MaxLength,
+  ArrayMaxSize,
+  ArrayUnique,
 } from 'class-validator';
 import { PROJECT_ACCESS_MODES, PROJECT_CATEGORIES, ProjectAccessMode, ProjectCategory } from '../project.constants';
 
@@ -57,4 +60,12 @@ export class CreateProjectDto {
   @IsOptional()
   @IsString({ message: '썸네일은 문자열이어야 합니다.' })
   thumbnail?: string;
+
+  @IsOptional()
+  @IsArray({ message: '태그는 배열이어야 합니다.' })
+  @ArrayMaxSize(8, { message: '태그는 최대 8개까지 입력할 수 있습니다.' })
+  @ArrayUnique({ message: '중복 태그는 제거해주세요.' })
+  @IsString({ each: true, message: '태그는 문자열이어야 합니다.' })
+  @MaxLength(24, { each: true, message: '태그는 24자 이하로 입력해주세요.' })
+  tags?: string[];
 }

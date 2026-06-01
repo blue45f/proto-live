@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
 } from 'class-validator';
 import { ProjectAccessMode, ProjectCategory, PROJECT_CATEGORIES } from '../project.constants';
@@ -17,6 +18,7 @@ export interface ProjectQueryInput {
   category?: string;
   accessMode?: ProjectAccessMode;
   q?: string;
+  tag?: string;
   onlyVerified?: boolean;
   minSignal?: number;
   minFundingAmount?: number;
@@ -59,6 +61,12 @@ export class GetProjectsQueryDto {
   @IsIn(['screened', 'open'], { message: '공개 범위가 유효하지 않습니다.' })
   @IsOptional()
   accessMode?: ProjectAccessMode;
+
+  @Transform(({ value }) => trimOrUndefined(value))
+  @IsString({ message: '태그는 문자열이어야 합니다.' })
+  @MaxLength(24, { message: '태그는 24자 이하로 입력해주세요.' })
+  @IsOptional()
+  tag?: string;
 
   @Transform(({ value }) => trimOrUndefined(value))
   @IsIn(['signal', 'recent', 'created', 'funding'], { message: '정렬 옵션이 유효하지 않습니다.' })

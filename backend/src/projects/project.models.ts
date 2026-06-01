@@ -16,6 +16,7 @@ export interface Project {
   description: string;
   liveUrl: string;
   category: ProjectCategory;
+  tags?: string[];
   accessMode: ProjectAccessMode;
   protectionNoticeAccepted: boolean;
   thumbnail?: string | null;
@@ -27,6 +28,7 @@ export interface Project {
   createdAt: Date;
   signalScore?: number;
   eventSummary?: ProjectEventSummary;
+  reviewSummary?: ProjectReviewSummary;
 }
 
 export interface User {
@@ -41,6 +43,40 @@ export interface MatchProposal {
   fundingRangeId: FundingRangeId;
   message: string;
   createdAt: Date;
+}
+
+export type ProjectReviewType = 'review' | 'support' | 'idea';
+
+export type ProjectReviewAuthorRole = 'maker' | 'investor' | 'member';
+
+export interface ProjectReview {
+  id: number;
+  projectId: number;
+  parentId?: number | null;
+  authorEmail: string;
+  authorRole: ProjectReviewAuthorRole;
+  type: ProjectReviewType;
+  rating?: number | null;
+  body: string;
+  createdAt: Date;
+}
+
+export interface ProjectReviewSummary {
+  total: number;
+  rootCount: number;
+  replyCount: number;
+  reviewCount: number;
+  supportCount: number;
+  ideaCount: number;
+  averageRating: number | null;
+  latestAt: string | null;
+  latest: {
+    id: number;
+    type: ProjectReviewType;
+    authorEmail: string;
+    body: string;
+    createdAt: string;
+  } | null;
 }
 
 export type ProjectEventType = 'create' | 'preview' | 'outbound' | 'match' | 'refresh';
@@ -229,10 +265,12 @@ export interface ProjectsState {
   projects: Project[];
   proposals: MatchProposal[];
   events: ProjectEvent[];
+  reviews: ProjectReview[];
   nextUserId: number;
   nextProjectId: number;
   nextProposalId: number;
   nextEventId: number;
+  nextReviewId: number;
 }
 
 export function createEmptyProjectsState(): ProjectsState {
@@ -241,9 +279,11 @@ export function createEmptyProjectsState(): ProjectsState {
     projects: [],
     proposals: [],
     events: [],
+    reviews: [],
     nextUserId: 1,
     nextProjectId: 1,
     nextProposalId: 1,
     nextEventId: 1,
+    nextReviewId: 1,
   };
 }
