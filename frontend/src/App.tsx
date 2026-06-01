@@ -88,6 +88,7 @@ type RevenueModelConfig = {
 const ADMIN_REVENUE_CONFIG_STORAGE_KEY = 'protolive:admin-revenue:v1';
 const ADMIN_REVENUE_SCENARIO_STORAGE_KEY = 'protolive:admin-revenue-scenarios:v1';
 const ADMIN_REVENUE_TARGET_STORAGE_KEY = 'protolive:admin-revenue-target:v1';
+const ADMIN_PATH_SEGMENT = 'admin';
 
 const DEFAULT_REVENUE_TARGET = 2500000;
 
@@ -851,7 +852,14 @@ function readInitialView(): AppView {
   }
 
   const url = new URL(window.location.href);
-  return url.searchParams.get('view') === 'admin' ? 'admin' : 'market';
+  const pathParts = url.pathname
+    .replace(/\/+$/, '')
+    .split('/')
+    .filter(Boolean)
+    .slice(-1)[0];
+  const isAdminPath = pathParts === ADMIN_PATH_SEGMENT;
+
+  return url.searchParams.get('view') === 'admin' || isAdminPath ? 'admin' : 'market';
 }
 
 function isPercentValue(value: number) {
@@ -898,6 +906,31 @@ function getRecommendationTone(priority: 'high' | 'medium' | 'low') {
   if (priority === 'high') return 'border-red-300/35 bg-red-950/30 text-red-100';
   if (priority === 'medium') return 'border-amber-300/35 bg-amber-950/30 text-amber-100';
   return 'border-cyan-300/35 bg-cyan-950/30 text-cyan-100';
+}
+
+const DRIVER_ACTION_HINT: Record<string, string> = {
+  makerMonthlyFee: '메이커 가격 정책은 A/B로 분기화하세요. 기본형/비즈니스형 플랜 혜택을 분리해 2주 단위로 전환률을 추적합니다.',
+  investorMonthlyFee: '투자자용 플랜은 업셀링 문구(성과 리포트, 우선 지원권)와 함께 노출해 가격 동의 전환 장벽을 낮춥니다.',
+  leadCaptureFee: '채널별 리드 단가 대비 실제 전환율이 좋은 채널을 선별하고, 저품질 채널은 즉시 배제해 재배치하세요.',
+  makerConversionRate:
+    '메이커 온보딩 완료율을 올리세요. 라이브 점검 가이드, 체크리스트 자동 알림, 업로드 품질 규정 준수율로 전환을 2주 내 개선합니다.',
+  investorConversionRate:
+    '투자자 참여 유입 후 24시간 내 첫 팔로업, 사례 기반 제안 메시지, 담당자 매칭 예약을 기본 플로우로 넣어 전환을 단축합니다.',
+  closeLeadRate:
+    '매칭 건 단위로 1차 리마인드·성공 KPI 템플릿을 운영해 리드 닫기 절차를 표준화하고 반송률을 줄입니다.',
+  successFeeRate:
+    '수수료율 인상은 계약 문구 업데이트와 거래 완료 보상 플로우 안정화 후 단계적으로 적용해 이탈 없이 진행하세요.',
+};
+
+function getDriverActionHint(driverKey: string) {
+  return DRIVER_ACTION_HINT[driverKey] ?? '현재 데이터 기반으로 병목 구간을 실험군 단위로 분해해 개선 포인트를 검증하세요.';
+}
+
+function formatPaybackValue(months: number) {
+  if (months <= 0 || !Number.isFinite(months)) {
+    return '회수 계산 미제공';
+  }
+  return `${months}개월`;
 }
 
 function upsertProject(projects: Project[], nextProject: Project) {
@@ -1533,7 +1566,18 @@ export default function App() {
     }
 
     const query = params.toString();
-    window.history.replaceState({}, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+    const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/';
+    const pathSegments = normalizedPath.split('/').filter(Boolean);
+    const isAdminPath = pathSegments.length > 0 && pathSegments[pathSegments.length - 1] === ADMIN_PATH_SEGMENT;
+    if (isAdminPath) {
+      pathSegments.pop();
+    }
+    const basePath = pathSegments.length > 0 ? `/${pathSegments.join('/')}` : '';
+    const nextPathname =
+      view === 'admin' ? `${basePath}/${ADMIN_PATH_SEGMENT}` : basePath || '/';
+    const safePathname = `/${nextPathname}`.replace(/\/{2,}/g, '/').replace(/\/+$/, '') || '/';
+
+    window.history.replaceState({}, '', `${safePathname}${query ? `?${query}` : ''}`);
 
     localStorage.setItem(
       FILTER_PRESET_STORAGE_KEY,
@@ -1865,10 +1909,11 @@ export default function App() {
             `${driver.label} (현행: ${formatDriverValue(driver.currentValue, driver.unit)} / 1단위효과: ${formatCurrency(
               driver.impactPerUnit,
             )} / 필요 증분: ${formatDriverValue(driver.requiredDelta, driver.unit)})`,
-            `${formatDriverValue(driver.requiredValue, driver.unit)} (현재 기여 ${formatDriverValue(
+            `${getDriverActionHint(driver.key)} / 목표 ${formatDriverValue(driver.requiredValue, driver.unit)} / ${formatCurrency(
+              driver.acquisitionCostPerUnit,
+            )}/단위 / 회수 ${formatPaybackValue(driver.estimatedPaybackMonths)} / 현재 기여 ${formatCurrency(
               driver.currentContribution,
-              'currency',
-            )} / 달성 필요)`,
+            )}`,
           ]);
         });
 
@@ -2611,6 +2656,9 @@ export default function App() {
                           >
                             <p className="font-black text-stone-100">{driver.label}</p>
                             <p className="mt-1 text-stone-300">
+                              액션 제안: {getDriverActionHint(driver.key)}
+                            </p>
+                            <p className="mt-1 text-stone-300">
                               현재 {formatDriverValue(driver.currentValue, driver.unit)} · 기여도{' '}
                               {formatCurrency(driver.currentContribution)}
                             </p>
@@ -2620,6 +2668,9 @@ export default function App() {
                             </p>
                             <p className="mt-1 text-stone-200">
                               달성 목표: {formatDriverValue(driver.requiredValue, driver.unit)}
+                            </p>
+                            <p className="mt-1 text-stone-400">
+                              획득비용 {formatCurrency(driver.acquisitionCostPerUnit)} / 회수 {formatPaybackValue(driver.estimatedPaybackMonths)}
                             </p>
                           </div>
                         ))

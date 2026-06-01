@@ -50,6 +50,7 @@ RATE_LIMIT_MAX_REQUESTS=120
 현재 앱은 비밀번호 기반 인증이 없고 이메일 입력 기반으로 역할이 구분됩니다.
 
 상세 목록은 `docs/test-accounts.md`를 참고하세요.
+관리자 화면은 `?view=admin` 또는 `/admin` 경로로 진입할 수 있습니다.
 
 ### 2. 프론트엔드 기동 (Vite + React + TypeScript + Tailwind v4)
 ```bash

@@ -250,6 +250,7 @@ export class ProjectsService {
       targetMonthlyRevenue: params.targetMonthlyRevenue ?? this.defaultMonthlyRevenueTarget,
       totalMonthlyRevenue,
       totalProjects: params.totalProjects,
+      verifiedProjects: params.verifiedProjects,
       totalInvestors: params.totalInvestors,
       totalSignals: params.totalSignals,
       averageCommittedPerInvestor,
@@ -261,6 +262,8 @@ export class ProjectsService {
       investorConversionRate: assumption.investorConversionRate,
       closeLeadRate: assumption.closeLeadRate,
       successFeeRate: assumption.successFeeRate,
+      makerAcquisitionCost: assumption.makerAcquisitionCost,
+      investorAcquisitionCost: assumption.investorAcquisitionCost,
     });
 
     return {
@@ -1286,6 +1289,7 @@ export class ProjectsService {
     targetMonthlyRevenue: number;
     totalMonthlyRevenue: number;
     totalProjects: number;
+    verifiedProjects: number;
     totalInvestors: number;
     totalSignals: number;
     averageCommittedPerInvestor: number;
@@ -1297,6 +1301,8 @@ export class ProjectsService {
     investorConversionRate: number;
     closeLeadRate: number;
     successFeeRate: number;
+    makerAcquisitionCost: number;
+    investorAcquisitionCost: number;
   }): AdminRevenueTargetGap {
     const targetMonthlyRevenue = Math.max(0, Math.floor(params.targetMonthlyRevenue));
     const shortfall = Math.max(0, targetMonthlyRevenue - params.totalMonthlyRevenue);
@@ -1312,6 +1318,7 @@ export class ProjectsService {
       drivers: this.buildRevenueTargetDrivers({
         shortfall,
         totalProjects: Math.max(1, params.totalProjects),
+        verifiedProjects: Math.max(1, params.verifiedProjects),
         totalInvestors: Math.max(1, params.totalInvestors),
         totalSignals: Math.max(1, params.totalSignals),
         averageCommittedPerInvestor: Math.max(0, params.averageCommittedPerInvestor),
@@ -1323,6 +1330,8 @@ export class ProjectsService {
         investorConversionRate: params.investorConversionRate,
         closeLeadRate: params.closeLeadRate,
         successFeeRate: params.successFeeRate,
+        makerAcquisitionCost: params.makerAcquisitionCost,
+        investorAcquisitionCost: params.investorAcquisitionCost,
       }),
     };
   }
@@ -1330,6 +1339,7 @@ export class ProjectsService {
   private buildRevenueTargetDrivers(params: {
     shortfall: number;
     totalProjects: number;
+    verifiedProjects: number;
     totalInvestors: number;
     totalSignals: number;
     averageCommittedPerInvestor: number;
@@ -1341,11 +1351,18 @@ export class ProjectsService {
     investorConversionRate: number;
     closeLeadRate: number;
     successFeeRate: number;
+    makerAcquisitionCost: number;
+    investorAcquisitionCost: number;
   }): AdminRevenueTargetDriver[] {
     const baseRates = {
       makerMonthlyPlan: (params.totalProjects * params.verifiedProjectShare * (params.makerConversionRate / 100)),
       investorMonthlyPlan: (params.totalInvestors * (params.investorConversionRate / 100)),
       leadCapture: params.totalSignals,
+    };
+
+    const estimatePercentPointCost = (acquisitionCost: number, impactedPopulation: number) => {
+      const affectedUnits = Math.max(1, this.toPositiveInteger(impactedPopulation, 1));
+      return this.roundMoney(acquisitionCost * (affectedUnits / 100));
     };
 
     const candidates: Array<{
@@ -1355,6 +1372,7 @@ export class ProjectsService {
       unit: 'currency' | 'percent';
       currentContribution: number;
       impactPerUnit: number;
+      acquisitionCostPerUnit: number;
     }> = [
       {
         key: 'makerMonthlyFee',
@@ -1363,6 +1381,7 @@ export class ProjectsService {
         unit: 'currency',
         currentContribution: Math.max(0, Math.round(baseRates.makerMonthlyPlan * params.makerMonthlyFee)),
         impactPerUnit: Math.max(0, baseRates.makerMonthlyPlan),
+        acquisitionCostPerUnit: 0,
       },
       {
         key: 'investorMonthlyFee',
@@ -1371,6 +1390,7 @@ export class ProjectsService {
         unit: 'currency',
         currentContribution: Math.max(0, Math.round(baseRates.investorMonthlyPlan * params.investorMonthlyFee)),
         impactPerUnit: Math.max(0, baseRates.investorMonthlyPlan),
+        acquisitionCostPerUnit: 0,
       },
       {
         key: 'leadCaptureFee',
@@ -1379,6 +1399,7 @@ export class ProjectsService {
         unit: 'currency',
         currentContribution: Math.max(0, baseRates.leadCapture * params.leadCaptureFee),
         impactPerUnit: Math.max(0, baseRates.leadCapture),
+        acquisitionCostPerUnit: 0,
       },
       {
         key: 'makerConversionRate',
@@ -1387,6 +1408,7 @@ export class ProjectsService {
         unit: 'percent',
         currentContribution: Math.max(0, Math.round(baseRates.makerMonthlyPlan * params.makerMonthlyFee / 100)),
         impactPerUnit: Math.max(0, baseRates.makerMonthlyPlan * params.makerMonthlyFee / 100),
+        acquisitionCostPerUnit: estimatePercentPointCost(params.makerAcquisitionCost, params.verifiedProjects),
       },
       {
         key: 'investorConversionRate',
@@ -1395,6 +1417,7 @@ export class ProjectsService {
         unit: 'percent',
         currentContribution: Math.max(0, Math.round(baseRates.investorMonthlyPlan * params.investorMonthlyFee / 100)),
         impactPerUnit: Math.max(0, baseRates.investorMonthlyPlan * params.investorMonthlyFee / 100),
+        acquisitionCostPerUnit: estimatePercentPointCost(params.investorAcquisitionCost, params.totalInvestors),
       },
       {
         key: 'closeLeadRate',
@@ -1406,6 +1429,7 @@ export class ProjectsService {
           Math.round(params.totalInvestors * params.averageCommittedPerInvestor * (params.successFeeRate / 100) * (params.closeLeadRate / 100)),
         ),
         impactPerUnit: Math.max(0, params.totalInvestors * params.averageCommittedPerInvestor * (params.successFeeRate / 100) / 100),
+        acquisitionCostPerUnit: estimatePercentPointCost(params.investorAcquisitionCost, params.totalInvestors),
       },
       {
         key: 'successFeeRate',
@@ -1417,6 +1441,7 @@ export class ProjectsService {
           Math.round(params.totalInvestors * params.averageCommittedPerInvestor * (params.closeLeadRate / 100) * (params.successFeeRate / 100)),
         ),
         impactPerUnit: Math.max(0, params.totalInvestors * params.averageCommittedPerInvestor * (params.closeLeadRate / 100) / 100),
+        acquisitionCostPerUnit: estimatePercentPointCost(params.investorAcquisitionCost, params.totalInvestors),
       },
     ];
 
@@ -1446,6 +1471,11 @@ export class ProjectsService {
           impactPerUnit: this.roundRate(candidate.impactPerUnit),
           requiredDelta: normalizedRequiredDelta,
           requiredValue: normalizedRequiredValue,
+          acquisitionCostPerUnit: this.roundMoney(candidate.acquisitionCostPerUnit),
+          estimatedPaybackMonths: this.estimatePaybackMonths(
+            candidate.acquisitionCostPerUnit,
+            candidate.impactPerUnit,
+          ),
         };
       })
       .sort((a, b) => {

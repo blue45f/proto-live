@@ -171,6 +171,8 @@ export interface AdminRevenueTargetDriver {
   impactPerUnit: number;
   requiredDelta: number;
   requiredValue: number;
+  acquisitionCostPerUnit: number;
+  estimatedPaybackMonths: number;
 }
 
 export interface AdminRevenueTargetGap {
