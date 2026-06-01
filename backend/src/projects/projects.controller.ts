@@ -47,6 +47,15 @@ export class ProjectsController {
   }
 
   /**
+   * GET /api/projects/admin-dashboard
+   * 관리자 화면에서 사용할 고급 펀널/프로젝트 성과 지표를 반환합니다.
+   */
+  @Get('admin-dashboard')
+  getAdminDashboard() {
+    return this.projectsService.getAdminDashboard();
+  }
+
+  /**
    * POST /api/projects/refresh
    * 등록된 프로젝트의 라이브 URL 상태를 다시 확인합니다.
    */

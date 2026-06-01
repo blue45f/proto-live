@@ -13,6 +13,11 @@ import {
   Project,
   ProjectEvent,
   ProjectEventType,
+  AdminDashboardMetrics,
+  AdminEventTrendPoint,
+  AdminFunnelMetric,
+  AdminRangeMetric,
+  AdminTopProjectMetric,
   ProjectsState,
   User,
   ValidationSnapshot,
@@ -123,6 +128,117 @@ export class ProjectsService {
       totalSignals: this.events.length,
       topSignals,
       lastUpdatedAt: new Date().toISOString(),
+    };
+  }
+
+  getAdminDashboard(): AdminDashboardMetrics {
+    const now = new Date();
+    const eventTotals: Record<ProjectEventType, number> = {
+      create: 0,
+      preview: 0,
+      outbound: 0,
+      match: 0,
+      refresh: 0,
+    };
+
+    const eventTrend14d = this.buildEventTrend(now);
+    let previewCount = 0;
+    let outboundCount = 0;
+    let matchCount = 0;
+
+    for (const event of this.events) {
+      const bucket = eventTotals[event.type];
+      eventTotals[event.type] = bucket + 1;
+
+      if (event.type === 'preview') {
+        previewCount += 1;
+      } else if (event.type === 'outbound') {
+        outboundCount += 1;
+      } else if (event.type === 'match') {
+        matchCount += 1;
+      }
+    }
+
+    const accessModeDistribution = [
+      this.buildAccessModeMetric(this.projects.filter((project) => project.accessMode === 'open'), 'open'),
+      this.buildAccessModeMetric(this.projects.filter((project) => project.accessMode === 'screened'), 'screened'),
+    ];
+
+    const rangeMetrics = this.buildProposalRangeDistribution();
+
+    const hydrationCache = new Map<number, Project>();
+    const projects = this.projects
+      .map((project) => {
+        const projectCache = hydrationCache.get(project.id);
+        if (projectCache) {
+          return projectCache;
+        }
+
+        const hydrated = this.hydrateProject(project);
+        hydrationCache.set(project.id, hydrated);
+        return hydrated;
+      })
+      .map((project): AdminTopProjectMetric => ({
+        id: project.id,
+        title: project.title,
+        category: project.category,
+        accessMode: project.accessMode,
+        signalScore: project.signalScore ?? 0,
+        investorCount: project.investorCount,
+        matchCount: project.matchCount,
+        committedAmountMin: project.committedAmountMin,
+        committedAmountMax: project.committedAmountMax,
+      }));
+
+    const topMatchProjects = [...projects]
+      .sort((a, b) => {
+        const matchCountDiff = b.matchCount - a.matchCount;
+        if (matchCountDiff !== 0) {
+          return matchCountDiff;
+        }
+
+        return b.investorCount - a.investorCount;
+      })
+      .slice(0, 8);
+
+    const topSignalProjects = [...projects]
+      .sort((a, b) => (b.signalScore ?? 0) - (a.signalScore ?? 0))
+      .slice(0, 6);
+
+    const categoryPerformance = PROJECT_CATEGORIES.map((category) => {
+      const categoryProjects = this.projects.filter((project) => project.category === category);
+      return {
+        category,
+        projects: categoryProjects.length,
+        investorCount: categoryProjects.reduce((sum, project) => sum + project.investorCount, 0),
+        matchCount: categoryProjects.reduce((sum, project) => sum + project.matchCount, 0),
+        committedAmountMax: categoryProjects.reduce((sum, project) => sum + project.committedAmountMax, 0),
+      };
+    }).filter((item) => item.projects > 0);
+
+    const conversionFunnel: AdminFunnelMetric = {
+      previewToMatchRate: this.calculateRate(matchCount, previewCount),
+      outboundToMatchRate: this.calculateRate(matchCount, outboundCount),
+      matchPerProjectRate: this.calculateRate(
+        this.projects.reduce((sum, project) => sum + project.matchCount, 0),
+        Math.max(1, this.projects.length),
+      ),
+      matchCount,
+      previewCount,
+      outboundCount,
+      totalEvents: this.events.length,
+    };
+
+    return {
+      conversionFunnel,
+      eventTrend14d,
+      eventTotals,
+      accessModeDistribution,
+      topMatchProjects,
+      topSignalProjects,
+      categoryPerformance,
+      proposalRangeDistribution: rangeMetrics,
+      lastUpdatedAt: now.toISOString(),
     };
   }
 
@@ -466,6 +582,110 @@ export class ProjectsService {
     };
     this.events.push(event);
     return event;
+  }
+
+  private buildAccessModeMetric(projects: Project[], accessMode: ProjectAccessMode) {
+    const verified = projects.filter((project) => project.validation.success).length;
+
+    return {
+      accessMode,
+      projects: projects.length,
+      verified,
+    };
+  }
+
+  private buildProposalRangeDistribution(): AdminRangeMetric[] {
+    const rangeMap = new Map<string, AdminRangeMetric>(
+      FUNDING_RANGES.map((range) => [
+        range.id,
+        {
+          rangeId: range.id,
+          label: range.label,
+          proposalCount: 0,
+          totalMinAmount: 0,
+          totalMaxAmount: 0,
+          averageAmount: 0,
+        },
+      ]),
+    );
+
+    for (const proposal of this.proposals) {
+      const range = FUNDING_RANGES.find((item) => item.id === proposal.fundingRangeId);
+      if (!range) {
+        continue;
+      }
+
+      const metric = rangeMap.get(range.id);
+      if (!metric) {
+        continue;
+      }
+
+      metric.proposalCount += 1;
+      metric.totalMinAmount += range.minAmount;
+      metric.totalMaxAmount += range.maxAmount;
+    }
+
+    const metrics = Array.from(rangeMap.values()).map((metric) => {
+      const averageAmount =
+        metric.proposalCount > 0
+          ? Math.round((metric.totalMinAmount + metric.totalMaxAmount) / (2 * metric.proposalCount))
+          : 0;
+
+      return {
+        ...metric,
+        averageAmount,
+      };
+    });
+
+    return metrics
+      .filter((metric) => metric.proposalCount > 0 || metric.totalMinAmount > 0 || metric.totalMaxAmount > 0)
+      .sort((a, b) => b.proposalCount - a.proposalCount);
+  }
+
+  private buildEventTrend(referenceDate: Date): AdminEventTrendPoint[] {
+    const now = new Date(referenceDate);
+    const trend: AdminEventTrendPoint[] = [];
+    const buckets = new Map<string, AdminEventTrendPoint>();
+
+    for (let offset = 13; offset >= 0; offset--) {
+      const day = new Date(now);
+      day.setDate(day.getDate() - offset);
+
+      const key = day.toISOString().slice(0, 10);
+      buckets.set(key, {
+        date: key,
+        total: 0,
+        create: 0,
+        preview: 0,
+        outbound: 0,
+        match: 0,
+        refresh: 0,
+      });
+    }
+
+    for (const event of this.events) {
+      const dateKey = event.createdAt.toISOString().slice(0, 10);
+      const bucket = buckets.get(dateKey);
+      if (!bucket) {
+        continue;
+      }
+
+      bucket[event.type] += 1;
+      bucket.total += 1;
+    }
+
+    for (const point of buckets.values()) {
+      trend.push(point);
+    }
+
+    return trend;
+  }
+
+  private calculateRate(numerator: number, denominator: number) {
+    if (denominator <= 0) {
+      return 0;
+    }
+    return Math.max(0, Math.min(100, Math.round((numerator / denominator) * 1000) / 10));
   }
 
   private hydrateProject(project: Project): Project {
