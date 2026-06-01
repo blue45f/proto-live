@@ -14,14 +14,15 @@ import {
   Globe2,
   Layers3,
   Loader2,
+  ShieldCheck,
   Plus,
   Radar,
   RefreshCw,
   Search,
   Send,
-  ShieldCheck,
   Signal,
   Sparkles,
+  Star,
   TimerReset,
   X,
   Zap,
@@ -29,6 +30,7 @@ import {
 import {
   API_BASE,
   FundingRange,
+  ProjectListQuery,
   MarketConfig,
   MarketStats,
   Project,
@@ -38,8 +40,10 @@ import {
   ValidationSnapshot,
   createMatchProposal,
   createProject,
+  fetchMarketConfig,
+  fetchMarketStats,
+  fetchProjects,
   fetchProjectEvents,
-  fetchMarketSnapshot,
   getApiErrorMessage,
   recordProjectEvent,
   refreshAllProjects,
@@ -161,8 +165,30 @@ export default function App() {
   const [loadError, setLoadError] = useState('');
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedAccessMode, setSelectedAccessMode] = useState<'All' | ProjectAccessMode>('All');
   const [sortMode, setSortMode] = useState<'signal' | 'recent' | 'created'>('signal');
+  const [onlyVerified, setOnlyVerified] = useState(false);
+  const [minSignal, setMinSignal] = useState(0);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [favoriteProjectIds, setFavoriteProjectIds] = useState<Set<number>>(() => {
+    if (typeof window === 'undefined') {
+      return new Set<number>();
+    }
+
+    try {
+      const raw = localStorage.getItem('protolive:favorites');
+      if (!raw) {
+        return new Set<number>();
+      }
+
+      const parsed = JSON.parse(raw);
+      return new Set(Array.isArray(parsed) ? parsed : []);
+    } catch {
+      return new Set<number>();
+    }
+  });
 
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
   const [email, setEmail] = useState('');
@@ -189,22 +215,35 @@ export default function App() {
   const [matchMessage, setMatchMessage] = useState('');
   const [isSendingMatch, setIsSendingMatch] = useState(false);
 
+  const projectQuery = useMemo<ProjectListQuery>(() => {
+    return {
+      q: debouncedSearch,
+      category: selectedCategory === 'All' ? undefined : selectedCategory,
+      accessMode: selectedAccessMode === 'All' ? undefined : selectedAccessMode,
+      sort: sortMode,
+      minSignal: minSignal > 0 ? minSignal : undefined,
+      onlyVerified,
+    };
+  }, [debouncedSearch, minSignal, onlyVerified, selectedAccessMode, selectedCategory, sortMode]);
+
   const loadSnapshot = useCallback(async (showLoading = false) => {
     if (showLoading) setIsRefreshing(true);
 
     try {
-      const snapshot = await fetchMarketSnapshot();
-      setConfig(snapshot.config);
-      setStats(snapshot.stats);
-      setProjects(snapshot.projects);
+      const [configData, statsData, projectsData] = await Promise.all([
+        fetchMarketConfig(),
+        fetchMarketStats(),
+        fetchProjects(projectQuery),
+      ]);
+
+      setConfig(configData);
+      setStats(statsData);
+      setProjects(projectsData);
       setApiOnline(true);
       setLoadError('');
 
-      if (!category && snapshot.config.categories.length > 0) {
-        setCategory(snapshot.config.categories[0]);
-      }
-      if (!fundingRangeId && snapshot.config.fundingRanges.length > 0) {
-        setFundingRangeId(snapshot.config.fundingRanges[2]?.id ?? snapshot.config.fundingRanges[0].id);
+      if (!fundingRangeId && configData.fundingRanges.length > 0) {
+        setFundingRangeId(configData.fundingRanges[2]?.id ?? configData.fundingRanges[0].id);
       }
     } catch {
       setApiOnline(false);
@@ -216,7 +255,7 @@ export default function App() {
       setIsInitialLoading(false);
       setIsRefreshing(false);
     }
-  }, [category, fundingRangeId]);
+  }, [fundingRangeId, projectQuery]);
 
   const loadProjectEvents = useCallback(async (projectId: number) => {
     setIsPreviewEventsLoading(true);
@@ -228,6 +267,38 @@ export default function App() {
       setIsPreviewEventsLoading(false);
     }
   }, []);
+
+  const visibleProjects = useMemo(() => {
+    return showFavoritesOnly ? projects.filter((project) => favoriteProjectIds.has(project.id)) : projects;
+  }, [projects, favoriteProjectIds, showFavoritesOnly]);
+
+  const toggleFavorite = useCallback((projectId: number) => {
+    setFavoriteProjectIds((current) => {
+      const next = new Set(current);
+      if (next.has(projectId)) {
+        next.delete(projectId);
+      } else {
+        next.add(projectId);
+      }
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 280);
+
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    localStorage.setItem('protolive:favorites', JSON.stringify(Array.from(favoriteProjectIds)));
+  }, [favoriteProjectIds]);
+
+  const categoryOptions = useMemo(() => ['All', ...config.categories], [config.categories]);
+  const accessModeOptions: Array<'All' | ProjectAccessMode> = ['All', ...config.accessModes.map((item) => item.id)];
+  const activeFundingRange = config.fundingRanges.find((range) => range.id === fundingRangeId);
 
   useEffect(() => {
     const initialize = async () => {
@@ -243,41 +314,6 @@ export default function App() {
 
     return () => window.clearInterval(timer);
   }, [config.refreshIntervalMs, loadSnapshot]);
-
-  const filteredProjects = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-
-    const visible = projects.filter((project) => {
-      const matchesCategory = selectedCategory === 'All' || project.category === selectedCategory;
-      const matchesSearch =
-        query.length === 0 ||
-        project.title.toLowerCase().includes(query) ||
-        project.description.toLowerCase().includes(query) ||
-        project.category.toLowerCase().includes(query) ||
-        project.liveUrl.toLowerCase().includes(query);
-
-      return matchesCategory && matchesSearch;
-    });
-
-    return [...visible].sort((a, b) => {
-      if (sortMode === 'signal') {
-        const diff = (b.signalScore ?? 0) - (a.signalScore ?? 0);
-        if (diff !== 0) return diff;
-      }
-
-      if (sortMode === 'recent') {
-        const aTime = a.eventSummary?.latestAt ? new Date(a.eventSummary.latestAt).getTime() : 0;
-        const bTime = b.eventSummary?.latestAt ? new Date(b.eventSummary.latestAt).getTime() : 0;
-        const diff = bTime - aTime;
-        if (diff !== 0) return diff;
-      }
-
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-  }, [projects, searchQuery, selectedCategory, sortMode]);
-
-  const categoryOptions = useMemo(() => ['All', ...config.categories], [config.categories]);
-  const activeFundingRange = config.fundingRanges.find((range) => range.id === fundingRangeId);
 
   async function handleVerifyUrl() {
     if (!liveUrl.trim()) {
@@ -569,7 +605,7 @@ export default function App() {
           )}
 
           <div className="rounded-xl border border-stone-800 bg-[oklch(17%_0.018_205)] p-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-3">
               <div className="flex flex-wrap gap-2">
                 {categoryOptions.map((item) => (
                   <button
@@ -586,45 +622,99 @@ export default function App() {
                   </button>
                 ))}
               </div>
-              <div className="relative w-full lg:w-[360px]">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
-                <input
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="이름, 설명, URL, 카테고리 검색"
-                  className="min-h-11 w-full rounded-lg border border-stone-700 bg-stone-950/70 pl-10 pr-3 text-sm text-stone-100 outline-none transition placeholder:text-stone-500 focus:border-cyan-300/60"
-                />
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="relative w-full lg:w-[360px]">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
+                  <input
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="이름, 설명, URL, 카테고리 검색"
+                    className="min-h-11 w-full rounded-lg border border-stone-700 bg-stone-950/70 pl-10 pr-3 text-sm text-stone-100 outline-none transition placeholder:text-stone-500 focus:border-cyan-300/60"
+                  />
+                </div>
+                <div className="flex rounded-lg border border-stone-700 bg-stone-950/60 p-1">
+                  {[
+                    ['signal', 'Signal'],
+                    ['recent', '최근 신호'],
+                    ['created', '등록순'],
+                  ].map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => setSortMode(value as typeof sortMode)}
+                      className={`min-h-9 rounded-md px-3 text-xs font-black transition ${
+                        sortMode === value
+                          ? 'bg-cyan-300 text-slate-950'
+                          : 'text-stone-400 hover:text-stone-100'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="flex rounded-lg border border-stone-700 bg-stone-950/60 p-1">
-                {[
-                  ['signal', 'Signal'],
-                  ['recent', '최근 신호'],
-                  ['created', '등록순'],
-                ].map(([value, label]) => (
+              <div className="flex flex-wrap gap-2">
+                {accessModeOptions.map((item) => (
                   <button
-                    key={value}
+                    key={item}
                     type="button"
-                    onClick={() => setSortMode(value as typeof sortMode)}
-                    className={`min-h-9 rounded-md px-3 text-xs font-black transition ${
-                      sortMode === value
-                        ? 'bg-cyan-300 text-slate-950'
-                        : 'text-stone-400 hover:text-stone-100'
+                    onClick={() => setSelectedAccessMode(item)}
+                    className={`min-h-10 rounded-lg border px-3 text-xs font-black transition ${
+                      selectedAccessMode === item
+                        ? 'border-cyan-300/50 bg-cyan-300 text-slate-950'
+                        : 'border-stone-700 bg-stone-950/50 text-stone-300 hover:border-cyan-300/40 hover:text-cyan-100'
                     }`}
                   >
-                    {label}
+                    {item}
                   </button>
                 ))}
+              </div>
+              <div className="flex flex-wrap items-center gap-3 text-xs font-black text-stone-300">
+                <label className="inline-flex items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={onlyVerified}
+                    onChange={(event) => setOnlyVerified(event.target.checked)}
+                  />
+                  <span>검증된 프로젝트만</span>
+                </label>
+                <label className="inline-flex items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2">
+                  최소 시그널
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={minSignal}
+                    onChange={(event) => {
+                      const next = Number(event.target.value);
+                      setMinSignal(Number.isFinite(next) ? Math.max(0, Math.floor(next)) : 0);
+                    }}
+                    className="ml-1 w-20 rounded bg-stone-950 border border-stone-700 px-2 py-1 text-right text-xs font-black text-stone-100 outline-none"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowFavoritesOnly((value) => !value)}
+                  className={`inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 ${
+                    showFavoritesOnly
+                      ? 'border-amber-300/60 bg-amber-300/20 text-amber-100'
+                      : 'border-stone-700 bg-stone-950/55 text-stone-300'
+                  }`}
+                >
+                  <Star className={`h-4 w-4 ${showFavoritesOnly ? 'fill-amber-100 text-amber-100' : 'text-stone-300'}`} />
+                  즐겨찾기만
+                </button>
               </div>
             </div>
           </div>
 
           {isInitialLoading ? (
             <ProjectSkeleton />
-          ) : filteredProjects.length === 0 ? (
+          ) : visibleProjects.length === 0 ? (
             <EmptyState apiOnline={apiOnline} onCreate={() => setIsSubmitOpen(true)} />
           ) : (
             <div className="grid gap-4">
-              {filteredProjects.map((project) => (
+              {visibleProjects.map((project) => (
                 <ProjectCard
                   key={project.id}
                   project={project}
@@ -632,6 +722,8 @@ export default function App() {
                   onMatch={() => setMatchingProject(project)}
                   onRefresh={() => void handleRefreshProject(project)}
                   onOutbound={() => void handleProjectEvent(project, 'outbound')}
+                  isFavorite={favoriteProjectIds.has(project.id)}
+                  onToggleFavorite={() => toggleFavorite(project.id)}
                 />
               ))}
             </div>
@@ -1129,12 +1221,16 @@ function ProjectCard({
   onMatch,
   onRefresh,
   onOutbound,
+  onToggleFavorite,
+  isFavorite,
 }: {
   project: Project;
   onPreview: () => void;
   onMatch: () => void;
   onRefresh: () => void;
   onOutbound: () => void;
+  onToggleFavorite: () => void;
+  isFavorite: boolean;
 }) {
   const isProtected = project.accessMode === 'screened';
 
@@ -1194,6 +1290,19 @@ function ProjectCard({
             </div>
           </div>
           <div className="grid gap-2">
+            <button
+              type="button"
+              onClick={onToggleFavorite}
+              className={`grid min-h-10 place-items-center rounded-lg border text-xs font-black transition ${
+                isFavorite
+                  ? 'border-amber-300/70 bg-amber-300/10 text-amber-100'
+                  : 'border-stone-700 text-stone-300 hover:border-stone-500'
+              }`}
+              aria-label={isFavorite ? `${project.title} 즐겨찾기 해제` : `${project.title} 즐겨찾기 추가`}
+              title={isFavorite ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+            >
+              <Star className={`h-4 w-4 ${isFavorite ? 'fill-amber-100' : ''}`} />
+            </button>
             <button
               type="button"
               onClick={isProtected ? onMatch : onPreview}

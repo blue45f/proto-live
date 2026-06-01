@@ -99,6 +99,15 @@ export interface CreateMatchPayload {
   message: string;
 }
 
+export interface ProjectListQuery {
+  q?: string;
+  category?: string;
+  accessMode?: ProjectAccessMode;
+  sort?: 'signal' | 'recent' | 'created';
+  minSignal?: number;
+  onlyVerified?: boolean;
+}
+
 interface ApiErrorBody {
   message?: string | string[];
 }
@@ -115,17 +124,32 @@ const client = axios.create({
   timeout: 12000,
 });
 
+export async function fetchMarketConfig() {
+  const response = await client.get<MarketConfig>('/projects/config');
+  return response.data;
+}
+
+export async function fetchMarketStats() {
+  const response = await client.get<MarketStats>('/projects/stats');
+  return response.data;
+}
+
+export async function fetchProjects(query: ProjectListQuery = {}) {
+  const response = await client.get<Project[]>('/projects', { params: normalizeProjectQuery(query) });
+  return response.data;
+}
+
 export async function fetchMarketSnapshot() {
   const [config, stats, projects] = await Promise.all([
-    client.get<MarketConfig>('/projects/config'),
-    client.get<MarketStats>('/projects/stats'),
-    client.get<Project[]>('/projects'),
+    fetchMarketConfig(),
+    fetchMarketStats(),
+    fetchProjects(),
   ]);
 
   return {
-    config: config.data,
-    stats: stats.data,
-    projects: projects.data,
+    config,
+    stats,
+    projects,
   };
 }
 
@@ -162,6 +186,19 @@ export async function recordProjectEvent(id: number, type: 'preview' | 'outbound
 export async function fetchProjectEvents(id: number) {
   const response = await client.get<ProjectEvent[]>(`/projects/${id}/events`);
   return response.data;
+}
+
+function normalizeProjectQuery(query: ProjectListQuery): Record<string, string | number> {
+  const params: Record<string, string | number> = {};
+
+  if (query.q?.trim()) params.q = query.q.trim();
+  if (query.category?.trim()) params.category = query.category.trim();
+  if (query.accessMode) params.accessMode = query.accessMode;
+  if (query.sort && query.sort !== 'signal') params.sort = query.sort;
+  if (query.minSignal !== undefined && Number.isFinite(query.minSignal)) params.minSignal = query.minSignal;
+  if (query.onlyVerified === true) params.onlyVerified = 'true';
+
+  return params;
 }
 
 export function getApiErrorMessage(error: unknown, fallback: string): string {
