@@ -118,9 +118,18 @@ def main() -> None:
             expect(page).to_have_url(re.compile(r".*/admin"))
             expect(page.get_by_role("button", name="프로토타입 등록")).to_be_visible()
             expect(page.get_by_text("수익 모델·운영 지표를 실험하는 관리자 대시보드")).to_be_visible()
-            expect(page.get_by_role("button", name=re.compile("추천 적용")).first).to_be_visible()
-            page.get_by_role("button", name=re.compile("추천 적용")).first.click()
-            expect(page.get_by_text("추천 액션 적용")).to_be_visible()
+            batch_apply = page.get_by_role("button", name=re.compile("우선순위 일괄 실행"))
+            individual_apply = page.get_by_role("button", name=re.compile("추천 적용"))
+            if batch_apply.count() > 0:
+                expect(batch_apply).to_be_visible()
+                batch_apply.click()
+                expect(page.get_by_text("일괄 추천 적용")).to_be_visible()
+            elif individual_apply.count() > 0:
+                expect(individual_apply.first).to_be_visible()
+                individual_apply.first.click()
+                expect(page.get_by_text("추천 액션 적용")).to_be_visible()
+            else:
+                raise Exception("운영 추천 액션 버튼을 찾을 수 없습니다.")
             page.screenshot(path="/private/tmp/protolive-admin-smoke.png", full_page=True)
 
             mobile.goto(base_url, wait_until="networkidle")
