@@ -43,7 +43,6 @@ import {
   MarketConfig,
   MarketStats,
   AdminDashboardSnapshot,
-  ProjectListPayload,
   Project,
   ProjectAccessMode,
   ProjectEvent,
@@ -54,6 +53,7 @@ import {
   createProject,
   fetchMarketConfig,
   fetchAdminDashboard,
+  fetchAdminRevenueProjection,
   fetchMarketStats,
   extractProjects,
   fetchProjects,
@@ -80,6 +80,9 @@ type RevenueModelConfig = {
   investorConversionRate: number;
   closeLeadRate: number;
   successFeeRate: number;
+  investorAcquisitionCost: number;
+  makerAcquisitionCost: number;
+  estimatedMonthlyChurnRate: number;
 };
 
 const ADMIN_REVENUE_CONFIG_STORAGE_KEY = 'protolive:admin-revenue:v1';
@@ -92,6 +95,9 @@ const DEFAULT_REVENUE_CONFIG: RevenueModelConfig = {
   investorConversionRate: 14,
   closeLeadRate: 12,
   successFeeRate: 3.5,
+  investorAcquisitionCost: 180000,
+  makerAcquisitionCost: 280000,
+  estimatedMonthlyChurnRate: 12,
 };
 
 const ADMIN_DASHBOARD_POLL_INTERVAL_MS = 30000;
@@ -112,6 +118,9 @@ const REVENUE_PRESETS: Array<{ id: string; name: string; label: string; descript
         makerConversionRate: 10,
         investorConversionRate: 8,
         closeLeadRate: 8,
+        investorAcquisitionCost: 240000,
+        makerAcquisitionCost: 320000,
+        estimatedMonthlyChurnRate: 16,
       },
     },
     {
@@ -135,6 +144,9 @@ const REVENUE_PRESETS: Array<{ id: string; name: string; label: string; descript
         investorConversionRate: 20,
         closeLeadRate: 18,
         successFeeRate: 5,
+        investorAcquisitionCost: 150000,
+        makerAcquisitionCost: 240000,
+        estimatedMonthlyChurnRate: 9,
       },
     },
   ];
@@ -150,7 +162,7 @@ const REVENUE_MODEL_FIELDS: Array<{
   label: string;
   helper: string;
   kind: RevenueModelFieldKind;
-}> = [
+  }> = [
   {
     key: 'makerMonthlyFee',
     label: '메이커 월 정액',
@@ -166,14 +178,32 @@ const REVENUE_MODEL_FIELDS: Array<{
   {
     key: 'leadCaptureFee',
     label: '리드 캡처 단가',
-    helper: '매칭·프리뷰·아웃바운드 이벤트를 리드로 가정할 때',
-    kind: 'currency',
-  },
-  {
-    key: 'makerConversionRate',
-    label: '메이커 전환률',
-    helper: '검증 프로젝트 중 유효 플랜 전환 비율',
-    kind: 'percent',
+      helper: '매칭·프리뷰·아웃바운드 이벤트를 리드로 가정할 때',
+      kind: 'currency',
+    },
+    {
+      key: 'investorAcquisitionCost',
+      label: '투자자 획득비용(CAC)',
+      helper: '신규 투자자 1명 확보 시 투입되는 운영 비용을 월 단위로 환산한 값',
+      kind: 'currency',
+    },
+    {
+      key: 'makerAcquisitionCost',
+      label: '메이커 획득비용(CAC)',
+      helper: '프로젝트 주도형 메이커 1명을 유입/온보딩하는 데 필요한 비용',
+      kind: 'currency',
+    },
+    {
+      key: 'estimatedMonthlyChurnRate',
+      label: '예상 월 이탈률',
+      helper: '구독/활동 기반 이탈 비율을 월 단위로 반영한 LTV 산정값',
+      kind: 'percent',
+    },
+    {
+      key: 'makerConversionRate',
+      label: '메이커 전환률',
+      helper: '검증 프로젝트 중 유효 플랜 전환 비율',
+      kind: 'percent',
   },
   {
     key: 'investorConversionRate',
@@ -251,6 +281,112 @@ const EMPTY_ADMIN_DASHBOARD: AdminDashboardSnapshot = {
     warningCount: 0,
   },
   recommendations: [],
+  revenue: {
+    assumptions: {
+      ...DEFAULT_REVENUE_CONFIG,
+    },
+    monthlyMakerPlanRevenue: 0,
+    monthlyInvestorPlanRevenue: 0,
+    monthlyLeadRevenue: 0,
+    monthlyTransactionRevenue: 0,
+    totalMonthlyRevenue: 0,
+    annualRevenue: 0,
+    verifiedProjectShare: 0,
+    averageCommittedPerInvestor: 0,
+    arpu: 0,
+    arppu: 0,
+    investorLtvEstimate: 0,
+    makerPaybackMonths: 0,
+    investorPaybackMonths: 0,
+    benchmarkGaps: [
+      {
+        key: 'verifiedProjectShare',
+        label: '검증 프로젝트 비중',
+        actual: 0,
+        target: 68,
+        gap: -68,
+        unit: 'percent',
+        status: 'critical',
+        comment: '검증 프로젝트 비중이 목표 대비 68% 부족입니다.',
+      },
+      {
+        key: 'previewToMatchRate',
+        label: '프리뷰→매칭 전환',
+        actual: 0,
+        target: 12,
+        gap: -12,
+        unit: 'percent',
+        status: 'critical',
+        comment: '프리뷰→매칭 전환이 목표 대비 12% 부족입니다.',
+      },
+      {
+        key: 'outboundToMatchRate',
+        label: '아웃바운드→매칭 전환',
+        actual: 0,
+        target: 18,
+        gap: -18,
+        unit: 'percent',
+        status: 'critical',
+        comment: '아웃바운드→매칭 전환이 목표 대비 18% 부족입니다.',
+      },
+      {
+        key: 'matchPerProjectRate',
+        label: '프로젝트당 매칭율',
+        actual: 0,
+        target: 30,
+        gap: -30,
+        unit: 'percent',
+        status: 'critical',
+        comment: '프로젝트당 매칭율이 목표 대비 30% 부족입니다.',
+      },
+      {
+        key: 'monthlyRevenue',
+        label: '월 수익',
+        actual: 0,
+        target: 2500000,
+        gap: -2500000,
+        unit: 'currency',
+        status: 'critical',
+        comment: '월 수익이 목표 대비 2,500,000원 부족입니다.',
+      },
+      {
+        key: 'arpu',
+        label: 'ARPU',
+        actual: 0,
+        target: 50000,
+        gap: -50000,
+        unit: 'currency',
+        status: 'critical',
+        comment: 'ARPU가 목표 대비 50,000원 부족입니다.',
+      },
+    ],
+    scenarios: [
+      {
+        label: '보수',
+        multiplier: 0.75,
+        monthlyRevenue: 0,
+        annualRevenue: 0,
+      },
+      {
+        label: '기준',
+        multiplier: 1,
+        monthlyRevenue: 0,
+        annualRevenue: 0,
+      },
+      {
+        label: '성장',
+        multiplier: 1.25,
+        monthlyRevenue: 0,
+        annualRevenue: 0,
+      },
+      {
+        label: '확장',
+        multiplier: 1.5,
+        monthlyRevenue: 0,
+        annualRevenue: 0,
+      },
+    ],
+  },
   lastUpdatedAt: new Date(0).toISOString(),
 };
 
@@ -324,11 +460,24 @@ function readAdminRevenueConfig(): RevenueModelConfig {
     return {
       makerMonthlyFee: safePositiveNumber(parsed.makerMonthlyFee, DEFAULT_REVENUE_CONFIG.makerMonthlyFee),
       investorMonthlyFee: safePositiveNumber(
-        parsed.investorMonthlyFee,
-        DEFAULT_REVENUE_CONFIG.investorMonthlyFee,
-      ),
-      leadCaptureFee: safePositiveNumber(parsed.leadCaptureFee, DEFAULT_REVENUE_CONFIG.leadCaptureFee),
-      makerConversionRate: clampRate(safeNumber(parsed.makerConversionRate, DEFAULT_REVENUE_CONFIG.makerConversionRate)),
+      parsed.investorMonthlyFee,
+      DEFAULT_REVENUE_CONFIG.investorMonthlyFee,
+    ),
+    leadCaptureFee: safePositiveNumber(parsed.leadCaptureFee, DEFAULT_REVENUE_CONFIG.leadCaptureFee),
+    investorAcquisitionCost: safePositiveNumber(
+      parsed.investorAcquisitionCost,
+      DEFAULT_REVENUE_CONFIG.investorAcquisitionCost,
+    ),
+    makerAcquisitionCost: safePositiveNumber(
+      parsed.makerAcquisitionCost,
+      DEFAULT_REVENUE_CONFIG.makerAcquisitionCost,
+    ),
+    estimatedMonthlyChurnRate: clampRate(
+      safeNumber(parsed.estimatedMonthlyChurnRate, DEFAULT_REVENUE_CONFIG.estimatedMonthlyChurnRate),
+      0.01,
+      99.99,
+    ),
+    makerConversionRate: clampRate(safeNumber(parsed.makerConversionRate, DEFAULT_REVENUE_CONFIG.makerConversionRate)),
       investorConversionRate: clampRate(
         safeNumber(parsed.investorConversionRate, DEFAULT_REVENUE_CONFIG.investorConversionRate),
       ),
@@ -955,32 +1104,7 @@ export default function App() {
   const isAdminView = view === 'admin';
   const isAdminDashboardAvailable = adminDashboard.lastUpdatedAt !== EMPTY_ADMIN_DASHBOARD.lastUpdatedAt;
 
-  const revenueProjection = useMemo(() => {
-    const verifiedProjectShare = stats.totalProjects > 0 ? stats.verifiedProjects / stats.totalProjects : 0;
-    const averageCommittedPerInvestor = stats.totalInvestors > 0 ? stats.totalCommittedAmount / stats.totalInvestors : 0;
-    const monthlyMakerPlanRevenue = stats.totalProjects * adminRevenueConfig.makerMonthlyFee *
-      (adminRevenueConfig.makerConversionRate / 100);
-    const monthlyInvestorPlanRevenue = stats.totalInvestors * adminRevenueConfig.investorMonthlyFee *
-      (adminRevenueConfig.investorConversionRate / 100);
-    const monthlySignalFee = stats.totalSignals * adminRevenueConfig.leadCaptureFee;
-    const projectedDealPoolMonthly =
-      Math.max(0, stats.totalInvestors) * averageCommittedPerInvestor * (adminRevenueConfig.closeLeadRate / 100);
-    const monthlyTransactionFee = projectedDealPoolMonthly * (adminRevenueConfig.successFeeRate / 100);
-    const totalMonthlyRevenue = Math.round(
-      monthlyMakerPlanRevenue + monthlyInvestorPlanRevenue + monthlySignalFee + monthlyTransactionFee,
-    );
-
-    return {
-      verifiedProjectShare,
-      averageCommittedPerInvestor,
-      monthlyMakerPlanRevenue: Math.round(monthlyMakerPlanRevenue),
-      monthlyInvestorPlanRevenue: Math.round(monthlyInvestorPlanRevenue),
-      monthlySignalFee: Math.round(monthlySignalFee),
-      monthlyTransactionFee: Math.round(monthlyTransactionFee),
-      totalMonthlyRevenue,
-      annualRevenue: totalMonthlyRevenue * 12,
-    };
-  }, [adminRevenueConfig, stats]);
+  const revenueProjection = adminDashboard.revenue;
 
   const adminTrendMetrics = useMemo(() => {
     const trend = adminDashboard.eventTrend14d;
@@ -1062,20 +1186,14 @@ export default function App() {
 
     try {
       const shouldFetchMarketProjects = !isAdminView;
-      const requests: [Promise<MarketConfig>, Promise<MarketStats>, Promise<ProjectListPayload | AdminDashboardSnapshot>] = [
-        fetchMarketConfig(),
-        fetchMarketStats(),
-        shouldFetchMarketProjects ? fetchProjects(projectQuery) : fetchAdminDashboard(),
-      ];
-
-      const [configData, statsData, thirdPayload] = await Promise.all(requests);
+      const [configData, statsData] = await Promise.all([fetchMarketConfig(), fetchMarketStats()]);
 
       setConfig(configData);
       setStats(statsData);
       setAdminDashboardError('');
 
       if (shouldFetchMarketProjects) {
-        const projectsPayload = thirdPayload as ProjectListPayload;
+        const projectsPayload = await fetchProjects(projectQuery);
         const projectPayload = extractProjects(projectsPayload);
         setProjects(projectPayload);
         if (hasPagination(projectsPayload)) {
@@ -1100,7 +1218,15 @@ export default function App() {
 
         setAdminDashboard(EMPTY_ADMIN_DASHBOARD);
       } else {
-        setAdminDashboard(thirdPayload as AdminDashboardSnapshot);
+        const [dashboardPayload, revenueProjection] = await Promise.all([
+          fetchAdminDashboard(),
+          fetchAdminRevenueProjection(adminRevenueConfig),
+        ]);
+
+        setAdminDashboard({
+          ...dashboardPayload,
+          revenue: revenueProjection,
+        });
       }
 
       setApiOnline(true);
@@ -1134,7 +1260,7 @@ export default function App() {
       setIsInitialLoading(false);
       setIsRefreshing(false);
     }
-  }, [fundingRangeId, isAdminView, projectQuery]);
+  }, [adminRevenueConfig, fundingRangeId, isAdminView, projectQuery]);
 
   const loadProjectEvents = useCallback(async (projectId: number) => {
     setIsPreviewEventsLoading(true);
@@ -1333,7 +1459,13 @@ export default function App() {
 
   const updateRevenueInput = useCallback((key: keyof RevenueModelConfig, rawValue: string) => {
     const parsed = Number.parseFloat(rawValue);
-    if (key === 'successFeeRate' || key === 'makerConversionRate' || key === 'investorConversionRate' || key === 'closeLeadRate') {
+    if (
+      key === 'successFeeRate' ||
+      key === 'makerConversionRate' ||
+      key === 'investorConversionRate' ||
+      key === 'closeLeadRate' ||
+      key === 'estimatedMonthlyChurnRate'
+    ) {
       setAdminRevenueConfig((current) => ({
         ...current,
         [key]: isPercentValue(Number.isFinite(parsed) ? parsed : 0) ? parsed : current[key],
@@ -1415,13 +1547,14 @@ export default function App() {
       },
       adminDashboard: isAdminView
         ? {
-            conversionFunnel: adminDashboard.conversionFunnel,
-            eventTotals: adminDashboard.eventTotals,
-            topMatchProjects: adminDashboard.topMatchProjects,
-            riskProjects: adminDashboard.riskProjects,
-            health: adminDashboard.health,
-            recommendations: adminDashboard.recommendations,
-          }
+          conversionFunnel: adminDashboard.conversionFunnel,
+          eventTotals: adminDashboard.eventTotals,
+          topMatchProjects: adminDashboard.topMatchProjects,
+          riskProjects: adminDashboard.riskProjects,
+          health: adminDashboard.health,
+          recommendations: adminDashboard.recommendations,
+          revenue: adminDashboard.revenue,
+        }
         : null,
       projectTotals: {
         totalProjects: stats.totalProjects,
@@ -1443,6 +1576,7 @@ export default function App() {
     adminDashboard.topMatchProjects,
     adminDashboard.health,
     adminDashboard.recommendations,
+    adminDashboard.revenue,
     adminDashboard.riskProjects,
     adminRevenueConfig,
     debouncedSearch,
@@ -2037,7 +2171,7 @@ export default function App() {
               </div>
             </div>
 
-            <div className="grid gap-4 xl:grid-cols-2">
+            <div className="grid gap-4 xl:grid-cols-3">
               <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -2091,7 +2225,7 @@ export default function App() {
                   <ChartBarBig className="h-4 w-4 text-cyan-200" />
                   <h3 className="font-black text-stone-100">월간 수익 지표</h3>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-3">
                   <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
                     <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">월 누적 추정</p>
                     <p className="mt-1 text-lg font-black text-stone-50">{formatCurrency(revenueProjection.totalMonthlyRevenue)}</p>
@@ -2101,14 +2235,23 @@ export default function App() {
                     <p className="mt-1 text-lg font-black text-stone-50">{formatCurrency(revenueProjection.annualRevenue)}</p>
                   </div>
                   <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
-                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">메이커 전환율</p>
-                    <p className="mt-1 text-lg font-black text-stone-50">{formatRate(adminRevenueConfig.makerConversionRate)}</p>
-                  </div>
-                  <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
                     <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">검증 프로젝트 비중</p>
                     <p className="mt-1 text-lg font-black text-stone-50">
                       {formatRate(revenueProjection.verifiedProjectShare * 100)}
                     </p>
+                    <p className="mt-1 text-[11px] text-stone-500">목표 68%</p>
+                  </div>
+                  <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
+                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">ARPU / ARPPU</p>
+                    <p className="mt-1 text-sm font-black text-stone-50">{formatCurrency(revenueProjection.arpu)} / {formatCurrency(revenueProjection.arppu)}</p>
+                    <p className="mt-1 text-[11px] text-stone-500">목표 50,000원 / 500,000원</p>
+                  </div>
+                  <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
+                    <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">투자자 LTV & Payback</p>
+                    <p className="mt-1 text-lg font-black text-stone-50">
+                      {formatCurrency(revenueProjection.investorLtvEstimate)} · {revenueProjection.investorPaybackMonths}개월
+                    </p>
+                    <p className="mt-1 text-[11px] text-stone-500">메이커 {revenueProjection.makerPaybackMonths}개월</p>
                   </div>
                 </div>
               </div>
@@ -2260,12 +2403,58 @@ export default function App() {
                   </div>
                   <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
                     <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">리드 기반 수익</p>
-                    <p className="mt-1 text-sm font-black text-stone-50">{formatCurrency(revenueProjection.monthlySignalFee)}</p>
+                    <p className="mt-1 text-sm font-black text-stone-50">{formatCurrency(revenueProjection.monthlyLeadRevenue)}</p>
                   </div>
                   <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
                     <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">성공 수수료 수익</p>
-                    <p className="mt-1 text-sm font-black text-stone-50">{formatCurrency(revenueProjection.monthlyTransactionFee)}</p>
+                    <p className="mt-1 text-sm font-black text-stone-50">{formatCurrency(revenueProjection.monthlyTransactionRevenue)}</p>
                   </div>
+                </div>
+              </div>
+
+              <div className="space-y-3 rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-amber-200" />
+                  <h3 className="font-black text-stone-100">벤치마크 갭</h3>
+                </div>
+                <div className="space-y-2">
+                  {revenueProjection.benchmarkGaps.map((entry) => (
+                    <div
+                      key={entry.key}
+                      className={`rounded-lg border px-3 py-2 text-xs ${
+                        entry.status === 'good'
+                          ? 'border-lime-300/40 bg-lime-950/20 text-lime-100'
+                          : entry.status === 'warning'
+                            ? 'border-amber-300/45 bg-amber-950/20 text-amber-100'
+                            : 'border-red-300/45 bg-red-950/20 text-red-100'
+                      }`}
+                    >
+                      <p className="font-black">{entry.label}</p>
+                      <p className="mt-1">목표: {entry.unit === 'percent' ? formatRate(entry.target) : formatCurrency(entry.target)}</p>
+                      <p className="mt-1">실적: {entry.unit === 'percent' ? formatRate(entry.actual) : formatCurrency(entry.actual)}</p>
+                      <p className="mt-1 text-stone-200">{entry.comment}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3 rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-cyan-200" />
+                  <h3 className="font-black text-stone-100">시나리오별 월매출</h3>
+                </div>
+                <div className="space-y-2">
+                  {revenueProjection.scenarios.map((entry) => (
+                    <div
+                      key={entry.label}
+                      className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-2 text-xs"
+                    >
+                      <p className="font-black text-stone-100">
+                        {entry.label} ({entry.multiplier}x)
+                      </p>
+                      <p className="mt-1 text-stone-300">월 {formatCurrency(entry.monthlyRevenue)} / 연 {formatCurrency(entry.annualRevenue)}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
