@@ -65,6 +65,16 @@ import {
   refreshProject,
   validateLiveUrl,
 } from './api';
+import {
+  type AuthSession,
+  type TestAccount,
+  authenticateUser,
+  clearSession,
+  listTestAccounts,
+  readSession,
+  resolveRoleLabel,
+  saveSession,
+} from './local-auth';
 import ToastContainer, { toast } from './components/ToastContainer';
 
 const DIALOG_FOCUSABLE_SELECTOR =
@@ -88,6 +98,7 @@ type RevenueModelConfig = {
 const ADMIN_REVENUE_CONFIG_STORAGE_KEY = 'protolive:admin-revenue:v1';
 const ADMIN_REVENUE_SCENARIO_STORAGE_KEY = 'protolive:admin-revenue-scenarios:v1';
 const ADMIN_REVENUE_TARGET_STORAGE_KEY = 'protolive:admin-revenue-target:v1';
+const LOGIN_MODAL_KEY = 'protolive:login-form:v1';
 const ADMIN_PATH_SEGMENT = 'admin';
 
 const DEFAULT_REVENUE_TARGET = 2500000;
@@ -851,6 +862,11 @@ function readInitialView(): AppView {
     return 'market';
   }
 
+  const existingSession = readSession();
+  if (!existingSession) {
+    return 'market';
+  }
+
   const url = new URL(window.location.href);
   const pathParts = url.pathname
     .replace(/\/+$/, '')
@@ -952,6 +968,48 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [view, setView] = useState<AppView>(readInitialView());
+  const [session, setSession] = useState<AuthSession | null>(() => readSession());
+  const [isLoginOpen, setIsLoginOpen] = useState(!readSession());
+  const testAccounts = useMemo<TestAccount[]>(() => listTestAccounts(), []);
+  const testAccountsByRole = useMemo(() => {
+    return {
+      maker: testAccounts.filter((account) => account.role === 'maker'),
+      investor: testAccounts.filter((account) => account.role === 'investor'),
+    };
+  }, [testAccounts]);
+  const [loginEmail, setLoginEmail] = useState(() => {
+    if (typeof window === 'undefined') {
+      return '';
+    }
+
+    try {
+      const raw = localStorage.getItem(LOGIN_MODAL_KEY);
+      if (!raw) {
+        return '';
+      }
+
+      const parsed = JSON.parse(raw) as { email?: string };
+      return typeof parsed.email === 'string' ? parsed.email : '';
+    } catch {
+      return '';
+    }
+  });
+  const [loginPassword, setLoginPassword] = useState('');
+  const isAuthenticated = session !== null;
+  const isMaker = session?.role === 'maker';
+  const isInvestor = session?.role === 'investor';
+  const canSubmitProject = isMaker;
+  const canMatch = isInvestor;
+  const canAccessAdmin = isMaker;
+  const shouldShowLogin = session ? isLoginOpen : true;
+  const effectiveView = useMemo<AppView>(() => {
+    if (!session) {
+      return 'market';
+    }
+
+    return view === 'admin' && !canAccessAdmin ? 'market' : view;
+  }, [session, view, canAccessAdmin]);
+
   const [adminRevenueConfig, setAdminRevenueConfig] = useState<RevenueModelConfig>(
     readAdminRevenueConfig,
   );
@@ -1009,7 +1067,6 @@ export default function App() {
   });
 
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
-  const [email, setEmail] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [liveUrl, setLiveUrl] = useState('');
@@ -1060,10 +1117,33 @@ export default function App() {
   const isFilterInitialized = useRef(false);
   const previewDialogRef = useRef<HTMLElement>(null);
   const matchModalRef = useRef<HTMLElement>(null);
+  const loginModalRef = useRef<HTMLElement>(null);
   const submitModalRef = useRef<HTMLElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
   const [isMobileProjectTimelineOpen, setIsMobileProjectTimelineOpen] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      const nextPayload = { email: loginEmail.trim() };
+      if (nextPayload.email) {
+        localStorage.setItem(LOGIN_MODAL_KEY, JSON.stringify(nextPayload));
+      } else {
+        localStorage.removeItem(LOGIN_MODAL_KEY);
+      }
+    } catch {
+      // Ignore local persistence failures.
+    }
+  }, [loginEmail]);
+
+  useEffect(() => {
+    if (session && view === 'admin' && !canAccessAdmin) {
+      toast('error', '접근 제한', '관리자 화면은 메이커 계정에서만 접근할 수 있습니다.');
+    }
+  }, [session, view, canAccessAdmin]);
 
   const normalizedCategory =
     selectedCategory === 'All' || config.categories.includes(selectedCategory)
@@ -1233,7 +1313,7 @@ export default function App() {
 
   const favoriteProjectCount = favoriteProjectIds.size;
 
-  const isAdminView = view === 'admin';
+  const isAdminView = effectiveView === 'admin';
   const isAdminDashboardAvailable = adminDashboard.lastUpdatedAt !== EMPTY_ADMIN_DASHBOARD.lastUpdatedAt;
 
   const revenueProjection = adminDashboard.revenue;
@@ -1561,7 +1641,7 @@ export default function App() {
       params.set('favorites', 'true');
     }
 
-    if (view === 'admin') {
+    if (effectiveView === 'admin') {
       params.set('view', 'admin');
     }
 
@@ -1574,7 +1654,7 @@ export default function App() {
     }
     const basePath = pathSegments.length > 0 ? `/${pathSegments.join('/')}` : '';
     const nextPathname =
-      view === 'admin' ? `${basePath}/${ADMIN_PATH_SEGMENT}` : basePath || '/';
+      effectiveView === 'admin' ? `${basePath}/${ADMIN_PATH_SEGMENT}` : basePath || '/';
     const safePathname = `/${nextPathname}`.replace(/\/{2,}/g, '/').replace(/\/+$/, '') || '/';
 
     window.history.replaceState({}, '', `${safePathname}${query ? `?${query}` : ''}`);
@@ -1607,7 +1687,7 @@ export default function App() {
     page,
     pageSize,
     showFavoritesOnly,
-    view,
+    effectiveView,
     sortMode,
   ]);
 
@@ -1616,6 +1696,17 @@ export default function App() {
   const activeFundingRange = config.fundingRanges.find((range) => range.id === fundingRangeId);
 
   const openSubmitDialog = useCallback(() => {
+    if (!session) {
+      setIsLoginOpen(true);
+      toast('error', '로그인 필요', '프로젝트 제출은 로그인 후 이용할 수 있습니다.');
+      return;
+    }
+
+    if (!canSubmitProject) {
+      toast('error', '권한 제한', '프로젝트 등록은 메이커 계정만 가능합니다.');
+      return;
+    }
+
     if (!apiOnline || config.categories.length === 0) {
       toast('error', '제출 준비 미완료', '카테고리/공개 범위 설정을 불러온 뒤 다시 시도하세요.');
       return;
@@ -1631,7 +1722,76 @@ export default function App() {
     }
 
     setIsSubmitOpen(true);
-  }, [accessMode, apiOnline, category, config.accessModes, config.categories]);
+  }, [accessMode, apiOnline, category, canSubmitProject, config.accessModes, config.categories, session]);
+
+  const handleLogin = useCallback((event: React.FormEvent) => {
+    event.preventDefault();
+
+    const authenticated = authenticateUser(loginEmail, loginPassword);
+    if (!authenticated) {
+      toast('error', '로그인 실패', '이메일 또는 비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
+    saveSession(authenticated);
+    setSession(authenticated);
+    setIsLoginOpen(false);
+    setLoginPassword('');
+    toast('success', '로그인 성공', `${authenticated.name}님, ${resolveRoleLabel(authenticated.role)}로 입장했습니다.`);
+  }, [loginEmail, loginPassword]);
+
+  const handleLogout = useCallback(() => {
+    clearSession();
+    setSession(null);
+    setIsLoginOpen(true);
+    setLoginPassword('');
+    toast('info', '로그아웃', '세션이 종료되었습니다. 다시 로그인해주세요.');
+  }, []);
+
+  const handleRequireMakerOnly = useCallback(() => {
+    if (!session) {
+      setIsLoginOpen(true);
+      toast('error', '로그인 필요', '이 기능은 로그인 후 이용 가능합니다.');
+      return false;
+    }
+
+    if (!canSubmitProject) {
+      toast('error', '권한 제한', '권한이 없거나 접근이 제한된 기능입니다.');
+      return false;
+    }
+
+    return true;
+  }, [canSubmitProject, session]);
+
+  const handleRequireInvestorOnly = useCallback(() => {
+    if (!session) {
+      setIsLoginOpen(true);
+      toast('error', '로그인 필요', '이 기능은 로그인 후 이용 가능합니다.');
+      return false;
+    }
+
+    if (!canMatch) {
+      toast('error', '권한 제한', '매칭/투자 의향은 투자자 계정에서만 가능합니다.');
+      return false;
+    }
+
+    return true;
+  }, [canMatch, session]);
+
+  const handleRequireAdminAccess = useCallback(() => {
+    if (!session) {
+      setIsLoginOpen(true);
+      toast('error', '로그인 필요', '관리자 페이지는 로그인 후 이용 가능합니다.');
+      return false;
+    }
+
+    if (!canAccessAdmin) {
+      toast('error', '접근 제한', '관리자 페이지는 메이커 계정에서만 이용할 수 있습니다.');
+      return false;
+    }
+
+    return true;
+  }, [canAccessAdmin, session]);
 
   const closeModalStack = useCallback(() => {
     setIsSubmitOpen(false);
@@ -1647,9 +1807,13 @@ export default function App() {
       return;
     }
 
+    if (nextView === 'admin' && !handleRequireAdminAccess()) {
+      return;
+    }
+
     setView(nextView);
     closeModalStack();
-  }, [closeModalStack, view]);
+  }, [closeModalStack, handleRequireAdminAccess, view]);
 
   const applyRevenueModelPreset = useCallback((nextConfig: RevenueModelConfig) => {
     setAdminRevenueConfig(nextConfig);
@@ -2010,7 +2174,7 @@ export default function App() {
   }, [config.refreshIntervalMs, isAdminView, loadSnapshot]);
 
   useEffect(() => {
-    const hasOverlayOpen = Boolean(previewProject || matchingProject || isSubmitOpen);
+    const hasOverlayOpen = Boolean(previewProject || matchingProject || isSubmitOpen || shouldShowLogin);
     if (!hasOverlayOpen) {
       return;
     }
@@ -2019,7 +2183,9 @@ export default function App() {
       ? previewDialogRef
       : matchingProject
         ? matchModalRef
-        : submitModalRef;
+        : shouldShowLogin
+          ? loginModalRef
+          : submitModalRef;
 
     if (!activeDialogRef.current) {
       return;
@@ -2052,6 +2218,11 @@ export default function App() {
 
         if (isSubmitOpen) {
           setIsSubmitOpen(false);
+          return;
+        }
+
+        if (shouldShowLogin) {
+          setIsLoginOpen(false);
         }
         return;
       }
@@ -2086,7 +2257,7 @@ export default function App() {
         restoreTarget.focus();
       }
     };
-  }, [isSubmitOpen, matchingProject, previewProject]);
+  }, [matchingProject, previewProject, shouldShowLogin, isSubmitOpen]);
 
   async function handleVerifyUrl() {
     if (!liveUrl.trim()) {
@@ -2112,6 +2283,9 @@ export default function App() {
 
   async function handleSubmitProject(event: React.FormEvent) {
     event.preventDefault();
+    if (!handleRequireMakerOnly()) {
+      return;
+    }
 
     if (!protectionNoticeAccepted) {
       toast('error', '노출 위험 확인 필요', '상용화 전 서비스 보호 안내와 제출 권한을 확인해야 합니다.');
@@ -2126,7 +2300,7 @@ export default function App() {
     setIsSubmitting(true);
     try {
       const created = await createProject({
-        email,
+        email: session?.email ?? '',
         title,
         description,
         liveUrl,
@@ -2137,7 +2311,6 @@ export default function App() {
 
       setProjects((current) => upsertProject(current, created));
       await loadSnapshot();
-      setEmail('');
       setTitle('');
       setDescription('');
       setLiveUrl('');
@@ -2203,6 +2376,10 @@ export default function App() {
   }
 
   async function handleInvestProject(project: Project) {
+    if (!handleRequireInvestorOnly()) {
+      return;
+    }
+
     setInvestingProjectIds((current) => new Set(current).add(project.id));
 
     try {
@@ -2227,6 +2404,10 @@ export default function App() {
 
   async function handleOpenPreview(project: Project) {
     if (project.accessMode === 'screened') {
+      if (!handleRequireInvestorOnly()) {
+        return;
+      }
+
       toast(
         'match',
         '선별 공개 프로젝트',
@@ -2250,6 +2431,10 @@ export default function App() {
 
   async function handleSubmitMatch(event: React.FormEvent) {
     event.preventDefault();
+    if (!handleRequireInvestorOnly()) {
+      return;
+    }
+
     if (!matchingProject || !activeFundingRange) return;
 
     setIsSendingMatch(true);
@@ -2273,6 +2458,14 @@ export default function App() {
       setIsSendingMatch(false);
     }
   }
+
+  const handleOpenMatchDialog = useCallback((project: Project) => {
+    if (!handleRequireInvestorOnly()) {
+      return;
+    }
+
+    setMatchingProject(project);
+  }, [handleRequireInvestorOnly]);
 
   return (
     <div className="min-h-screen bg-[oklch(14%_0.018_205)] text-stone-100">
@@ -2327,7 +2520,33 @@ export default function App() {
             >
               <span className={`h-2 w-2 rounded-full ${apiOnline ? 'bg-lime-300' : 'bg-red-300'}`} />
               {apiOnline ? 'API Online' : 'API Offline'}
-            </div>
+              </div>
+              {isAuthenticated ? (
+                <div className="hidden items-center gap-2 rounded-full border border-stone-700/80 bg-stone-900/70 px-3 py-2 text-xs font-black md:flex">
+                  <span className="hidden md:inline">{session?.name}</span>
+                  <span className={`rounded-full border px-2 py-0.5 ${canAccessAdmin ? 'border-lime-300/40 text-lime-200' : 'border-amber-300/40 text-amber-100'}`}>
+                    {session ? resolveRoleLabel(session.role) : ''}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleLogout()}
+                    className="rounded-full border border-stone-600/70 px-2 py-0.5 text-stone-300 transition hover:border-red-300/60 hover:text-red-100"
+                    aria-label="로그아웃"
+                  >
+                    로그아웃
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsLoginOpen(true)}
+                  className="grid min-h-11 min-w-11 place-items-center rounded-lg border border-stone-700/80 bg-stone-900/70 px-3 text-xs font-black text-stone-300 transition hover:border-cyan-300/40 hover:text-cyan-100"
+                  aria-label="로그인"
+                >
+                  <span className="hidden sm:inline">로그인</span>
+                  <span className="sr-only">로그인</span>
+                </button>
+              )}
             <button
               type="button"
               onClick={() => void handleRefreshAll()}
@@ -3530,14 +3749,14 @@ export default function App() {
 
           {isInitialLoading ? (
             <ProjectSkeleton />
-          ) : visibleProjects.length === 0 ? (
-            <EmptyState
-              apiOnline={apiOnline}
-              onCreate={() => setIsSubmitOpen(true)}
-              onResetFilters={resetFilters}
-              hasActiveFilters={activeFilterCount > 0}
-            />
-          ) : (
+              ) : visibleProjects.length === 0 ? (
+              <EmptyState
+                apiOnline={apiOnline}
+                onCreate={openSubmitDialog}
+                onResetFilters={resetFilters}
+                hasActiveFilters={activeFilterCount > 0}
+              />
+            ) : (
             <div className="grid gap-4">
               {visibleProjects.map((project) => (
                 <ProjectCard
@@ -3546,7 +3765,7 @@ export default function App() {
                   signalRank={signalRankByProjectId.get(project.id) ?? null}
                   highestCommittedAmount={highestCommittedAmount}
                   onPreview={() => void handleOpenPreview(project)}
-                  onMatch={() => setMatchingProject(project)}
+                  onMatch={() => void handleOpenMatchDialog(project)}
                   onRefresh={() => void handleRefreshProject(project)}
                   onOutbound={() => void handleProjectEvent(project, 'outbound')}
                   isInvesting={investingProjectIds.has(project.id)}
@@ -3885,17 +4104,10 @@ export default function App() {
           dialogRef={submitModalRef}
         >
           <form onSubmit={handleSubmitProject} className="space-y-4">
-            <label className="block">
-              <span className="mb-2 block text-xs font-black text-stone-300">메이커 이메일</span>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="maker@example.com"
-                className="min-h-11 w-full rounded-lg border border-stone-700 bg-stone-950 px-3 text-sm text-stone-100 outline-none placeholder:text-stone-500 focus:border-lime-300/60"
-              />
-            </label>
+            <div className="rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-3 text-xs">
+              <p className="mb-1 block font-black text-cyan-100">등록 계정</p>
+              <p className="font-black text-stone-100">{session?.email ?? '비로그인'}</p>
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="block">
                 <span className="mb-2 block text-xs font-black text-stone-300">프로젝트 이름</span>
@@ -4053,6 +4265,92 @@ export default function App() {
               >
                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <BadgeCheck className="h-4 w-4" />}
                 검증 등록
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {shouldShowLogin && (
+        <Modal title="로그인" subtitle="테스트 계정으로 계정 역할을 전환해 실시간 플로우를 확인합니다." onClose={() => setIsLoginOpen(false)} dialogRef={loginModalRef}>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <label className="block">
+              <span className="mb-2 block text-xs font-black text-stone-300">이메일</span>
+              <input
+                type="email"
+                required
+                value={loginEmail}
+                onChange={(event) => setLoginEmail(event.target.value)}
+                placeholder="maker-a@protolive.local"
+                autoComplete="username"
+                className="min-h-11 w-full rounded-lg border border-stone-700 bg-stone-950 px-3 text-sm text-stone-100 outline-none placeholder:text-stone-500 focus:border-lime-300/60"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-2 block text-xs font-black text-stone-300">비밀번호</span>
+              <input
+                type="password"
+                required
+                value={loginPassword}
+                onChange={(event) => setLoginPassword(event.target.value)}
+                placeholder="pass-mock-01"
+                autoComplete="current-password"
+                className="min-h-11 w-full rounded-lg border border-stone-700 bg-stone-950 px-3 text-sm text-stone-100 outline-none placeholder:text-stone-500 focus:border-lime-300/60"
+              />
+            </label>
+            <div className="rounded-lg border border-stone-700 bg-stone-950/55 p-3 text-xs text-stone-300">
+              <p className="font-black text-stone-100">테스트 계정</p>
+              <div className="mt-2 space-y-3">
+                <p className="text-[11px] font-black text-stone-400">메이커</p>
+                <div className="grid gap-2">
+                  {testAccountsByRole.maker.map((account) => (
+                    <button
+                      key={account.id}
+                      type="button"
+                      onClick={() => {
+                        setLoginEmail(account.email);
+                        setLoginPassword(account.password);
+                      }}
+                      className="flex min-h-10 items-center justify-between gap-3 rounded-lg border border-stone-700 px-3 py-2 text-left text-stone-100 transition hover:border-cyan-300/50 hover:text-cyan-100"
+                    >
+                      <span>{account.name}</span>
+                      <span className="truncate text-stone-400">{account.email}</span>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] font-black text-stone-400">투자자</p>
+                <div className="grid gap-2">
+                  {testAccountsByRole.investor.map((account) => (
+                    <button
+                      key={account.id}
+                      type="button"
+                      onClick={() => {
+                        setLoginEmail(account.email);
+                        setLoginPassword(account.password);
+                      }}
+                      className="flex min-h-10 items-center justify-between gap-3 rounded-lg border border-stone-700 px-3 py-2 text-left text-stone-100 transition hover:border-cyan-300/50 hover:text-cyan-100"
+                    >
+                      <span>{account.name}</span>
+                      <span className="truncate text-stone-400">{account.email}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => setIsLoginOpen(false)}
+                className="min-h-11 flex-1 rounded-lg border border-stone-700 text-sm font-black text-stone-300 hover:text-stone-100"
+              >
+                나중에
+              </button>
+              <button
+                type="submit"
+                className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-lime-300 text-sm font-black text-slate-950"
+              >
+                <Users className="h-4 w-4" />
+                로그인
               </button>
             </div>
           </form>
@@ -4383,11 +4681,11 @@ function EmptyState({
         샘플 데이터를 보여주지 않습니다. 백엔드 API에 실제 제출된 프로젝트만 노출해 투자자가 가짜
         신호와 실제 신호를 혼동하지 않도록 했습니다.
       </p>
-      {hasActiveFilters ? (
-        <p className="mx-auto mt-3 max-w-xl text-xs leading-6 text-stone-500">
-          현재 조건으로 조회 가능한 항목이 없습니다. 조건을 넓히거나 필터를 초기화하면 더 많은 프로젝트를 확인할 수 있습니다.
-        </p>
-      ) : (
+              {hasActiveFilters ? (
+                <p className="mx-auto mt-3 max-w-xl text-xs leading-6 text-stone-500">
+                  현재 조건으로 조회 가능한 항목이 없습니다. 조건을 넓히거나 필터를 초기화하면 더 많은 프로젝트를 확인할 수 있습니다.
+                </p>
+              ) : (
         <p className="mx-auto mt-3 max-w-xl text-xs leading-6 text-stone-500">
           API 연결이 정상인 상태에서 등록된 프로젝트가 있으면 실시간 검증 대시보드에서 즉시 확인할 수 있습니다.
         </p>

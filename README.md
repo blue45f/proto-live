@@ -74,7 +74,7 @@ RATE_LIMIT_MAX_REQUESTS=120
 ### 로컬 테스트 계정
 
 로컬 개발/QA 테스트 계정은 `backend/fixtures/test-accounts.json`에 정리해 두었습니다.  
-현재 앱은 비밀번호 기반 인증이 없고 이메일 입력 기반으로 역할이 구분됩니다.
+현재 앱은 로컬 테스트 계정(이메일 + 비밀번호)으로 로그인해 역할(메이커/투자자)을 식별합니다.
 
 상세 목록은 `docs/test-accounts.md`를 참고하세요.
 관리자 화면은 `?view=admin` 또는 `/admin` 경로로 진입할 수 있습니다.
