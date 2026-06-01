@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { isAxiosError } from 'axios';
 import type { LucideIcon } from 'lucide-react';
 import {
   Activity,
@@ -229,6 +230,8 @@ export default function App() {
   const [matchMessage, setMatchMessage] = useState('');
   const [isSendingMatch, setIsSendingMatch] = useState(false);
 
+  const hasFundingRangeError = maxFundingAmount > 0 && minFundingAmount > 0 && maxFundingAmount < minFundingAmount;
+
   const projectQuery = useMemo<ProjectListQuery>(() => {
     return {
       q: debouncedSearch,
@@ -238,12 +241,15 @@ export default function App() {
       page,
       limit: pageSize,
       minSignal: minSignal > 0 ? minSignal : undefined,
-      minFundingAmount: minFundingAmount > 0 ? minFundingAmount : undefined,
-      maxFundingAmount: maxFundingAmount > 0 ? maxFundingAmount : undefined,
+      minFundingAmount:
+        minFundingAmount > 0 && !hasFundingRangeError ? minFundingAmount : undefined,
+      maxFundingAmount:
+        maxFundingAmount > 0 && !hasFundingRangeError ? maxFundingAmount : undefined,
       onlyVerified,
     };
   }, [
     debouncedSearch,
+    hasFundingRangeError,
     minSignal,
     maxFundingAmount,
     minFundingAmount,
@@ -254,6 +260,144 @@ export default function App() {
     page,
     pageSize,
   ]);
+
+  const activeFilters = useMemo(() => {
+    const filters: Array<{ id: string; label: string; onClear: () => void }> = [];
+
+    if (debouncedSearch) {
+      filters.push({
+        id: 'search',
+        label: `검색: ${debouncedSearch}`,
+        onClear: () => {
+          setSearchQuery('');
+          setDebouncedSearch('');
+          setPage(1);
+        },
+      });
+    }
+
+    if (selectedCategory !== 'All') {
+      filters.push({
+        id: 'category',
+        label: `카테고리: ${selectedCategory}`,
+        onClear: () => {
+          setSelectedCategory('All');
+          setPage(1);
+        },
+      });
+    }
+
+    if (selectedAccessMode !== 'All') {
+      filters.push({
+        id: 'accessMode',
+        label: `공개범위: ${selectedAccessMode === 'open' ? '공개' : '선별'}`,
+        onClear: () => {
+          setSelectedAccessMode('All');
+          setPage(1);
+        },
+      });
+    }
+
+    if (sortMode !== 'signal') {
+      const sortLabel =
+        sortMode === 'recent'
+          ? '최신 신호순'
+          : sortMode === 'created'
+            ? '등록순'
+            : '투자규모순';
+      filters.push({
+        id: 'sortMode',
+        label: `정렬: ${sortLabel}`,
+        onClear: () => {
+          setSortMode('signal');
+          setPage(1);
+        },
+      });
+    }
+
+    if (onlyVerified) {
+      filters.push({
+        id: 'verified',
+        label: '검증된 프로젝트만',
+        onClear: () => {
+          setOnlyVerified(false);
+          setPage(1);
+        },
+      });
+    }
+
+    if (showFavoritesOnly) {
+      filters.push({
+        id: 'favorites',
+        label: '즐겨찾기만',
+        onClear: () => {
+          setShowFavoritesOnly(false);
+        },
+      });
+    }
+
+    if (minSignal > 0) {
+      filters.push({
+        id: 'minSignal',
+        label: `최소 시그널 ${minSignal}`,
+        onClear: () => {
+          setMinSignal(0);
+          setPage(1);
+        },
+      });
+    }
+
+    if (minFundingAmount > 0 || maxFundingAmount > 0) {
+      const fundingLabel =
+        minFundingAmount > 0 && maxFundingAmount > 0
+          ? `${formatWon(minFundingAmount)} ~ ${formatWon(maxFundingAmount)}`
+          : minFundingAmount > 0
+            ? `${formatWon(minFundingAmount)} 이상`
+            : `${formatWon(maxFundingAmount)} 이하`;
+
+      filters.push({
+        id: 'fundingRange',
+        label: `투자금 ${fundingLabel}`,
+        onClear: () => {
+          setMinFundingAmount(0);
+          setMaxFundingAmount(0);
+          setPage(1);
+        },
+      });
+    }
+
+    return filters;
+  }, [
+    debouncedSearch,
+    maxFundingAmount,
+    minFundingAmount,
+    minSignal,
+    onlyVerified,
+    selectedAccessMode,
+    selectedCategory,
+    showFavoritesOnly,
+    sortMode,
+  ]);
+
+  const applyFundingRange = useCallback((range: FundingRange) => {
+    setMinFundingAmount(range.minAmount);
+    setMaxFundingAmount(range.maxAmount);
+    setPage(1);
+  }, []);
+
+  const resetFilters = useCallback(() => {
+    setSearchQuery('');
+    setDebouncedSearch('');
+    setSelectedCategory('All');
+    setSelectedAccessMode('All');
+    setSortMode('signal');
+    setMinSignal(0);
+    setMinFundingAmount(0);
+    setMaxFundingAmount(0);
+    setOnlyVerified(false);
+    setShowFavoritesOnly(false);
+    setPage(1);
+  }, []);
 
   const loadSnapshot = useCallback(async (showLoading = false) => {
     if (showLoading) setIsRefreshing(true);
@@ -295,11 +439,20 @@ export default function App() {
       if (!fundingRangeId && configData.fundingRanges.length > 0) {
         setFundingRangeId(configData.fundingRanges[2]?.id ?? configData.fundingRanges[0].id);
       }
-    } catch {
-      setApiOnline(false);
-      setLoadError('백엔드 API에 연결할 수 없습니다. 서버를 실행한 뒤 다시 시도하세요.');
+    } catch (error) {
+      const hasResponseError = isAxiosError(error) && Boolean(error.response);
+      const message = getApiErrorMessage(error, '요청 처리 중 오류가 발생했습니다.');
+
+      if (hasResponseError) {
+        setApiOnline(true);
+        setLoadError(message);
+      } else {
+        setApiOnline(false);
+        setLoadError('백엔드 API에 연결할 수 없습니다. 서버를 실행한 뒤 다시 시도하세요.');
+      }
+
       if (showLoading) {
-        toast('error', 'API 연결 실패', `요청 대상: ${API_BASE}`);
+        toast('error', '요청 실패', hasResponseError ? message : `요청 대상: ${API_BASE}`);
       }
     } finally {
       setIsInitialLoading(false);
@@ -675,10 +828,10 @@ export default function App() {
                   </button>
                 ))}
               </div>
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="relative w-full lg:w-[360px]">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
-                    <input
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="relative w-full lg:w-[360px]">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
+                  <input
                     value={searchQuery}
                     onChange={(event) => {
                       setPage(1);
@@ -732,8 +885,38 @@ export default function App() {
                   </button>
                 ))}
               </div>
-                <div className="flex flex-wrap items-center gap-3 text-xs font-black text-stone-300">
-                  <label className="inline-flex items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2 text-xs">
+              <div className="space-y-2">
+                <p className="text-xs font-black text-stone-300">투자금 프리셋</p>
+                <div className="flex flex-wrap gap-2">
+                  {config.fundingRanges.map((range) => (
+                    <button
+                      key={range.id}
+                      type="button"
+                      onClick={() => applyFundingRange(range)}
+                      className={`min-h-8 rounded-full border px-3 py-1 text-[11px] font-black transition ${
+                        range.minAmount === minFundingAmount && range.maxAmount === maxFundingAmount
+                          ? 'border-cyan-300/70 bg-cyan-300/20 text-cyan-100'
+                          : 'border-stone-700 bg-stone-950/50 text-stone-300 hover:border-cyan-300/40'
+                      }`}
+                    >
+                      {range.label}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMinFundingAmount(0);
+                      setMaxFundingAmount(0);
+                      setPage(1);
+                    }}
+                    className="min-h-8 rounded-full border border-stone-700 bg-stone-950/50 px-3 py-1 text-[11px] font-black text-stone-300 hover:border-cyan-300/40"
+                  >
+                    수동 직접입력
+                  </button>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 text-xs font-black text-stone-300">
+                <label className="inline-flex items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2 text-xs">
                   <input
                     type="checkbox"
                     checked={onlyVerified}
@@ -744,18 +927,18 @@ export default function App() {
                   />
                   <span>검증된 프로젝트만</span>
                 </label>
-                  <label className="inline-flex items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2">
-                    최소 시그널
+                <label className="inline-flex items-center gap-2 rounded-lg border border-stone-700 bg-stone-950/55 px-3 py-2">
+                  최소 시그널
                   <input
                     type="number"
                     min={0}
                     max={100}
-                      value={minSignal}
-                      onChange={(event) => {
+                    value={minSignal}
+                    onChange={(event) => {
                       const next = Number(event.target.value);
                       setMinSignal(Number.isFinite(next) ? Math.max(0, Math.floor(next)) : 0);
                       setPage(1);
-                      }}
+                    }}
                     className="ml-1 w-20 rounded bg-stone-950 border border-stone-700 px-2 py-1 text-right text-xs font-black text-stone-100 outline-none"
                   />
                 </label>
@@ -765,12 +948,12 @@ export default function App() {
                     type="number"
                     min={0}
                     step={1000000}
-                      value={minFundingAmount}
-                      onChange={(event) => {
+                    value={minFundingAmount}
+                    onChange={(event) => {
                       const next = Number(event.target.value);
                       setMinFundingAmount(Number.isFinite(next) ? Math.max(0, Math.floor(next)) : 0);
                       setPage(1);
-                      }}
+                    }}
                     className="ml-1 w-28 rounded bg-stone-950 border border-stone-700 px-2 py-1 text-right text-xs font-black text-stone-100 outline-none"
                   />
                 </label>
@@ -780,12 +963,12 @@ export default function App() {
                     type="number"
                     min={0}
                     step={1000000}
-                      value={maxFundingAmount}
-                      onChange={(event) => {
+                    value={maxFundingAmount}
+                    onChange={(event) => {
                       const next = Number(event.target.value);
                       setMaxFundingAmount(Number.isFinite(next) ? Math.max(0, Math.floor(next)) : 0);
                       setPage(1);
-                      }}
+                    }}
                     className="ml-1 w-28 rounded bg-stone-950 border border-stone-700 px-2 py-1 text-right text-xs font-black text-stone-100 outline-none"
                   />
                 </label>
@@ -820,6 +1003,40 @@ export default function App() {
                   </select>
                 </label>
               </div>
+              <p
+                className={`text-xs font-black ${hasFundingRangeError ? 'text-red-300' : 'text-stone-500'}`}
+              >
+                {hasFundingRangeError
+                  ? '최소 투자금보다 최대 투자금을 크게 입력해야 합니다.'
+                  : '최소/최대 투자금은 각각 개별 입력 후 결합해 검색됩니다.'}
+              </p>
+              {activeFilters.length > 0 && (
+                <div className="rounded-lg border border-stone-700 bg-stone-950/45 p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-xs font-black uppercase tracking-[0.14em] text-stone-400">현재 필터</span>
+                    <button
+                      type="button"
+                      onClick={resetFilters}
+                      className="text-xs font-black text-cyan-200 hover:text-cyan-100"
+                    >
+                      전체 초기화
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {activeFilters.map((filter) => (
+                      <button
+                        type="button"
+                        key={filter.id}
+                        onClick={filter.onClear}
+                        className="inline-flex min-h-8 items-center gap-2 rounded-full border border-cyan-300/40 bg-cyan-300/10 px-3 text-xs font-black text-cyan-100"
+                      >
+                        <span>{filter.label}</span>
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
