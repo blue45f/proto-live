@@ -989,6 +989,21 @@ function getRecommendationTone(priority: 'high' | 'medium' | 'low') {
   return 'border-cyan-300/35 bg-cyan-950/30 text-cyan-100';
 }
 
+const PRIORITY_WEIGHT: Record<AdminActionRecommendation['priority'], number> = {
+  high: 2,
+  medium: 1,
+  low: 0,
+};
+
+function sortAdminRecommendationsByPriority(recommendations: AdminActionRecommendation[]) {
+  return [...recommendations].sort((a, b) => {
+    if (PRIORITY_WEIGHT[b.priority] !== PRIORITY_WEIGHT[a.priority]) {
+      return PRIORITY_WEIGHT[b.priority] - PRIORITY_WEIGHT[a.priority];
+    }
+    return a.area.localeCompare(b.area);
+  });
+}
+
 const DRIVER_ACTION_HINT: Record<string, string> = {
   makerMonthlyFee: '메이커 가격 정책은 A/B로 분기화하세요. 기본형/비즈니스형 플랜 혜택을 분리해 2주 단위로 전환률을 추적합니다.',
   investorMonthlyFee: '투자자용 플랜은 업셀링 문구(성과 리포트, 우선 지원권)와 함께 노출해 가격 동의 전환 장벽을 낮춥니다.',
@@ -1384,6 +1399,10 @@ export default function App() {
 
   const isAdminView = effectiveView === 'admin';
   const isAdminDashboardAvailable = adminDashboard.lastUpdatedAt !== EMPTY_ADMIN_DASHBOARD.lastUpdatedAt;
+  const orderedAdminRecommendations = useMemo(
+    () => sortAdminRecommendationsByPriority(adminDashboard.recommendations),
+    [adminDashboard.recommendations],
+  );
 
   const revenueProjection = adminDashboard.revenue;
   const adminRevenueTargetGap = revenueProjection.targetGap;
@@ -1535,6 +1554,23 @@ export default function App() {
     moveToMarket();
     toast('info', '추천 액션 적용', '시장 워크스페이스로 이동해 추천 기준을 점검합니다.');
   }, [adminDashboard.riskProjects, applyObservedConversionRates, resetFilters]);
+
+  const applyAllAdminRecommendations = useCallback(() => {
+    if (orderedAdminRecommendations.length === 0) {
+      toast('info', '일괄 적용 미실행', '현재 처리할 운영 추천 항목이 없습니다.');
+      return;
+    }
+
+    orderedAdminRecommendations.forEach((entry) => {
+      applyAdminRecommendation(entry);
+    });
+
+    toast(
+      'success',
+      '일괄 추천 적용',
+      `우선순위 순으로 운영 추천 ${orderedAdminRecommendations.length}건을 모두 실행했습니다.`,
+    );
+  }, [applyAdminRecommendation, orderedAdminRecommendations]);
 
   const loadSnapshot = useCallback(async (showLoading = false) => {
     if (showLoading) setIsRefreshing(true);
@@ -2861,17 +2897,31 @@ export default function App() {
               </div>
 
               <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
-                <div className="mb-4 flex items-center gap-2">
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                   <AlertTriangle className="h-4 w-4 text-cyan-200" />
-                  <h3 className="font-black text-stone-100">운영 추천 액션</h3>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <h3 className="font-black text-stone-100">운영 추천 액션</h3>
+                    <span className="rounded-full border border-cyan-300/35 bg-cyan-950/40 px-2 py-0.5 text-xs font-black text-cyan-100">
+                      {orderedAdminRecommendations.length}건
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => void applyAllAdminRecommendations()}
+                    className="inline-flex min-h-8 items-center justify-center gap-2 rounded-lg border border-cyan-300/40 px-3 text-xs font-black text-cyan-100 transition hover:bg-cyan-300/10 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={orderedAdminRecommendations.length === 0}
+                  >
+                    <Radar className="h-3.5 w-3.5" />
+                    우선순위 일괄 실행
+                  </button>
                 </div>
-                {adminDashboard.recommendations.length === 0 ? (
+                {orderedAdminRecommendations.length === 0 ? (
                   <p className="rounded-lg border border-dashed border-stone-700 p-3 text-sm text-stone-500">
                     즉시 조치할 항목은 없습니다.
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    {adminDashboard.recommendations.map((entry, index) => (
+                    {orderedAdminRecommendations.map((entry, index) => (
                       <div
                         key={`${entry.area}-${index}`}
                         className={`rounded-lg border p-2 text-xs ${getRecommendationTone(entry.priority)}`}
