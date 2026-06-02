@@ -72,7 +72,10 @@ npm run start:dev
 - `GET http://localhost:3003/api/projects/:id/reviews`: 회원 리뷰, 성장 의견, 대댓글을 조회합니다.
 - `POST http://localhost:3003/api/projects/:id/reviews`: 회원 리뷰, 성장 의견, 대댓글을 저장합니다.
 - `POST http://localhost:3003/api/projects/:id/reviews/:reviewId/report`: 커뮤니티 의견을 신고하고 반복 신고 시 자동 숨김 처리합니다.
-- `POST http://localhost:3003/api/projects/:id/match`: 투자 의향을 구조화된 데이터로 기록합니다.
+- `POST http://localhost:3003/api/projects/:id/reviews/:reviewId/moderate`: 운영자가 신고 의견을 공개 유지, 숨김, 복구 처리하고 감사 로그를 남깁니다.
+- `GET http://localhost:3003/api/projects/admin-reported-reviews?adminEmail=...`: 운영자 신고 검토 큐를 조회합니다.
+- `GET http://localhost:3003/api/projects/admin-audit-logs?adminEmail=...`: 신고, 자동 숨김, 운영 처리, 투자 관심 동의 기록을 최신순으로 조회합니다.
+- `POST http://localhost:3003/api/projects/:id/match`: 투자 의향을 구조화된 데이터로 기록합니다. 투자 권유 아님 고지, 개인정보 연락 동의, 초기 위험 안내 확인이 모두 필요합니다.
 
 환경 변수:
 ```bash
@@ -87,7 +90,8 @@ RATE_LIMIT_MAX_REQUESTS=120
 ### 로컬 테스트 계정
 
 로컬 개발/QA 테스트 계정은 `backend/fixtures/test-accounts.json`에 정리해 두었습니다.  
-현재 앱은 로컬 테스트 계정(이메일 + 비밀번호)으로 로그인해 역할(메이커/투자자)을 식별합니다.
+현재 앱은 로컬 테스트 계정(이메일 + 비밀번호)으로 로그인해 역할(메이커/투자자/일반 회원/운영자)을 식별합니다.
+운영자 샘플 계정은 `admin-ops@protolive.local` / `pass-admin-01`입니다.
 
 상세 목록은 `docs/test-accounts.md`를 참고하세요.
 관리자 화면은 `?view=admin` 또는 `/admin` 경로로 진입할 수 있습니다.
@@ -143,6 +147,8 @@ psql "$DATABASE_URL" -f db/seeds/sample-data.sql
 - **상용화 전 제품 보호**: 기본 등록은 `선별 공개` 모드로 URL과 iframe 프리뷰를 공개 API에서 마스킹합니다. 메이커는 제출 권한과 노출 위험 안내를 확인해야 등록할 수 있습니다.
 - **검색/참조 노출 최소화**: 프론트엔드와 API 응답에 `noindex`, `nofollow`, `noarchive`, `no-referrer` 정책을 적용합니다.
 - **Rate limiting**: 외부 URL 검증과 API 남용을 줄이기 위해 IP 기반 요청 제한을 적용합니다.
+- **운영 검토 큐와 감사 로그**: 신고된 리뷰는 운영자 화면에서 공개 유지, 숨김, 복구 처리할 수 있고 모든 처리와 투자 관심 동의는 감사 로그에 기록됩니다.
+- **투자 관심 동의 기록**: 투자 관심 제출 전 투자 권유 아님 고지, 개인정보 연락 동의, 초기 프로토타입 위험 안내 확인을 필수로 저장합니다.
 - **Diligence Cockpit UI**: 마케팅 히어로 대신 검증 텔레메트리, 프로젝트 상태 갱신, 보호형 프리뷰, 매칭 의향, 활동 타임라인을 한 화면에서 다룹니다.
 - **실시간 동기화**: 프론트엔드는 프로젝트, 설정, 통계를 병렬 로딩하고 기본 30초 주기로 동기화합니다.
 - **검증 가능한 품질**: 백엔드에는 Node 내장 테스트 러너 기반의 URL 보안, 저장소, rate limit, 관심 신호 테스트가 포함되어 있습니다.

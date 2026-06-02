@@ -56,9 +56,25 @@ test('JsonProjectsStore persists projects, users, proposals, and next ids', () =
     state.proposals.push({
       id: 3,
       projectId: 12,
+      investorEmail: 'investor@example.com',
       fundingRangeId: 'pre-seed-10-30',
       message: 'Let us talk.',
+      legalNoticeAccepted: true,
+      privacyConsentAccepted: true,
+      riskNoticeAccepted: true,
+      complianceAcceptedAt: new Date('2026-06-01T00:01:00.000Z'),
+      status: 'submitted',
       createdAt: new Date('2026-06-01T00:01:00.000Z'),
+    });
+    state.auditLogs.push({
+      id: 1,
+      action: 'match_compliance_accepted',
+      actorEmail: 'investor@example.com',
+      targetType: 'project',
+      targetId: 12,
+      projectId: 12,
+      message: 'Consent recorded.',
+      createdAt: new Date('2026-06-01T00:01:30.000Z'),
     });
     state.events.push({
       id: 9,
@@ -70,6 +86,7 @@ test('JsonProjectsStore persists projects, users, proposals, and next ids', () =
     state.nextProjectId = 13;
     state.nextProposalId = 4;
     state.nextEventId = 10;
+    state.nextAuditLogId = 2;
 
     store.write(state);
 

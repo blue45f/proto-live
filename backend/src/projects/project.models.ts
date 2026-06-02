@@ -31,17 +31,27 @@ export interface Project {
   reviewSummary?: ProjectReviewSummary;
 }
 
+export type UserRole = 'maker' | 'investor' | 'member' | 'admin';
+
 export interface User {
   id: number;
   email: string;
-  role: 'maker' | 'investor';
+  role: UserRole;
 }
+
+export type MatchProposalStatus = 'submitted' | 'contacted' | 'closed';
 
 export interface MatchProposal {
   id: number;
   projectId: number;
+  investorEmail?: string;
   fundingRangeId: FundingRangeId;
   message: string;
+  legalNoticeAccepted?: boolean;
+  privacyConsentAccepted?: boolean;
+  riskNoticeAccepted?: boolean;
+  complianceAcceptedAt?: Date;
+  status?: MatchProposalStatus;
   createdAt: Date;
 }
 
@@ -50,6 +60,12 @@ export type ProjectReviewType = 'review' | 'support' | 'idea';
 export type ProjectReviewAuthorRole = 'maker' | 'investor' | 'member';
 
 export type ProjectReviewStatus = 'visible' | 'reported' | 'hidden';
+
+export interface ProjectReviewReport {
+  reporterEmail: string;
+  reason?: string | null;
+  createdAt: Date;
+}
 
 export interface ProjectReview {
   id: number;
@@ -63,8 +79,18 @@ export interface ProjectReview {
   status: ProjectReviewStatus;
   reportCount: number;
   reportedBy: string[];
+  reportReasons?: ProjectReviewReport[];
   lastReportedAt?: Date | null;
+  moderatedBy?: string | null;
+  moderationNote?: string | null;
+  lastModeratedAt?: Date | null;
   createdAt: Date;
+}
+
+export interface AdminReportedReview {
+  review: ProjectReview;
+  project: Pick<Project, 'id' | 'title' | 'category' | 'accessMode'>;
+  replyCount: number;
 }
 
 export interface ProjectReviewSummary {
@@ -260,6 +286,23 @@ export interface AdminDashboardMetrics {
   lastUpdatedAt: string;
 }
 
+export type AuditLogAction =
+  | 'match_compliance_accepted'
+  | 'review_reported'
+  | 'review_hidden_auto'
+  | 'review_moderated';
+
+export interface AuditLog {
+  id: number;
+  action: AuditLogAction;
+  actorEmail: string;
+  targetType: 'project' | 'review' | 'match';
+  targetId: number;
+  projectId?: number;
+  message: string;
+  createdAt: Date;
+}
+
 export interface ProjectEventSummary {
   total: number;
   latestAt: string | null;
@@ -272,11 +315,13 @@ export interface ProjectsState {
   proposals: MatchProposal[];
   events: ProjectEvent[];
   reviews: ProjectReview[];
+  auditLogs: AuditLog[];
   nextUserId: number;
   nextProjectId: number;
   nextProposalId: number;
   nextEventId: number;
   nextReviewId: number;
+  nextAuditLogId: number;
 }
 
 export function createEmptyProjectsState(): ProjectsState {
@@ -286,10 +331,12 @@ export function createEmptyProjectsState(): ProjectsState {
     proposals: [],
     events: [],
     reviews: [],
+    auditLogs: [],
     nextUserId: 1,
     nextProjectId: 1,
     nextProposalId: 1,
     nextEventId: 1,
     nextReviewId: 1,
+    nextAuditLogId: 1,
   };
 }

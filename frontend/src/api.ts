@@ -61,6 +61,38 @@ export interface ProjectReview {
   body: string;
   status: ProjectReviewStatus;
   reportCount: number;
+  lastReportedAt?: string | null;
+  reportReasons?: Array<{
+    reporterEmail: string;
+    reason?: string | null;
+    createdAt: string;
+  }>;
+  moderatedBy?: string | null;
+  moderationNote?: string | null;
+  lastModeratedAt?: string | null;
+  createdAt: string;
+}
+
+export interface AdminReportedReview {
+  review: ProjectReview;
+  project: Pick<Project, 'id' | 'title' | 'category' | 'accessMode'>;
+  replyCount: number;
+}
+
+export type AuditLogAction =
+  | 'match_compliance_accepted'
+  | 'review_reported'
+  | 'review_hidden_auto'
+  | 'review_moderated';
+
+export interface AuditLog {
+  id: number;
+  action: AuditLogAction;
+  actorEmail: string;
+  targetType: 'project' | 'review' | 'match';
+  targetId: number;
+  projectId?: number;
+  message: string;
   createdAt: string;
 }
 
@@ -303,8 +335,12 @@ export interface CreateProjectPayload {
 }
 
 export interface CreateMatchPayload {
+  email: string;
   fundingRangeId: string;
   message: string;
+  legalNoticeAccepted: boolean;
+  privacyConsentAccepted: boolean;
+  riskNoticeAccepted: boolean;
 }
 
 export interface CreateProjectReviewPayload {
@@ -327,6 +363,17 @@ export interface ReportProjectReviewPayload {
 }
 
 export interface ReportProjectReviewResponse {
+  review: ProjectReview;
+  project: Project;
+}
+
+export interface ModerateProjectReviewPayload {
+  adminEmail: string;
+  action: 'keep' | 'hide' | 'restore';
+  note?: string;
+}
+
+export interface ModerateProjectReviewResponse {
   review: ProjectReview;
   project: Project;
 }
@@ -427,6 +474,20 @@ export async function fetchAdminRevenueProjection(config: AdminRevenueProjection
   return response.data;
 }
 
+export async function fetchAdminReportedReviews(adminEmail: string) {
+  const response = await client.get<AdminReportedReview[]>('/projects/admin-reported-reviews', {
+    params: { adminEmail },
+  });
+  return response.data;
+}
+
+export async function fetchAdminAuditLogs(adminEmail: string, limit = 30) {
+  const response = await client.get<AuditLog[]>('/projects/admin-audit-logs', {
+    params: { adminEmail, limit },
+  });
+  return response.data;
+}
+
 export async function fetchProjects(query: ProjectListQuery = {}): Promise<ProjectListPayload> {
   const response = await client.get<ProjectListPayload>('/projects', { params: normalizeProjectQuery(query) });
   return response.data;
@@ -499,6 +560,18 @@ export async function createProjectReview(id: number, payload: CreateProjectRevi
 export async function reportProjectReview(id: number, reviewId: number, payload: ReportProjectReviewPayload) {
   const response = await client.post<ReportProjectReviewResponse>(
     `/projects/${id}/reviews/${reviewId}/report`,
+    payload,
+  );
+  return response.data;
+}
+
+export async function moderateProjectReview(
+  id: number,
+  reviewId: number,
+  payload: ModerateProjectReviewPayload,
+) {
+  const response = await client.post<ModerateProjectReviewResponse>(
+    `/projects/${id}/reviews/${reviewId}/moderate`,
     payload,
   );
   return response.data;

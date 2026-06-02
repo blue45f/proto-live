@@ -5,6 +5,7 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { ValidateUrlDto } from './dto/validate-url.dto';
 import { CreateMatchProposalDto } from './dto/create-match-proposal.dto';
 import { CreateProjectReviewDto } from './dto/create-project-review.dto';
+import { ModerateProjectReviewDto } from './dto/moderate-project-review.dto';
 import { ReportProjectReviewDto } from './dto/report-project-review.dto';
 import { RecordProjectEventDto } from './dto/record-project-event.dto';
 import { GetProjectsQueryDto, ProjectQueryInput } from './dto/get-projects-query.dto';
@@ -65,6 +66,24 @@ export class ProjectsController {
   @Get('admin-revenue-projection')
   getAdminRevenueProjection(@Query() query: AdminRevenueProjectionQueryDto) {
     return this.projectsService.getAdminRevenueProjection(query);
+  }
+
+  /**
+   * GET /api/projects/admin-reported-reviews
+   * 신고 또는 숨김 처리된 커뮤니티 의견을 운영자 검토 큐로 반환합니다.
+   */
+  @Get('admin-reported-reviews')
+  getAdminReportedReviews(@Query('adminEmail') adminEmail: string) {
+    return this.projectsService.getReportedProjectReviews(adminEmail);
+  }
+
+  /**
+   * GET /api/projects/admin-audit-logs
+   * 운영 처리, 신고, 투자 관심 동의 기록을 최신순으로 반환합니다.
+   */
+  @Get('admin-audit-logs')
+  getAdminAuditLogs(@Query('adminEmail') adminEmail: string, @Query('limit') limit?: string) {
+    return this.projectsService.getAdminAuditLogs(adminEmail, limit ? Number.parseInt(limit, 10) : 30);
   }
 
   /**
@@ -165,6 +184,19 @@ export class ProjectsController {
     @Body() body: ReportProjectReviewDto,
   ) {
     return this.projectsService.reportProjectReview(id, reviewId, body);
+  }
+
+  /**
+   * POST /api/projects/:id/reviews/:reviewId/moderate
+   * 운영자가 신고 의견을 유지, 숨김, 복구 처리합니다.
+   */
+  @Post(':id/reviews/:reviewId/moderate')
+  moderateProjectReview(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('reviewId', ParseIntPipe) reviewId: number,
+    @Body() body: ModerateProjectReviewDto,
+  ) {
+    return this.projectsService.moderateProjectReview(id, reviewId, body);
   }
 
   /**

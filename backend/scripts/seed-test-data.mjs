@@ -31,11 +31,13 @@ const DEFAULT_STATE = {
   proposals: [],
   events: [],
   reviews: [],
+  auditLogs: [],
   nextUserId: 1,
   nextProjectId: 1,
   nextProposalId: 1,
   nextEventId: 1,
   nextReviewId: 1,
+  nextAuditLogId: 1,
 };
 
 function createDefaultState() {
@@ -45,20 +47,30 @@ function createDefaultState() {
     proposals: [],
     events: [],
     reviews: [],
+    auditLogs: [],
     nextUserId: DEFAULT_STATE.nextUserId,
     nextProjectId: DEFAULT_STATE.nextProjectId,
     nextProposalId: DEFAULT_STATE.nextProposalId,
     nextEventId: DEFAULT_STATE.nextEventId,
     nextReviewId: DEFAULT_STATE.nextReviewId,
+    nextAuditLogId: DEFAULT_STATE.nextAuditLogId,
   };
 }
 
-const ALLOWED_ROLES = new Set(['maker', 'investor']);
+const ALLOWED_ROLES = new Set(['maker', 'investor', 'member', 'admin']);
 const ALLOWED_ACCESS_MODES = new Set(['screened', 'open']);
 const ALLOWED_EVENT_TYPES = new Set(['create', 'preview', 'outbound', 'match', 'refresh']);
 const ALLOWED_REVIEW_ROLES = new Set(['maker', 'investor', 'member']);
 const ALLOWED_REVIEW_TYPES = new Set(['review', 'support', 'idea']);
 const ALLOWED_REVIEW_STATUSES = new Set(['visible', 'reported', 'hidden']);
+const ALLOWED_PROPOSAL_STATUSES = new Set(['submitted', 'contacted', 'closed']);
+const ALLOWED_AUDIT_ACTIONS = new Set([
+  'match_compliance_accepted',
+  'review_reported',
+  'review_hidden_auto',
+  'review_moderated',
+]);
+const ALLOWED_AUDIT_TARGETS = new Set(['project', 'review', 'match']);
 
 const FUNDING_RANGES = {
   'pre-seed-10-30': { minAmount: 10_000_000, maxAmount: 30_000_000 },
@@ -169,11 +181,13 @@ function loadStoreState() {
     proposals: Array.isArray(parsed.proposals) ? parsed.proposals : [],
     events: Array.isArray(parsed.events) ? parsed.events : [],
     reviews: Array.isArray(parsed.reviews) ? parsed.reviews : [],
+    auditLogs: Array.isArray(parsed.auditLogs) ? parsed.auditLogs : [],
     nextUserId: safeParseInt(parsed.nextUserId, DEFAULT_STATE.nextUserId),
     nextProjectId: safeParseInt(parsed.nextProjectId, DEFAULT_STATE.nextProjectId),
     nextProposalId: safeParseInt(parsed.nextProposalId, DEFAULT_STATE.nextProposalId),
     nextEventId: safeParseInt(parsed.nextEventId, DEFAULT_STATE.nextEventId),
     nextReviewId: safeParseInt(parsed.nextReviewId, DEFAULT_STATE.nextReviewId),
+    nextAuditLogId: safeParseInt(parsed.nextAuditLogId, DEFAULT_STATE.nextAuditLogId),
   };
 }
 
@@ -205,7 +219,8 @@ function loadFixture(path) {
     Array.isArray(parsed.projects) ||
     Array.isArray(parsed.proposals) ||
     Array.isArray(parsed.events) ||
-    Array.isArray(parsed.reviews);
+    Array.isArray(parsed.reviews) ||
+    Array.isArray(parsed.auditLogs);
 
   if (!hasAnySection) {
     throw new Error(`fixture에 accounts/projects/proposals/events 중 하나가 필요합니다: ${path}`);
@@ -217,11 +232,13 @@ function loadFixture(path) {
     proposals: normalizeProposals(Array.isArray(parsed.proposals) ? parsed.proposals : []),
     events: normalizeEvents(Array.isArray(parsed.events) ? parsed.events : []),
     reviews: normalizeReviews(Array.isArray(parsed.reviews) ? parsed.reviews : []),
+    auditLogs: normalizeAuditLogs(Array.isArray(parsed.auditLogs) ? parsed.auditLogs : []),
     nextUserId: safeParseInt(parsed.nextUserId, null),
     nextProjectId: safeParseInt(parsed.nextProjectId, null),
     nextProposalId: safeParseInt(parsed.nextProposalId, null),
     nextEventId: safeParseInt(parsed.nextEventId, null),
     nextReviewId: safeParseInt(parsed.nextReviewId, null),
+    nextAuditLogId: safeParseInt(parsed.nextAuditLogId, null),
   };
 }
 
@@ -303,6 +320,8 @@ function normalizeProposals(proposals) {
       const projectId = safeParseInt(entry?.projectId, null);
       const fundingRangeId = safeString(entry?.fundingRangeId, null);
       const message = safeString(entry?.message, null);
+      const investorEmail = normalizeEmail(entry?.investorEmail) ?? 'unknown-investor@protolive.local';
+      const status = normalizeStringLower(entry?.status);
 
       if (!Number.isInteger(id) || id <= 0) {
         return null;
@@ -317,8 +336,14 @@ function normalizeProposals(proposals) {
       return {
         id,
         projectId,
+        investorEmail,
         fundingRangeId,
         message,
+        legalNoticeAccepted: safeBoolean(entry?.legalNoticeAccepted, true),
+        privacyConsentAccepted: safeBoolean(entry?.privacyConsentAccepted, true),
+        riskNoticeAccepted: safeBoolean(entry?.riskNoticeAccepted, true),
+        complianceAcceptedAt: safeDateIso(entry?.complianceAcceptedAt, entry?.createdAt ?? new Date().toISOString()),
+        status: ALLOWED_PROPOSAL_STATUSES.has(status) ? status : 'submitted',
         createdAt: safeDateIso(entry?.createdAt, new Date().toISOString()),
       };
     })
@@ -392,7 +417,62 @@ function normalizeReviews(reviews) {
         status: ALLOWED_REVIEW_STATUSES.has(status) ? status : 'visible',
         reportCount: Math.max(0, reportCount),
         reportedBy: normalizeEmailList(entry?.reportedBy),
+        reportReasons: normalizeReviewReports(entry?.reportReasons),
         lastReportedAt: entry?.lastReportedAt ? safeDateIso(entry.lastReportedAt, null) : null,
+        moderatedBy: normalizeEmail(entry?.moderatedBy),
+        moderationNote: safeString(entry?.moderationNote, null),
+        lastModeratedAt: entry?.lastModeratedAt ? safeDateIso(entry.lastModeratedAt, null) : null,
+        createdAt: safeDateIso(entry?.createdAt, new Date().toISOString()),
+      };
+    })
+    .filter(Boolean);
+}
+
+function normalizeReviewReports(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => {
+      const reporterEmail = normalizeEmail(entry?.reporterEmail);
+      if (!reporterEmail) {
+        return null;
+      }
+
+      return {
+        reporterEmail,
+        reason: safeString(entry?.reason, null),
+        createdAt: safeDateIso(entry?.createdAt, new Date().toISOString()),
+      };
+    })
+    .filter(Boolean);
+}
+
+function normalizeAuditLogs(logs) {
+  return logs
+    .map((entry) => {
+      const id = safeParseInt(entry?.id, null);
+      const action = safeString(entry?.action, null);
+      const actorEmail = normalizeEmail(entry?.actorEmail);
+      const targetType = safeString(entry?.targetType, null);
+      const targetId = safeParseInt(entry?.targetId, null);
+      const projectId = safeParseInt(entry?.projectId, null);
+      const message = safeString(entry?.message, null);
+
+      if (!Number.isInteger(id) || id <= 0) return null;
+      if (!actorEmail || !message) return null;
+      if (!ALLOWED_AUDIT_ACTIONS.has(action) || !ALLOWED_AUDIT_TARGETS.has(targetType)) return null;
+      if (!Number.isInteger(targetId) || targetId <= 0) return null;
+
+      return {
+        id,
+        action,
+        actorEmail,
+        targetType,
+        targetId,
+        ...(Number.isInteger(projectId) && projectId > 0 ? { projectId } : {}),
+        message,
         createdAt: safeDateIso(entry?.createdAt, new Date().toISOString()),
       };
     })
@@ -431,6 +511,7 @@ function updateNextIdsFromItems(state, fixtureState) {
   const maxProposalId = Math.max(0, ...state.proposals.map((proposal) => safeParseInt(proposal.id, 0)));
   const maxEventId = Math.max(0, ...state.events.map((event) => safeParseInt(event.id, 0)));
   const maxReviewId = Math.max(0, ...state.reviews.map((review) => safeParseInt(review.id, 0)));
+  const maxAuditLogId = Math.max(0, ...state.auditLogs.map((entry) => safeParseInt(entry.id, 0)));
 
   state.nextUserId = Math.max(
     state.nextUserId,
@@ -466,6 +547,13 @@ function updateNextIdsFromItems(state, fixtureState) {
     maxReviewId + 1,
     DEFAULT_STATE.nextReviewId,
   );
+
+  state.nextAuditLogId = Math.max(
+    state.nextAuditLogId,
+    safeParseInt(fixtureState.nextAuditLogId, 0),
+    maxAuditLogId + 1,
+    DEFAULT_STATE.nextAuditLogId,
+  );
 }
 
 function reconcileProjectMetrics(state) {
@@ -496,7 +584,7 @@ function reconcileProjectMetrics(state) {
 }
 
 function seed(state, fixtureState) {
-  const summary = { users: 0, projects: 0, proposals: 0, events: 0, reviews: 0 };
+  const summary = { users: 0, projects: 0, proposals: 0, events: 0, reviews: 0, auditLogs: 0 };
 
   const usersByEmail = new Map();
   for (const user of state.users) {
@@ -584,6 +672,10 @@ function seed(state, fixtureState) {
   state.reviews = reviewResult.items;
   summary.reviews = reviewResult.changed;
 
+  const auditLogResult = upsertById(state.auditLogs, fixtureState.auditLogs);
+  state.auditLogs = auditLogResult.items;
+  summary.auditLogs = auditLogResult.changed;
+
   reconcileProjectMetrics(state);
   state.projects = state.projects.map((project) => {
     const { ownerEmail, ...rest } = project;
@@ -599,7 +691,7 @@ function main() {
   const beforeState = isReset ? createDefaultState() : loadStoreState();
   const summary = seed(beforeState, fixtureState);
 
-  const changed = summary.users + summary.projects + summary.proposals + summary.events + summary.reviews;
+  const changed = summary.users + summary.projects + summary.proposals + summary.events + summary.reviews + summary.auditLogs;
 
   if (changed === 0 && !isReset) {
     console.log('변경 항목이 없어 시드를 건너뜁니다.');
@@ -608,13 +700,13 @@ function main() {
 
   if (isDryRun) {
     console.log(isReset ? '리셋 드라이 런 실행: 파일이 변경되지 않습니다.' : '드라이 런 실행: 파일이 변경되지 않습니다.');
-    console.log(`예상 변경 항목: 사용자 ${summary.users}개, 프로젝트 ${summary.projects}개, 제안 ${summary.proposals}개, 이벤트 ${summary.events}개, 리뷰 ${summary.reviews}개`);
+    console.log(`예상 변경 항목: 사용자 ${summary.users}개, 프로젝트 ${summary.projects}개, 제안 ${summary.proposals}개, 이벤트 ${summary.events}개, 리뷰 ${summary.reviews}개, 감사 로그 ${summary.auditLogs}개`);
     return;
   }
 
   writeStoreState(beforeState);
   console.log(
-    `${isReset ? '테스트 데이터 리셋 완료' : '테스트 데이터 시드 완료'}: 사용자 ${summary.users}개, 프로젝트 ${summary.projects}개, 제안 ${summary.proposals}개, 이벤트 ${summary.events}개, 리뷰 ${summary.reviews}개 동기화`,
+    `${isReset ? '테스트 데이터 리셋 완료' : '테스트 데이터 시드 완료'}: 사용자 ${summary.users}개, 프로젝트 ${summary.projects}개, 제안 ${summary.proposals}개, 이벤트 ${summary.events}개, 리뷰 ${summary.reviews}개, 감사 로그 ${summary.auditLogs}개 동기화`,
   );
 }
 

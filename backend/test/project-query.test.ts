@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import * as assert from 'node:assert/strict';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ProjectsService } from '../src/projects/projects.service';
 import { createEmptyProjectsState } from '../src/projects/project.models';
 import { JsonProjectsStore } from '../src/projects/projects.store';
@@ -143,7 +143,7 @@ test('getAllProjects supports category/search/access mode query filters', async 
       { id: 4, projectId: 4, type: 'refresh', createdAt: new Date('2026-06-01T11:45:00.000Z') },
     );
 
-    state.nextUserId = 2;
+    state.nextUserId = 3;
     state.nextProjectId = 5;
     state.nextProposalId = 1;
     state.nextEventId = 5;
@@ -189,6 +189,7 @@ test('getAllProjects supports category/search/access mode query filters', async 
 test('createProjectReview records reviews and one-level replies with summaries', async () => {
   await withSeededService((state) => {
     state.users.push({ id: 1, email: 'maker@protolive.local', role: 'maker' });
+    state.users.push({ id: 2, email: 'admin@protolive.local', role: 'admin' });
     state.projects.push({
       id: 1,
       userId: 1,
@@ -214,7 +215,7 @@ test('createProjectReview records reviews and one-level replies with summaries',
       createdAt: new Date('2026-06-01T12:00:00.000Z'),
     });
 
-    state.nextUserId = 2;
+    state.nextUserId = 3;
     state.nextProjectId = 2;
     state.nextProposalId = 1;
     state.nextEventId = 1;
@@ -274,6 +275,31 @@ test('createProjectReview records reviews and one-level replies with summaries',
       },
     );
 
+    assert.throws(
+      () => service.getReportedProjectReviews('maker@protolive.local'),
+      (error: unknown) => {
+        assert.ok(error instanceof ForbiddenException);
+        return true;
+      },
+    );
+    const reportedQueue = service.getReportedProjectReviews('admin@protolive.local');
+    assert.equal(reportedQueue.length, 1);
+    assert.equal(reportedQueue[0].review.id, first.review.id);
+    assert.equal(service.getAdminAuditLogs('admin@protolive.local')[0].action, 'review_reported');
+
+    const kept = service.moderateProjectReview(1, first.review.id, {
+      adminEmail: 'admin@protolive.local',
+      action: 'keep',
+      note: '문맥상 공개 유지합니다.',
+    });
+    assert.equal(kept.review.status, 'visible');
+    assert.equal(kept.review.reportCount, 0);
+    assert.equal(service.getReportedProjectReviews('admin@protolive.local').length, 0);
+
+    service.reportProjectReview(1, first.review.id, {
+      email: 'observer-one@protolive.local',
+      reason: '다시 신고합니다.',
+    });
     service.reportProjectReview(1, first.review.id, {
       email: 'observer-two@protolive.local',
       reason: '두 번째 신고입니다.',
@@ -318,6 +344,76 @@ test('createProjectReview records reviews and one-level replies with summaries',
         return true;
       },
     );
+  });
+});
+
+test('createMatchProposal requires compliance consent and records audit trail', async () => {
+  await withSeededService((state) => {
+    state.users.push({ id: 1, email: 'maker@protolive.local', role: 'maker' });
+    state.users.push({ id: 2, email: 'investor@protolive.local', role: 'investor' });
+    state.users.push({ id: 3, email: 'admin@protolive.local', role: 'admin' });
+    state.projects.push({
+      id: 1,
+      userId: 1,
+      title: 'Consent Protected Project',
+      description: 'investment consent target',
+      liveUrl: 'https://consent.example.com',
+      category: 'FinTech' as ProjectCategory,
+      accessMode: 'open' as ProjectAccessMode,
+      protectionNoticeAccepted: true,
+      investorCount: 0,
+      matchCount: 0,
+      committedAmountMin: 0,
+      committedAmountMax: 0,
+      validation: {
+        success: true,
+        status: 200,
+        message: 'ok',
+        checkedAt: '2026-06-01T00:00:00.000Z',
+        finalUrl: 'https://consent.example.com',
+        responseTimeMs: 90,
+      },
+      createdAt: new Date('2026-06-01T12:00:00.000Z'),
+    });
+    state.nextUserId = 4;
+    state.nextProjectId = 2;
+    state.nextProposalId = 1;
+    state.nextEventId = 1;
+    state.nextReviewId = 1;
+    state.nextAuditLogId = 1;
+  }, async (service) => {
+    await assert.rejects(
+      service.createMatchProposal(1, {
+        email: 'investor@protolive.local',
+        fundingRangeId: 'seed-50-100',
+        message: '동의가 빠진 관심 기록입니다.',
+        legalNoticeAccepted: false,
+        privacyConsentAccepted: true,
+        riskNoticeAccepted: true,
+      }),
+      (error: unknown) => {
+        assert.ok(error instanceof BadRequestException);
+        assert.equal((error as BadRequestException).message, '투자 관심 기록 전 필수 안내와 개인정보 연락 동의를 모두 확인해야 합니다.');
+        return true;
+      },
+    );
+
+    const updated = await service.createMatchProposal(1, {
+      email: 'Investor@ProtoLive.local',
+      fundingRangeId: 'seed-50-100',
+      message: '주요 지표를 확인한 뒤 창업자와 미팅하고 싶습니다.',
+      legalNoticeAccepted: true,
+      privacyConsentAccepted: true,
+      riskNoticeAccepted: true,
+    });
+
+    assert.equal(updated.investorCount, 1);
+    assert.equal(updated.matchCount, 1);
+    assert.equal(updated.committedAmountMin, 50_000_000);
+    assert.equal(updated.committedAmountMax, 100_000_000);
+    const audit = service.getAdminAuditLogs('admin@protolive.local')[0];
+    assert.equal(audit.action, 'match_compliance_accepted');
+    assert.equal(audit.actorEmail, 'investor@protolive.local');
   });
 });
 

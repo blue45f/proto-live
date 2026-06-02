@@ -38,8 +38,10 @@ import {
 } from 'lucide-react';
 import {
   API_BASE,
+  AuditLog,
   FundingRange,
   ProjectListQuery,
+  AdminReportedReview,
   AdminActionRecommendation,
   MarketConfig,
   MarketStats,
@@ -57,6 +59,8 @@ import {
   createProjectReview,
   fetchMarketConfig,
   fetchAdminDashboard,
+  fetchAdminAuditLogs,
+  fetchAdminReportedReviews,
   fetchAdminRevenueProjection,
   fetchMarketStats,
   extractProjects,
@@ -67,6 +71,7 @@ import {
   recordProjectEvent,
   refreshAllProjects,
   refreshProject,
+  moderateProjectReview,
   reportProjectReview,
   validateLiveUrl,
 } from './api';
@@ -821,7 +826,16 @@ function maskEmail(email: string) {
 function getRoleLabel(role: string) {
   if (role === 'maker') return '창업자';
   if (role === 'investor') return '투자자';
+  if (role === 'admin') return '운영자';
   return '회원';
+}
+
+function getAuditActionLabel(action: string) {
+  if (action === 'match_compliance_accepted') return '투자 관심 동의';
+  if (action === 'review_reported') return '리뷰 신고';
+  if (action === 'review_hidden_auto') return '자동 숨김';
+  if (action === 'review_moderated') return '운영 검토';
+  return '운영 기록';
 }
 
 function getRootReviews(reviews: ProjectReview[]) {
@@ -1204,6 +1218,7 @@ export default function App() {
       maker: testAccounts.filter((account) => account.role === 'maker'),
       investor: testAccounts.filter((account) => account.role === 'investor'),
       member: testAccounts.filter((account) => account.role === 'member'),
+      admin: testAccounts.filter((account) => account.role === 'admin'),
     };
   }, [testAccounts]);
   const [loginEmail, setLoginEmail] = useState(() => {
@@ -1227,9 +1242,10 @@ export default function App() {
   const isAuthenticated = session !== null;
   const isMaker = session?.role === 'maker';
   const isInvestor = session?.role === 'investor';
+  const isAdmin = session?.role === 'admin';
   const canSubmitProject = isMaker;
   const canMatch = isInvestor;
-  const canAccessAdmin = isMaker;
+  const canAccessAdmin = isAdmin;
   const shouldShowLogin = isLoginOpen;
   const effectiveView = useMemo<AppView>(() => {
     if (!session) {
@@ -1242,6 +1258,9 @@ export default function App() {
   const [adminRevenueConfig, setAdminRevenueConfig] = useState<RevenueModelConfig>(
     readAdminRevenueConfig,
   );
+  const [adminReportedReviews, setAdminReportedReviews] = useState<AdminReportedReview[]>([]);
+  const [adminAuditLogs, setAdminAuditLogs] = useState<AuditLog[]>([]);
+  const [moderatingReviewId, setModeratingReviewId] = useState<number | null>(null);
   const [adminRevenueTargetMonthly, setAdminRevenueTargetMonthly] = useState(readAdminRevenueTarget);
   const [debouncedAdminRevenueTargetMonthly, setDebouncedAdminRevenueTargetMonthly] =
     useState(adminRevenueTargetMonthly);
@@ -1322,6 +1341,9 @@ export default function App() {
   const [matchingProject, setMatchingProject] = useState<Project | null>(null);
   const [fundingRangeId, setFundingRangeId] = useState('');
   const [matchMessage, setMatchMessage] = useState('');
+  const [matchLegalNoticeAccepted, setMatchLegalNoticeAccepted] = useState(false);
+  const [matchPrivacyConsentAccepted, setMatchPrivacyConsentAccepted] = useState(false);
+  const [matchRiskNoticeAccepted, setMatchRiskNoticeAccepted] = useState(false);
   const [isSendingMatch, setIsSendingMatch] = useState(false);
   const [reviewProject, setReviewProject] = useState<Project | null>(null);
   const [projectReviews, setProjectReviews] = useState<ProjectReview[]>([]);
@@ -1864,15 +1886,19 @@ export default function App() {
 
         setAdminDashboard(EMPTY_ADMIN_DASHBOARD);
       } else {
-        const [dashboardPayload, revenueProjection] = await Promise.all([
+        const [dashboardPayload, revenueProjection, reportedReviewsPayload, auditLogsPayload] = await Promise.all([
           fetchAdminDashboard(),
           fetchAdminRevenueProjection(adminRevenueProjectionParams),
+          session?.email ? fetchAdminReportedReviews(session.email) : Promise.resolve([]),
+          session?.email ? fetchAdminAuditLogs(session.email, 30) : Promise.resolve([]),
         ]);
 
         setAdminDashboard({
           ...dashboardPayload,
           revenue: revenueProjection,
         });
+        setAdminReportedReviews(reportedReviewsPayload);
+        setAdminAuditLogs(auditLogsPayload);
       }
 
       setApiOnline(true);
@@ -1906,7 +1932,7 @@ export default function App() {
       setIsInitialLoading(false);
       setIsRefreshing(false);
     }
-  }, [adminRevenueProjectionParams, fundingRangeId, isAdminView, projectQuery]);
+  }, [adminRevenueProjectionParams, fundingRangeId, isAdminView, projectQuery, session]);
 
   const loadProjectEvents = useCallback(async (projectId: number) => {
     setIsPreviewEventsLoading(true);
@@ -2220,7 +2246,7 @@ export default function App() {
     }
 
     if (!canAccessAdmin) {
-      toast('error', '접근 제한', '관리자 페이지는 창업자 계정에서만 이용할 수 있습니다.');
+      toast('error', '접근 제한', '관리자 페이지는 운영자 계정에서만 이용할 수 있습니다.');
       return false;
     }
 
@@ -2869,7 +2895,7 @@ export default function App() {
     try {
       const result = await createProjectReview(targetProject.id, {
         email: session.email,
-        role: session.role,
+        role: session.role === 'admin' ? 'member' : session.role,
         type: replyToReview?.type ?? reviewType,
         rating: replyToReview ? undefined : reviewType === 'review' ? reviewRating : undefined,
         parentId: replyToReview?.id,
@@ -2942,6 +2968,47 @@ export default function App() {
     }
   }
 
+  async function handleModerateReview(entry: AdminReportedReview, action: 'keep' | 'hide' | 'restore') {
+    if (!session || !canAccessAdmin) {
+      toast('error', '운영자 권한 필요', '신고 검토는 운영자 계정에서만 처리할 수 있습니다.');
+      return;
+    }
+
+    setModeratingReviewId(entry.review.id);
+    try {
+      const result = await moderateProjectReview(entry.project.id, entry.review.id, {
+        adminEmail: session.email,
+        action,
+        note:
+          action === 'hide'
+            ? '운영자가 신고 내용을 확인하고 숨김 처리했습니다.'
+            : action === 'restore'
+              ? '운영자가 숨김 의견을 복구했습니다.'
+              : '운영자가 신고 내용을 확인하고 공개 유지 처리했습니다.',
+      });
+
+      setAdminReportedReviews((current) =>
+        action === 'keep' || action === 'restore'
+          ? current.filter((item) => item.review.id !== entry.review.id)
+          : current.map((item) =>
+              item.review.id === entry.review.id ? { ...item, review: result.review } : item,
+            ),
+      );
+      setProjects((current) => upsertProject(current, result.project));
+      setAdminAuditLogs(await fetchAdminAuditLogs(session.email, 30));
+      await loadSnapshot(false);
+      toast(
+        'success',
+        action === 'hide' ? '의견 숨김 완료' : action === 'restore' ? '의견 복구 완료' : '공개 유지 완료',
+        '운영 검토 기록이 감사 로그에 저장되었습니다.',
+      );
+    } catch (error) {
+      toast('error', '운영 처리 실패', getApiErrorMessage(error, '신고 의견을 처리하지 못했습니다.'));
+    } finally {
+      setModeratingReviewId(null);
+    }
+  }
+
   async function handleProjectEvent(project: Project, type: 'preview' | 'outbound' | 'refresh') {
     try {
       const updated = await recordProjectEvent(project.id, type);
@@ -2991,11 +3058,20 @@ export default function App() {
 
     if (!matchingProject || !activeFundingRange) return;
 
+    if (!matchLegalNoticeAccepted || !matchPrivacyConsentAccepted || !matchRiskNoticeAccepted) {
+      toast('error', '필수 확인 필요', '투자 관심 기록 전 법무 고지, 개인정보 연락 동의, 초기 위험 안내를 모두 확인해야 합니다.');
+      return;
+    }
+
     setIsSendingMatch(true);
     try {
       const updated = await createMatchProposal(matchingProject.id, {
+        email: session?.email ?? '',
         fundingRangeId: activeFundingRange.id,
         message: matchMessage,
+        legalNoticeAccepted: matchLegalNoticeAccepted,
+        privacyConsentAccepted: matchPrivacyConsentAccepted,
+        riskNoticeAccepted: matchRiskNoticeAccepted,
       });
       setProjects((current) => upsertProject(current, updated));
       await loadSnapshot();
@@ -3006,6 +3082,9 @@ export default function App() {
       );
       setMatchingProject(null);
       setMatchMessage('');
+      setMatchLegalNoticeAccepted(false);
+      setMatchPrivacyConsentAccepted(false);
+      setMatchRiskNoticeAccepted(false);
     } catch (error) {
       toast('error', '연결 실패', getApiErrorMessage(error, '투자 관심 기록에 실패했습니다.'));
     } finally {
@@ -3019,6 +3098,9 @@ export default function App() {
     }
 
     setMatchingProject(project);
+    setMatchLegalNoticeAccepted(false);
+    setMatchPrivacyConsentAccepted(false);
+    setMatchRiskNoticeAccepted(false);
   }, [handleRequireInvestorOnly]);
 
   const openProjectDetail = useCallback((project: Project) => {
@@ -3201,6 +3283,126 @@ export default function App() {
                 </div>
               </div>
             )}
+
+            <div className="grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.8fr)]">
+              <section className="protolive-ops-panel rounded-xl border border-amber-300/25 bg-stone-950/65 p-4">
+                <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-100">Trust operations</p>
+                    <h3 className="mt-1 text-lg font-black text-stone-50">신고 리뷰 검토 큐</h3>
+                    <p className="mt-1 text-sm leading-6 text-stone-400">
+                      신고된 의견을 운영자가 확인하고 공개 유지, 숨김, 복구로 처리합니다.
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-amber-300/40 bg-amber-300/10 px-3 py-1 text-xs font-black text-amber-100">
+                    대기 {adminReportedReviews.length}
+                  </span>
+                </div>
+                {adminReportedReviews.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-stone-700 bg-stone-950/45 p-4 text-sm text-stone-400">
+                    검토 대기 중인 신고 의견이 없습니다.
+                  </div>
+                ) : (
+                  <div className="grid gap-3">
+                    {adminReportedReviews.map((entry) => (
+                      <article
+                        key={entry.review.id}
+                        className="rounded-xl border border-stone-700/80 bg-[oklch(15%_0.016_205)] p-3 text-sm"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate font-black text-stone-100">{entry.project.title}</p>
+                            <p className="mt-1 text-xs text-stone-500">
+                              {entry.project.category} · {entry.project.accessMode} · 답글 {entry.replyCount}개
+                            </p>
+                          </div>
+                          <span
+                            className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${
+                              entry.review.status === 'hidden'
+                                ? 'border-red-300/45 bg-red-300/10 text-red-100'
+                                : 'border-amber-300/45 bg-amber-300/10 text-amber-100'
+                            }`}
+                          >
+                            {entry.review.status === 'hidden' ? '숨김 처리됨' : `신고 ${entry.review.reportCount}회`}
+                          </span>
+                        </div>
+                        <p className="mt-3 overflow-wrap-anywhere rounded-lg border border-stone-800 bg-stone-950/45 p-3 leading-6 text-stone-200">
+                          {entry.review.body}
+                        </p>
+                        <div className="mt-2 grid gap-2 text-xs text-stone-400 sm:grid-cols-2">
+                          <p>작성자: {maskEmail(entry.review.authorEmail)}</p>
+                          <p>최근 신고: {entry.review.lastReportedAt ? formatRelativeTime(entry.review.lastReportedAt) : '기록 없음'}</p>
+                        </div>
+                        {(entry.review.reportReasons ?? []).length > 0 ? (
+                          <div className="mt-2 rounded-lg border border-amber-300/20 bg-amber-300/10 p-2 text-xs text-amber-50">
+                            <p className="font-black">최근 신고 사유</p>
+                            <p className="mt-1 overflow-wrap-anywhere">
+                              {(entry.review.reportReasons ?? [])[(entry.review.reportReasons ?? []).length - 1]?.reason ?? '사유 없음'}
+                            </p>
+                          </div>
+                        ) : null}
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            disabled={moderatingReviewId === entry.review.id}
+                            onClick={() => void handleModerateReview(entry, 'keep')}
+                            className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-lime-300/45 px-3 text-xs font-black text-lime-100 disabled:opacity-50"
+                          >
+                            공개 유지
+                          </button>
+                          <button
+                            type="button"
+                            disabled={moderatingReviewId === entry.review.id}
+                            onClick={() => void handleModerateReview(entry, 'hide')}
+                            className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-red-300/45 px-3 text-xs font-black text-red-100 disabled:opacity-50"
+                          >
+                            숨김 처리
+                          </button>
+                          {entry.review.status === 'hidden' ? (
+                            <button
+                              type="button"
+                              disabled={moderatingReviewId === entry.review.id}
+                              onClick={() => void handleModerateReview(entry, 'restore')}
+                              className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-cyan-300/45 px-3 text-xs font-black text-cyan-100 disabled:opacity-50"
+                            >
+                              복구
+                            </button>
+                          ) : null}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <section className="protolive-ops-panel rounded-xl border border-cyan-300/25 bg-stone-950/65 p-4">
+                <div className="mb-4">
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-100">Audit trail</p>
+                  <h3 className="mt-1 text-lg font-black text-stone-50">운영 감사 로그</h3>
+                  <p className="mt-1 text-sm leading-6 text-stone-400">
+                    신고, 자동 숨김, 운영 처리, 투자 동의 기록을 최신순으로 남깁니다.
+                  </p>
+                </div>
+                {adminAuditLogs.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-stone-700 bg-stone-950/45 p-4 text-sm text-stone-400">
+                    아직 감사 로그가 없습니다.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {adminAuditLogs.slice(0, 8).map((entry) => (
+                      <div key={entry.id} className="rounded-lg border border-stone-800 bg-stone-950/45 p-3 text-xs">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="font-black text-stone-100">{getAuditActionLabel(entry.action)}</span>
+                          <span className="text-stone-500">{formatRelativeTime(entry.createdAt)}</span>
+                        </div>
+                        <p className="mt-1 overflow-wrap-anywhere text-stone-300">{entry.message}</p>
+                        <p className="mt-1 text-stone-500">{maskEmail(entry.actorEmail)} · {entry.targetType} #{entry.targetId}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
 
             <div className="grid gap-4 xl:grid-cols-3">
             <div className="protolive-panel rounded-xl border border-stone-800 bg-stone-950/65 p-4">
@@ -4876,7 +5078,12 @@ export default function App() {
         <Modal
           title="투자 관심 기록"
           subtitle={matchingProject.title}
-          onClose={() => setMatchingProject(null)}
+          onClose={() => {
+            setMatchingProject(null);
+            setMatchLegalNoticeAccepted(false);
+            setMatchPrivacyConsentAccepted(false);
+            setMatchRiskNoticeAccepted(false);
+          }}
           dialogRef={matchModalRef}
         >
           <form onSubmit={handleSubmitMatch} className="space-y-4">
@@ -4910,17 +5117,52 @@ export default function App() {
                 className="w-full resize-none rounded-lg border border-stone-700 bg-stone-950 px-3 py-3 text-sm leading-6 text-stone-100 outline-none placeholder:text-stone-500 focus:border-lime-300/60"
               />
             </label>
+            <div className="protolive-compliance-box space-y-2 rounded-xl border border-amber-300/35 bg-amber-300/10 p-3 text-xs leading-5 text-amber-50">
+              <p className="font-black text-amber-100">기록 전 필수 확인</p>
+              <label className="flex gap-2">
+                <input
+                  type="checkbox"
+                  checked={matchLegalNoticeAccepted}
+                  onChange={(event) => setMatchLegalNoticeAccepted(event.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-stone-600"
+                />
+                <span>이 기록은 투자 권유나 계약이 아니라 창업자에게 전달되는 관심 의향입니다.</span>
+              </label>
+              <label className="flex gap-2">
+                <input
+                  type="checkbox"
+                  checked={matchPrivacyConsentAccepted}
+                  onChange={(event) => setMatchPrivacyConsentAccepted(event.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-stone-600"
+                />
+                <span>연락을 위해 내 이메일과 메시지가 해당 창업자 및 운영자에게 전달되는 데 동의합니다.</span>
+              </label>
+              <label className="flex gap-2">
+                <input
+                  type="checkbox"
+                  checked={matchRiskNoticeAccepted}
+                  onChange={(event) => setMatchRiskNoticeAccepted(event.target.checked)}
+                  className="mt-1 h-4 w-4 rounded border-stone-600"
+                />
+                <span>초기 프로토타입 검토에는 실패, 지연, 정보 부족 위험이 있음을 확인했습니다.</span>
+              </label>
+            </div>
             <div className="flex gap-3 pt-2">
               <button
                 type="button"
-                onClick={() => setMatchingProject(null)}
+                onClick={() => {
+                  setMatchingProject(null);
+                  setMatchLegalNoticeAccepted(false);
+                  setMatchPrivacyConsentAccepted(false);
+                  setMatchRiskNoticeAccepted(false);
+                }}
                 className="min-h-11 flex-1 rounded-lg border border-stone-700 text-sm font-black text-stone-300 hover:text-stone-100"
               >
                 취소
               </button>
               <button
                 type="submit"
-                disabled={isSendingMatch}
+                disabled={isSendingMatch || !matchLegalNoticeAccepted || !matchPrivacyConsentAccepted || !matchRiskNoticeAccepted}
                 className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-lime-300 text-sm font-black text-slate-950 disabled:opacity-50"
               >
                 {isSendingMatch ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -5210,6 +5452,23 @@ export default function App() {
                     >
                       <span>{account.name}</span>
                       <span className="truncate text-stone-400">{account.email}</span>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] font-black text-stone-400">운영자</p>
+                <div className="grid gap-2">
+                  {testAccountsByRole.admin.map((account) => (
+                    <button
+                      key={account.id}
+                      type="button"
+                      onClick={() => {
+                        setLoginEmail(account.email);
+                        setLoginPassword(account.password);
+                      }}
+                      className="flex min-h-10 items-center justify-between gap-3 rounded-lg border border-amber-300/40 px-3 py-2 text-left text-amber-100 transition hover:border-amber-200 hover:text-amber-50"
+                    >
+                      <span>{account.name}</span>
+                      <span className="truncate text-amber-100/70">{account.email}</span>
                     </button>
                   ))}
                 </div>

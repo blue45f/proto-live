@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import axios, { AxiosResponse } from 'axios';
 import {
   FUNDING_RANGES,
@@ -29,6 +29,8 @@ import {
   AdminRevenueScenario,
   AdminRevenueTargetDriver,
   AdminRevenueTargetGap,
+  AdminReportedReview,
+  AuditLog,
   ProjectsState,
   User,
   ValidationSnapshot,
@@ -36,6 +38,7 @@ import {
 import { CreateMatchProposalDto } from './dto/create-match-proposal.dto';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { CreateProjectReviewDto } from './dto/create-project-review.dto';
+import { ModerateProjectReviewDto } from './dto/moderate-project-review.dto';
 import { ReportProjectReviewDto } from './dto/report-project-review.dto';
 import { calculateProjectSignalScore, summarizeProjectEvents } from './project-signals';
 import { JsonProjectsStore } from './projects.store';
@@ -66,11 +69,13 @@ export class ProjectsService {
   private proposals: MatchProposal[];
   private events: ProjectEvent[];
   private reviews: ProjectReview[];
+  private auditLogs: AuditLog[];
   private nextUserId: number;
   private nextProjectId: number;
   private nextProposalId: number;
   private nextEventId: number;
   private nextReviewId: number;
+  private nextAuditLogId: number;
 
   constructor() {
     const state = this.store.read();
@@ -79,11 +84,13 @@ export class ProjectsService {
     this.proposals = state.proposals;
     this.events = state.events;
     this.reviews = state.reviews;
+    this.auditLogs = state.auditLogs;
     this.nextUserId = state.nextUserId;
     this.nextProjectId = state.nextProjectId;
     this.nextProposalId = state.nextProposalId;
     this.nextEventId = state.nextEventId;
     this.nextReviewId = state.nextReviewId;
+    this.nextAuditLogId = state.nextAuditLogId;
   }
 
   getAdminRevenueProjection(
@@ -843,12 +850,24 @@ export class ProjectsService {
     if (!fundingRange) {
       throw new BadRequestException('유효한 투자 구간을 선택해주세요.');
     }
+    if (data.legalNoticeAccepted !== true || data.privacyConsentAccepted !== true || data.riskNoticeAccepted !== true) {
+      throw new BadRequestException('투자 관심 기록 전 필수 안내와 개인정보 연락 동의를 모두 확인해야 합니다.');
+    }
+
+    const investorEmail = data.email.trim().toLowerCase();
+    const complianceAcceptedAt = new Date();
 
     this.proposals.push({
       id: this.nextProposalId++,
       projectId: id,
+      investorEmail,
       fundingRangeId: fundingRange.id,
       message: data.message.trim(),
+      legalNoticeAccepted: true,
+      privacyConsentAccepted: true,
+      riskNoticeAccepted: true,
+      complianceAcceptedAt,
+      status: 'submitted',
       createdAt: new Date(),
     });
 
@@ -858,6 +877,14 @@ export class ProjectsService {
     project.committedAmountMax += fundingRange.maxAmount;
 
     this.addProjectEvent(id, 'match');
+    this.addAuditLog({
+      action: 'match_compliance_accepted',
+      actorEmail: investorEmail,
+      targetType: 'project',
+      targetId: id,
+      projectId: id,
+      message: `${fundingRange.label} 투자 관심 제출 전 필수 고지와 연락 동의를 확인했습니다.`,
+    });
     this.persist();
     this.logger.log(`Match proposal recorded for project ${id}`);
     return this.hydrateProject(project);
@@ -895,7 +922,11 @@ export class ProjectsService {
       status: 'visible',
       reportCount: 0,
       reportedBy: [],
+      reportReasons: [],
       lastReportedAt: null,
+      moderatedBy: null,
+      moderationNote: null,
+      lastModeratedAt: null,
       createdAt: new Date(),
     };
 
@@ -933,7 +964,23 @@ export class ProjectsService {
     review.reportedBy = [...reportedBy, reporterEmail];
     review.reportCount = Math.max(0, review.reportCount ?? 0) + 1;
     review.lastReportedAt = new Date();
+    review.reportReasons = [
+      ...(review.reportReasons ?? []),
+      {
+        reporterEmail,
+        reason: data.reason?.trim() || null,
+        createdAt: review.lastReportedAt,
+      },
+    ];
     review.status = review.reportCount >= 3 ? 'hidden' : 'reported';
+    this.addAuditLog({
+      action: review.status === 'hidden' ? 'review_hidden_auto' : 'review_reported',
+      actorEmail: reporterEmail,
+      targetType: 'review',
+      targetId: review.id,
+      projectId,
+      message: data.reason?.trim() || '신고 사유 없음',
+    });
 
     this.persist();
     this.logger.warn(
@@ -944,6 +991,75 @@ export class ProjectsService {
       review,
       project: this.hydrateProject(project),
     };
+  }
+
+  getReportedProjectReviews(adminEmail: string): AdminReportedReview[] {
+    this.assertAdmin(adminEmail);
+    return this.reviews
+      .filter((review) => review.status === 'reported' || review.status === 'hidden')
+      .sort((a, b) => (b.lastReportedAt?.getTime() ?? b.createdAt.getTime()) - (a.lastReportedAt?.getTime() ?? a.createdAt.getTime()))
+      .map((review) => {
+        const project = this.findProject(review.projectId);
+        return {
+          review,
+          project: {
+            id: project.id,
+            title: project.title,
+            category: project.category,
+            accessMode: project.accessMode,
+          },
+          replyCount: this.reviews.filter((entry) => entry.parentId === review.id).length,
+        };
+      });
+  }
+
+  moderateProjectReview(
+    projectId: number,
+    reviewId: number,
+    data: ModerateProjectReviewDto,
+  ): { review: ProjectReview; project: Project } {
+    const admin = this.assertAdmin(data.adminEmail);
+    const project = this.findProject(projectId);
+    const review = this.reviews.find((entry) => entry.id === reviewId && entry.projectId === projectId);
+    if (!review) {
+      throw new BadRequestException('처리할 의견을 찾을 수 없습니다.');
+    }
+
+    const note = data.note?.trim() || null;
+    if (data.action === 'hide') {
+      review.status = 'hidden';
+    } else {
+      review.status = 'visible';
+      review.reportCount = 0;
+      review.reportedBy = [];
+    }
+
+    review.moderatedBy = admin.email;
+    review.moderationNote = note;
+    review.lastModeratedAt = new Date();
+
+    this.addAuditLog({
+      action: 'review_moderated',
+      actorEmail: admin.email,
+      targetType: 'review',
+      targetId: review.id,
+      projectId,
+      message: `${data.action}: ${note ?? '운영 메모 없음'}`,
+    });
+    this.persist();
+
+    return {
+      review,
+      project: this.hydrateProject(project),
+    };
+  }
+
+  getAdminAuditLogs(adminEmail: string, limit = 30): AuditLog[] {
+    this.assertAdmin(adminEmail);
+    const safeLimit = Math.min(100, Math.max(1, Math.floor(limit)));
+    return [...this.auditLogs]
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .slice(0, safeLimit);
   }
 
   recordProjectEvent(id: number, type: ProjectEventType): Project {
@@ -964,8 +1080,12 @@ export class ProjectsService {
 
   async investInProject(id: number): Promise<Project> {
     return this.createMatchProposal(id, {
+      email: 'legacy-investor@protolive.local',
       fundingRangeId: 'seed-50-100',
       message: 'Legacy investor interest endpoint.',
+      legalNoticeAccepted: true,
+      privacyConsentAccepted: true,
+      riskNoticeAccepted: true,
     });
   }
 
@@ -975,6 +1095,18 @@ export class ProjectsService {
       throw new NotFoundException(`ID ${id}에 해당하는 프로젝트를 찾을 수 없습니다.`);
     }
     return project;
+  }
+
+  private assertAdmin(email: string): User {
+    if (typeof email !== 'string' || email.trim().length === 0) {
+      throw new ForbiddenException('관리자 계정만 운영 검토를 처리할 수 있습니다.');
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = this.users.find((item) => item.email === normalizedEmail);
+    if (!user || user.role !== 'admin') {
+      throw new ForbiddenException('관리자 계정만 운영 검토를 처리할 수 있습니다.');
+    }
+    return user;
   }
 
   private upsertMaker(email: string): User {
@@ -1000,14 +1132,26 @@ export class ProjectsService {
       proposals: this.proposals,
       events: this.events,
       reviews: this.reviews,
+      auditLogs: this.auditLogs,
       nextUserId: this.nextUserId,
       nextProjectId: this.nextProjectId,
       nextProposalId: this.nextProposalId,
       nextEventId: this.nextEventId,
       nextReviewId: this.nextReviewId,
+      nextAuditLogId: this.nextAuditLogId,
     };
 
     this.store.write(state);
+  }
+
+  private addAuditLog(input: Omit<AuditLog, 'id' | 'createdAt'>): AuditLog {
+    const entry: AuditLog = {
+      id: this.nextAuditLogId++,
+      createdAt: new Date(),
+      ...input,
+    };
+    this.auditLogs.push(entry);
+    return entry;
   }
 
   private normalizeTags(tags: string[] | undefined): string[] {

@@ -1038,6 +1038,39 @@ body {
   background: color-mix(in oklch, var(--proto-primary-soft) 34%, var(--proto-surface)) !important;
 }
 
+.protolive-ops-panel,
+.protolive-compliance-box {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 0 oklch(100% 0 0 / 0.08) inset, 0 18px 48px oklch(17% 0.03 205 / 0.22) !important;
+}
+
+.protolive-ops-panel::after {
+  content: '';
+  position: absolute;
+  inset: auto -5rem -6rem auto;
+  width: 15rem;
+  height: 15rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, color-mix(in oklch, var(--color-deal) 18%, transparent), transparent 72%);
+  pointer-events: none;
+}
+
+.protolive-ops-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.protolive-compliance-box label {
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.protolive-compliance-box input[type='checkbox'] {
+  accent-color: oklch(86% 0.16 88);
+  flex: 0 0 auto;
+}
+
 @media (max-width: 767px) {
   .protolive-community-panel {
     border-radius: 1.2rem !important;
@@ -1050,5 +1083,9 @@ body {
 
   .protolive-thread-card:hover {
     transform: none;
+  }
+
+  .protolive-ops-panel {
+    padding: 1rem !important;
   }
 }
