@@ -60,6 +60,33 @@
     },
     {
       "id": 7,
+      "email": "member-parent@protolive.local",
+      "password": "pass-member-01",
+      "role": "member",
+      "name": "학부모 회원",
+      "description": "일반 사용자 리뷰와 별점을 남기는 계정",
+      "notes": "리뷰/대댓글 테스트"
+    },
+    {
+      "id": 8,
+      "email": "member-runner@protolive.local",
+      "password": "pass-member-02",
+      "role": "member",
+      "name": "러닝 초보 회원",
+      "description": "제품 사용 아이디어와 대댓글을 남기는 계정",
+      "notes": "일반 회원 샘플"
+    },
+    {
+      "id": 9,
+      "email": "member-shopper@protolive.local",
+      "password": "pass-member-03",
+      "role": "member",
+      "name": "쇼핑 사용자 회원",
+      "description": "커머스 프로토타입 리뷰를 남기는 계정",
+      "notes": "일반 회원 샘플"
+    },
+    {
+      "id": 10,
       "email": "admin-ops@protolive.local",
       "password": "pass-admin-01",
       "role": "admin",
@@ -632,7 +659,7 @@
       "createdAt": "2026-06-01T03:33:00.000Z"
     }
   ],
-  "nextUserId": 8,
+  "nextUserId": 11,
   "nextProjectId": 6,
   "nextProposalId": 9,
   "nextEventId": 22,

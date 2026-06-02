@@ -62,12 +62,15 @@ import {
   fetchAdminAuditLogs,
   fetchAdminReportedReviews,
   fetchAdminRevenueProjection,
+  fetchAuthSession,
   fetchMarketStats,
   extractProjects,
   fetchProjects,
   fetchProjectEvents,
   fetchProjectReviews,
   getApiErrorMessage,
+  loginUser,
+  logoutUser,
   recordProjectEvent,
   refreshAllProjects,
   refreshProject,
@@ -78,12 +81,9 @@ import {
 import {
   type AuthSession,
   type TestAccount,
-  authenticateUser,
-  clearSession,
   listTestAccounts,
   readSession,
   resolveRoleLabel,
-  saveSession,
 } from './local-auth';
 import ToastContainer, { toast } from './components/ToastContainer';
 
@@ -1003,11 +1003,6 @@ function readInitialView(): AppView {
     return 'market';
   }
 
-  const existingSession = readSession();
-  if (!existingSession) {
-    return 'market';
-  }
-
   const url = new URL(window.location.href);
   const pathParts = url.pathname
     .replace(/\/+$/, '')
@@ -1211,6 +1206,7 @@ export default function App() {
   const [view, setView] = useState<AppView>(readInitialView());
   const [detailProjectId, setDetailProjectId] = useState<number | null>(readInitialProjectId);
   const [session, setSession] = useState<AuthSession | null>(() => readSession());
+  const [isSessionHydrating, setIsSessionHydrating] = useState(true);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const testAccounts = useMemo<TestAccount[]>(() => listTestAccounts(), []);
   const testAccountsByRole = useMemo(() => {
@@ -1247,13 +1243,40 @@ export default function App() {
   const canMatch = isInvestor;
   const canAccessAdmin = isAdmin;
   const shouldShowLogin = isLoginOpen;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchAuthSession()
+      .then((nextSession) => {
+        if (isMounted) {
+          setSession(nextSession);
+          setIsSessionHydrating(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setSession(null);
+          setIsSessionHydrating(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const effectiveView = useMemo<AppView>(() => {
+    if (view === 'admin' && isSessionHydrating) {
+      return 'admin';
+    }
+
     if (!session) {
       return 'market';
     }
 
     return view === 'admin' && !canAccessAdmin ? 'market' : view;
-  }, [session, view, canAccessAdmin]);
+  }, [session, view, canAccessAdmin, isSessionHydrating]);
 
   const [adminRevenueConfig, setAdminRevenueConfig] = useState<RevenueModelConfig>(
     readAdminRevenueConfig,
@@ -1445,7 +1468,7 @@ export default function App() {
 
   useEffect(() => {
     if (session && view === 'admin' && !canAccessAdmin) {
-      toast('error', '접근 제한', '관리자 화면은 창업자 계정에서만 접근할 수 있습니다.');
+      toast('error', '접근 제한', '관리자 화면은 운영자 계정에서만 접근할 수 있습니다.');
     }
   }, [session, view, canAccessAdmin]);
 
@@ -1889,8 +1912,8 @@ export default function App() {
         const [dashboardPayload, revenueProjection, reportedReviewsPayload, auditLogsPayload] = await Promise.all([
           fetchAdminDashboard(),
           fetchAdminRevenueProjection(adminRevenueProjectionParams),
-          session?.email ? fetchAdminReportedReviews(session.email) : Promise.resolve([]),
-          session?.email ? fetchAdminAuditLogs(session.email, 30) : Promise.resolve([]),
+          fetchAdminReportedReviews(),
+          fetchAdminAuditLogs(30),
         ]);
 
         setAdminDashboard({
@@ -1932,7 +1955,7 @@ export default function App() {
       setIsInitialLoading(false);
       setIsRefreshing(false);
     }
-  }, [adminRevenueProjectionParams, fundingRangeId, isAdminView, projectQuery, session]);
+  }, [adminRevenueProjectionParams, fundingRangeId, isAdminView, projectQuery]);
 
   const loadProjectEvents = useCallback(async (projectId: number) => {
     setIsPreviewEventsLoading(true);
@@ -2184,24 +2207,27 @@ export default function App() {
     setIsSubmitOpen(true);
   }, [accessMode, apiOnline, category, canSubmitProject, config.accessModes, config.categories, session]);
 
-  const handleLogin = useCallback((event: React.FormEvent) => {
+  const handleLogin = useCallback(async (event: React.FormEvent) => {
     event.preventDefault();
 
-    const authenticated = authenticateUser(loginEmail, loginPassword);
-    if (!authenticated) {
-      toast('error', '로그인 실패', '이메일 또는 비밀번호가 일치하지 않습니다.');
-      return;
+    try {
+      const authenticated = await loginUser(loginEmail, loginPassword);
+      setSession(authenticated);
+      setIsLoginOpen(false);
+      setLoginPassword('');
+      toast('success', '로그인 성공', `${authenticated.name}님, ${resolveRoleLabel(authenticated.role)}로 입장했습니다.`);
+    } catch (error) {
+      toast('error', '로그인 실패', getApiErrorMessage(error, '이메일 또는 비밀번호가 일치하지 않습니다.'));
     }
-
-    saveSession(authenticated);
-    setSession(authenticated);
-    setIsLoginOpen(false);
-    setLoginPassword('');
-    toast('success', '로그인 성공', `${authenticated.name}님, ${resolveRoleLabel(authenticated.role)}로 입장했습니다.`);
   }, [loginEmail, loginPassword]);
 
-  const handleLogout = useCallback(() => {
-    clearSession();
+  const handleLogout = useCallback(async () => {
+    try {
+      await logoutUser();
+    } catch {
+      // 서버 세션이 이미 만료된 경우에도 화면 상태는 즉시 정리합니다.
+    }
+
     setSession(null);
     setIsLoginOpen(true);
     setLoginPassword('');
@@ -2894,8 +2920,6 @@ export default function App() {
     setIsSendingReview(true);
     try {
       const result = await createProjectReview(targetProject.id, {
-        email: session.email,
-        role: session.role === 'admin' ? 'member' : session.role,
         type: replyToReview?.type ?? reviewType,
         rating: replyToReview ? undefined : reviewType === 'review' ? reviewRating : undefined,
         parentId: replyToReview?.id,
@@ -2938,7 +2962,6 @@ export default function App() {
     setReportingReviewId(review.id);
     try {
       const result = await reportProjectReview(targetProject.id, review.id, {
-        email: session.email,
         reason: '커뮤니티 운영 검토 요청',
       });
 
@@ -2977,7 +3000,6 @@ export default function App() {
     setModeratingReviewId(entry.review.id);
     try {
       const result = await moderateProjectReview(entry.project.id, entry.review.id, {
-        adminEmail: session.email,
         action,
         note:
           action === 'hide'
@@ -2995,7 +3017,7 @@ export default function App() {
             ),
       );
       setProjects((current) => upsertProject(current, result.project));
-      setAdminAuditLogs(await fetchAdminAuditLogs(session.email, 30));
+      setAdminAuditLogs(await fetchAdminAuditLogs(30));
       await loadSnapshot(false);
       toast(
         'success',
@@ -3066,7 +3088,6 @@ export default function App() {
     setIsSendingMatch(true);
     try {
       const updated = await createMatchProposal(matchingProject.id, {
-        email: session?.email ?? '',
         fundingRangeId: activeFundingRange.id,
         message: matchMessage,
         legalNoticeAccepted: matchLegalNoticeAccepted,

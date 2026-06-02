@@ -36,6 +36,15 @@ export type ProjectEventType = 'create' | 'preview' | 'outbound' | 'match' | 're
 export type ProjectReviewType = 'review' | 'support' | 'idea';
 export type ProjectReviewAuthorRole = 'maker' | 'investor' | 'member';
 export type ProjectReviewStatus = 'visible' | 'reported' | 'hidden';
+export type AuthRole = 'maker' | 'investor' | 'member' | 'admin';
+
+export interface AuthSession {
+  id: number;
+  email: string;
+  role: AuthRole;
+  name: string;
+  expiresAt: string;
+}
 
 export interface ProjectEventSummary {
   total: number;
@@ -335,7 +344,6 @@ export interface CreateProjectPayload {
 }
 
 export interface CreateMatchPayload {
-  email: string;
   fundingRangeId: string;
   message: string;
   legalNoticeAccepted: boolean;
@@ -344,8 +352,6 @@ export interface CreateMatchPayload {
 }
 
 export interface CreateProjectReviewPayload {
-  email: string;
-  role?: ProjectReviewAuthorRole;
   type: ProjectReviewType;
   rating?: number;
   parentId?: number;
@@ -358,7 +364,6 @@ export interface CreateProjectReviewResponse {
 }
 
 export interface ReportProjectReviewPayload {
-  email: string;
   reason?: string;
 }
 
@@ -368,7 +373,6 @@ export interface ReportProjectReviewResponse {
 }
 
 export interface ModerateProjectReviewPayload {
-  adminEmail: string;
   action: 'keep' | 'hide' | 'restore';
   note?: string;
 }
@@ -432,7 +436,23 @@ export const API_BASE_FALLBACKS = Array.from(
 const client = axios.create({
   baseURL: API_BASE,
   timeout: 12000,
+  withCredentials: true,
 });
+
+export async function loginUser(email: string, password: string) {
+  const response = await client.post<AuthSession>('/projects/auth/login', { email, password });
+  return response.data;
+}
+
+export async function fetchAuthSession() {
+  const response = await client.get<AuthSession | null>('/projects/auth/session');
+  return response.data;
+}
+
+export async function logoutUser() {
+  const response = await client.post<{ success: boolean }>('/projects/auth/logout');
+  return response.data;
+}
 
 export async function fetchMarketConfig() {
   const response = await client.get<MarketConfig>('/projects/config');
@@ -474,16 +494,14 @@ export async function fetchAdminRevenueProjection(config: AdminRevenueProjection
   return response.data;
 }
 
-export async function fetchAdminReportedReviews(adminEmail: string) {
-  const response = await client.get<AdminReportedReview[]>('/projects/admin-reported-reviews', {
-    params: { adminEmail },
-  });
+export async function fetchAdminReportedReviews() {
+  const response = await client.get<AdminReportedReview[]>('/projects/admin-reported-reviews');
   return response.data;
 }
 
-export async function fetchAdminAuditLogs(adminEmail: string, limit = 30) {
+export async function fetchAdminAuditLogs(limit = 30) {
   const response = await client.get<AuditLog[]>('/projects/admin-audit-logs', {
-    params: { adminEmail, limit },
+    params: { limit },
   });
   return response.data;
 }

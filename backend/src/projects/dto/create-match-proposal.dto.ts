@@ -1,13 +1,9 @@
-import { Equals, IsEmail, IsIn, IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { Equals, IsIn, IsNotEmpty, IsString, MaxLength } from 'class-validator';
 import { FUNDING_RANGES, FundingRangeId } from '../project.constants';
 
 const FUNDING_RANGE_IDS = FUNDING_RANGES.map((range) => range.id);
 
 export class CreateMatchProposalDto {
-  @IsEmail({}, { message: '투자자 이메일 형식이 올바르지 않습니다.' })
-  @IsNotEmpty({ message: '투자자 이메일이 필요합니다.' })
-  email: string;
-
   @IsString({ message: '투자 구간은 문자열이어야 합니다.' })
   @IsNotEmpty({ message: '투자 구간은 필수 항목입니다.' })
   @IsIn(FUNDING_RANGE_IDS, { message: '유효한 투자 구간을 선택해주세요.' })

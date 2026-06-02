@@ -6,12 +6,18 @@ from playwright.sync_api import expect, sync_playwright
 
 
 DEFAULT_FRONTEND_URLS = [
+    "http://localhost:4174",
+    "http://localhost:4175",
     "http://localhost:5174",
     "http://localhost:5175",
 ]
 DEFAULT_MAKER = {
-    "email": "maker-a@protolive.local",
+    "email": "maker-mealmap@protolive.local",
     "password": "pass-mock-01",
+}
+DEFAULT_ADMIN = {
+    "email": "admin-ops@protolive.local",
+    "password": "pass-admin-01",
 }
 
 
@@ -46,10 +52,15 @@ def wait_for_frontend(page, url: str) -> bool:
 
 
 def wait_for_api_online(page) -> None:
-    expect(page.get_by_text(re.compile(r"API Online"))).to_be_visible(timeout=120000)
+    expect(page.get_by_text(re.compile(r"서버 연결됨"))).to_be_visible(timeout=120000)
 
 
-def login_as_maker(page) -> None:
+def login_as(page, account: dict[str, str]) -> None:
+    logout_button = page.get_by_role("button", name="로그아웃").first
+    if logout_button.count() > 0 and logout_button.is_visible():
+        logout_button.click()
+        expect(page.get_by_role("dialog").filter(has_text="로그인")).to_be_visible(timeout=30000)
+
     header_login = page.locator('button[aria-label="로그인"]')
     login_dialog = page.get_by_role("dialog").filter(has_text="로그인")
     email_input = login_dialog.get_by_label("이메일")
@@ -62,14 +73,31 @@ def login_as_maker(page) -> None:
         expect(page.get_by_text("로그인")).to_be_visible()
         email_input = login_dialog.get_by_label("이메일")
 
-    email_input.fill(
-        os.environ.get("SMOKE_USER_EMAIL", DEFAULT_MAKER["email"]),
-    )
-    login_dialog.get_by_label("비밀번호").fill(
-        os.environ.get("SMOKE_USER_PASSWORD", DEFAULT_MAKER["password"]),
-    )
+    email_input.fill(account["email"])
+    login_dialog.get_by_label("비밀번호").fill(account["password"])
     login_dialog.get_by_role("button", name="로그인").first.click()
     expect(page.get_by_text("로그아웃").first).to_be_visible(timeout=30000)
+
+
+def login_as_maker(page) -> None:
+    login_as(
+        page,
+        {
+            "email": os.environ.get("SMOKE_USER_EMAIL", DEFAULT_MAKER["email"]),
+            "password": os.environ.get("SMOKE_USER_PASSWORD", DEFAULT_MAKER["password"]),
+        },
+    )
+
+
+def login_as_admin(page) -> None:
+    login_as(
+        page,
+        {
+            "email": os.environ.get("SMOKE_ADMIN_EMAIL", DEFAULT_ADMIN["email"]),
+            "password": os.environ.get("SMOKE_ADMIN_PASSWORD", DEFAULT_ADMIN["password"]),
+        },
+    )
+    expect(page.get_by_text("운영자").first).to_be_visible(timeout=30000)
 
 
 def main() -> None:
@@ -91,19 +119,21 @@ def main() -> None:
             wait_for_frontend(mobile, base_url)
 
             expect(page.get_by_role("heading", name="ProtoLive")).to_be_visible()
-            expect(page.get_by_text(re.compile(r"API (Online|Offline)")).first).to_be_visible()
-            expect(page.get_by_text("Signal Leaderboard")).to_be_visible()
+            expect(page.get_by_text(re.compile(r"(서버 연결됨|API Offline)")).first).to_be_visible()
+            expect(page.get_by_text("사이트 주소만 등록하면 평가와 투자 검토가 시작됩니다")).to_be_visible()
 
             login_as_maker(page)
             wait_for_api_online(page)
 
-            expect(page.get_by_role("heading", name="SignalBoard for Founders")).to_be_visible(timeout=30000)
-            page.get_by_role("button", name=re.compile("실사 요약")).first.click()
-            expect(page.get_by_role("dialog", name=re.compile("실사 리포트"))).to_be_visible()
-            expect(page.get_by_text("Proof Ledger")).to_be_visible()
-            expect(page.get_by_text("투자 판단 메모")).to_be_visible()
-            page.get_by_role("button", name="닫기", exact=True).click()
+            expect(page.get_by_text("사이트 주소만 등록하면 평가와 투자 검토가 시작됩니다")).to_be_visible(timeout=30000)
+            page.get_by_role("button", name=re.compile("상세 보기")).first.click()
+            expect(page.get_by_text("사이트 상세")).to_be_visible(timeout=30000)
+            expect(page.get_by_text("다음에 할 일")).to_be_visible()
+            expect(page.get_by_role("button", name=re.compile("투자 관심 남기기"))).to_be_visible()
+            page.go_back(wait_until="networkidle")
 
+            page.goto(base_url, wait_until="networkidle")
+            expect(page.get_by_text("로그아웃").first).to_be_visible(timeout=30000)
             register_button = page.get_by_role("button", name=re.compile("프로토타입 등록"))
             expect(register_button).to_be_enabled(timeout=30000)
             register_button.click()
@@ -113,11 +143,14 @@ def main() -> None:
             expect(page.locator("select").first).to_contain_text("AI & SaaS")
 
             page.screenshot(path="/private/tmp/protolive-smoke.png", full_page=True)
+            page.get_by_role("button", name="취소").first.click()
+
+            login_as_admin(page)
 
             page.goto(f"{base_url}/admin", wait_until="networkidle")
             expect(page).to_have_url(re.compile(r".*/admin"))
             expect(page.get_by_role("button", name="프로토타입 등록")).to_be_visible()
-            expect(page.get_by_text("수익 모델·운영 지표를 실험하는 관리자 대시보드")).to_be_visible()
+            expect(page.get_by_text("프로토타입 투자 연결 플랫폼의 수익·운영 지표를 관리하는 관리자 대시보드")).to_be_visible()
             batch_apply = page.get_by_role("button", name=re.compile("우선순위 일괄 실행"))
             individual_apply = page.get_by_role("button", name=re.compile("추천 적용"))
             if batch_apply.count() > 0:
@@ -138,10 +171,10 @@ def main() -> None:
             mobile.screenshot(path="/private/tmp/protolive-smoke-mobile.png", full_page=True)
 
             page.goto(base_url, wait_until="networkidle")
-            expect(page.get_by_role("button", name="관리자")).to_be_visible(timeout=5000)
-            page.get_by_role("button", name="관리자").click()
+            expect(page.get_by_role("button", name="운영 현황")).to_be_visible(timeout=5000)
+            page.get_by_role("button", name="운영 현황").click()
             expect(page).to_have_url(re.compile(r".*/admin"))
-            expect(page.get_by_text("수익 모델·운영 지표를 실험하는 관리자 대시보드")).to_be_visible()
+            expect(page.get_by_text("프로토타입 투자 연결 플랫폼의 수익·운영 지표를 관리하는 관리자 대시보드")).to_be_visible()
             page.screenshot(path="/private/tmp/protolive-admin-nav-smoke.png", full_page=True)
         finally:
             browser.close()

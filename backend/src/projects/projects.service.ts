@@ -1,3 +1,4 @@
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import axios, { AxiosResponse } from 'axios';
 import {
@@ -14,7 +15,9 @@ import {
   ProjectEvent,
   ProjectEventType,
   ProjectReview,
+  ProjectReviewAuthorRole,
   ProjectReviewSummary,
+  AuthSession,
   AdminDashboardMetrics,
   AdminEventTrendPoint,
   AdminFunnelMetric,
@@ -40,6 +43,7 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { CreateProjectReviewDto } from './dto/create-project-review.dto';
 import { ModerateProjectReviewDto } from './dto/moderate-project-review.dto';
 import { ReportProjectReviewDto } from './dto/report-project-review.dto';
+import { LoginDto } from './dto/login.dto';
 import { calculateProjectSignalScore, summarizeProjectEvents } from './project-signals';
 import { JsonProjectsStore } from './projects.store';
 import {
@@ -47,6 +51,31 @@ import {
   normalizePublicHttpUrl,
   resolveRedirectUrl,
 } from './url-security';
+
+const SESSION_COOKIE_NAME = 'protolive_session';
+const SESSION_MAX_AGE_SECONDS = 60 * 60 * 12;
+const SESSION_SECRET = process.env.PROTOLIVE_SESSION_SECRET || randomBytes(32).toString('hex');
+
+interface SignedSessionPayload {
+  id: number;
+  email: string;
+  role: AuthSession['role'];
+  name: string;
+  exp: number;
+}
+
+type AuthenticatedReviewInput = CreateProjectReviewDto & {
+  email: string;
+  role?: ProjectReviewAuthorRole;
+};
+
+type AuthenticatedReportInput = ReportProjectReviewDto & {
+  email: string;
+};
+
+type AuthenticatedMatchInput = CreateMatchProposalDto & {
+  email: string;
+};
 
 export interface ProjectListPage {
   data: Project[];
@@ -91,6 +120,68 @@ export class ProjectsService {
     this.nextEventId = state.nextEventId;
     this.nextReviewId = state.nextReviewId;
     this.nextAuditLogId = state.nextAuditLogId;
+  }
+
+  login(data: LoginDto): { session: AuthSession; cookie: string } {
+    const normalizedEmail = data.email.trim().toLowerCase();
+    const password = data.password.trim();
+    const user = this.users.find((item) => item.email === normalizedEmail);
+
+    if (!user || !user.password || !this.safeCompare(user.password, password)) {
+      throw new ForbiddenException('이메일 또는 비밀번호가 일치하지 않습니다.');
+    }
+
+    const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
+    const session = this.toAuthSession(user, expiresAt);
+    const token = this.signSessionToken({
+      id: session.id,
+      email: session.email,
+      role: session.role,
+      name: session.name,
+      exp: expiresAt.getTime(),
+    });
+
+    return {
+      session,
+      cookie: this.createSessionCookie(token, SESSION_MAX_AGE_SECONDS),
+    };
+  }
+
+  createLogoutCookie(): string {
+    return this.createSessionCookie('', 0);
+  }
+
+  getSessionFromCookie(cookieHeader?: string): AuthSession | null {
+    const token = this.readCookie(cookieHeader, SESSION_COOKIE_NAME);
+    if (!token) {
+      return null;
+    }
+
+    return this.verifySessionToken(token);
+  }
+
+  requireSession(cookieHeader?: string): AuthSession {
+    const session = this.getSessionFromCookie(cookieHeader);
+    if (!session) {
+      throw new ForbiddenException('로그인이 필요합니다.');
+    }
+    return session;
+  }
+
+  requireRoleSession(
+    cookieHeader: string | undefined,
+    roles: AuthSession['role'][],
+    message = '해당 기능을 사용할 권한이 없습니다.',
+  ): AuthSession {
+    const session = this.requireSession(cookieHeader);
+    if (!roles.includes(session.role)) {
+      throw new ForbiddenException(message);
+    }
+    return session;
+  }
+
+  requireAdminSession(cookieHeader?: string): AuthSession {
+    return this.requireRoleSession(cookieHeader, ['admin'], '관리자 계정만 운영 검토를 처리할 수 있습니다.');
   }
 
   getAdminRevenueProjection(
@@ -844,7 +935,7 @@ export class ProjectsService {
     return this.hydrateProject(newProject);
   }
 
-  async createMatchProposal(id: number, data: CreateMatchProposalDto): Promise<Project> {
+  async createMatchProposal(id: number, data: AuthenticatedMatchInput): Promise<Project> {
     const project = this.findProject(id);
     const fundingRange = FUNDING_RANGES.find((range) => range.id === data.fundingRangeId);
     if (!fundingRange) {
@@ -890,7 +981,7 @@ export class ProjectsService {
     return this.hydrateProject(project);
   }
 
-  createProjectReview(id: number, data: CreateProjectReviewDto): { review: ProjectReview; project: Project } {
+  createProjectReview(id: number, data: AuthenticatedReviewInput): { review: ProjectReview; project: Project } {
     const project = this.findProject(id);
     const parentId = data.parentId ?? null;
     const parentReview = parentId
@@ -943,7 +1034,7 @@ export class ProjectsService {
   reportProjectReview(
     projectId: number,
     reviewId: number,
-    data: ReportProjectReviewDto,
+    data: AuthenticatedReportInput,
   ): { review: ProjectReview; project: Project } {
     const project = this.findProject(projectId);
     const review = this.reviews.find((entry) => entry.id === reviewId && entry.projectId === projectId);
@@ -993,8 +1084,8 @@ export class ProjectsService {
     };
   }
 
-  getReportedProjectReviews(adminEmail: string): AdminReportedReview[] {
-    this.assertAdmin(adminEmail);
+  getReportedProjectReviews(admin: string | AuthSession): AdminReportedReview[] {
+    this.assertAdmin(admin);
     return this.reviews
       .filter((review) => review.status === 'reported' || review.status === 'hidden')
       .sort((a, b) => (b.lastReportedAt?.getTime() ?? b.createdAt.getTime()) - (a.lastReportedAt?.getTime() ?? a.createdAt.getTime()))
@@ -1016,9 +1107,10 @@ export class ProjectsService {
   moderateProjectReview(
     projectId: number,
     reviewId: number,
-    data: ModerateProjectReviewDto,
+    data: ModerateProjectReviewDto & { adminEmail?: string },
+    adminActor?: string | AuthSession,
   ): { review: ProjectReview; project: Project } {
-    const admin = this.assertAdmin(data.adminEmail);
+    const admin = this.assertAdmin(adminActor ?? data.adminEmail ?? '');
     const project = this.findProject(projectId);
     const review = this.reviews.find((entry) => entry.id === reviewId && entry.projectId === projectId);
     if (!review) {
@@ -1054,8 +1146,8 @@ export class ProjectsService {
     };
   }
 
-  getAdminAuditLogs(adminEmail: string, limit = 30): AuditLog[] {
-    this.assertAdmin(adminEmail);
+  getAdminAuditLogs(admin: string | AuthSession, limit = 30): AuditLog[] {
+    this.assertAdmin(admin);
     const safeLimit = Math.min(100, Math.max(1, Math.floor(limit)));
     return [...this.auditLogs]
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
@@ -1097,16 +1189,106 @@ export class ProjectsService {
     return project;
   }
 
-  private assertAdmin(email: string): User {
+  private assertAdmin(actor: string | AuthSession): User {
+    const email = typeof actor === 'string' ? actor : actor.email;
     if (typeof email !== 'string' || email.trim().length === 0) {
       throw new ForbiddenException('관리자 계정만 운영 검토를 처리할 수 있습니다.');
     }
     const normalizedEmail = email.trim().toLowerCase();
     const user = this.users.find((item) => item.email === normalizedEmail);
-    if (!user || user.role !== 'admin') {
+    if (!user || user.role !== 'admin' || (typeof actor !== 'string' && actor.role !== 'admin')) {
       throw new ForbiddenException('관리자 계정만 운영 검토를 처리할 수 있습니다.');
     }
     return user;
+  }
+
+  private toAuthSession(user: User, expiresAt: Date): AuthSession {
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      name: this.getUserDisplayName(user),
+      expiresAt: expiresAt.toISOString(),
+    };
+  }
+
+  private getUserDisplayName(user: User): string {
+    const name = user.name?.trim();
+    if (name) {
+      return name;
+    }
+
+    return user.email.split('@')[0] || 'ProtoLive 회원';
+  }
+
+  private signSessionToken(payload: SignedSessionPayload): string {
+    const body = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+    const signature = createHmac('sha256', SESSION_SECRET).update(body).digest('base64url');
+    return `${body}.${signature}`;
+  }
+
+  private verifySessionToken(token: string): AuthSession | null {
+    const [body, signature] = token.split('.');
+    if (!body || !signature) {
+      return null;
+    }
+
+    const expectedSignature = createHmac('sha256', SESSION_SECRET).update(body).digest('base64url');
+    if (!this.safeCompare(signature, expectedSignature)) {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(Buffer.from(body, 'base64url').toString('utf8')) as Partial<SignedSessionPayload>;
+      if (
+        typeof parsed.email !== 'string' ||
+        typeof parsed.id !== 'number' ||
+        typeof parsed.exp !== 'number' ||
+        (parsed.role !== 'maker' && parsed.role !== 'investor' && parsed.role !== 'member' && parsed.role !== 'admin')
+      ) {
+        return null;
+      }
+
+      if (parsed.exp <= Date.now()) {
+        return null;
+      }
+
+      const normalizedEmail = parsed.email.trim().toLowerCase();
+      const user = this.users.find((item) => item.id === parsed.id && item.email === normalizedEmail);
+      if (!user || user.role !== parsed.role) {
+        return null;
+      }
+
+      return this.toAuthSession(user, new Date(parsed.exp));
+    } catch {
+      return null;
+    }
+  }
+
+  private readCookie(cookieHeader: string | undefined, name: string): string | null {
+    if (!cookieHeader) {
+      return null;
+    }
+
+    for (const part of cookieHeader.split(';')) {
+      const [rawKey, ...rawValue] = part.trim().split('=');
+      if (rawKey === name) {
+        return rawValue.join('=') || null;
+      }
+    }
+
+    return null;
+  }
+
+  private createSessionCookie(token: string, maxAgeSeconds: number): string {
+    const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+    return `${SESSION_COOKIE_NAME}=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAgeSeconds}${secure}`;
+  }
+
+  private safeCompare(left: string, right: string): boolean {
+    const leftBuffer = Buffer.from(left);
+    const rightBuffer = Buffer.from(right);
+    return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
   }
 
   private upsertMaker(email: string): User {

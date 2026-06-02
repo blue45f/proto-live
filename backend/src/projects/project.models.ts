@@ -37,6 +37,18 @@ export interface User {
   id: number;
   email: string;
   role: UserRole;
+  password?: string;
+  name?: string;
+  description?: string;
+  notes?: string;
+}
+
+export interface AuthSession {
+  id: number;
+  email: string;
+  role: UserRole;
+  name: string;
+  expiresAt: string;
 }
 
 export type MatchProposalStatus = 'submitted' | 'contacted' | 'closed';

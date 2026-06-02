@@ -1,5 +1,4 @@
 import {
-  IsEmail,
   IsIn,
   IsInt,
   IsNotEmpty,
@@ -11,12 +10,10 @@ import {
 } from 'class-validator';
 import { Transform } from 'class-transformer';
 import {
-  ProjectReviewAuthorRole,
   ProjectReviewType,
 } from '../project.models';
 
 const REVIEW_TYPES: ProjectReviewType[] = ['review', 'support', 'idea'];
-const AUTHOR_ROLES: ProjectReviewAuthorRole[] = ['maker', 'investor', 'member'];
 
 function parseOptionalInteger(value: unknown): unknown {
   if (value === undefined || value === null || value === '') {
@@ -36,15 +33,6 @@ function parseOptionalInteger(value: unknown): unknown {
 }
 
 export class CreateProjectReviewDto {
-  @IsEmail({}, { message: '로그인 이메일 형식이 올바르지 않습니다.' })
-  @IsNotEmpty({ message: '로그인 이메일이 필요합니다.' })
-  email: string;
-
-  @IsString({ message: '회원 역할은 문자열이어야 합니다.' })
-  @IsOptional()
-  @IsIn(AUTHOR_ROLES, { message: '회원 역할이 올바르지 않습니다.' })
-  role?: ProjectReviewAuthorRole;
-
   @IsString({ message: '의견 종류는 문자열이어야 합니다.' })
   @IsNotEmpty({ message: '의견 종류를 선택해주세요.' })
   @IsIn(REVIEW_TYPES, { message: '리뷰, 성장 도움, 아이디어 중 하나를 선택해주세요.' })

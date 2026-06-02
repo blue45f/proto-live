@@ -600,8 +600,28 @@ function seed(state, fixtureState) {
     const existing = usersByEmail.get(account.email);
 
     if (existing) {
+      const nextAccountFields = {
+        role: account.role,
+        password: account.password,
+        name: account.name,
+        description: account.description,
+        notes: account.notes,
+      };
+      let changed = false;
+
+      for (const [key, value] of Object.entries(nextAccountFields)) {
+        if (existing[key] !== value) {
+          existing[key] = value;
+          changed = true;
+        }
+      }
+
       if (existing.role !== account.role) {
         existing.role = account.role;
+        changed = true;
+      }
+
+      if (changed) {
         summary.users += 1;
       }
 
@@ -620,6 +640,10 @@ function seed(state, fixtureState) {
       id: assignedId,
       email: account.email,
       role: account.role,
+      password: account.password,
+      name: account.name,
+      description: account.description,
+      notes: account.notes,
     };
 
     state.users.push(user);

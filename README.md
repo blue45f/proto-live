@@ -65,17 +65,20 @@ npm run start:dev
 - `GET / POST http://localhost:3003/api/projects`: 검증된 프로젝트 목록 조회 및 신규 등록을 처리합니다.
 - `GET http://localhost:3003/api/projects/config`: 카테고리, 투자 구간, 갱신 주기, 벤치마크 기반 신호를 제공합니다.
 - `GET http://localhost:3003/api/projects/stats`: 검증률, 매칭 규모, 관심 신호 랭킹, 평균 응답 시간을 현재 등록 데이터에서 계산합니다.
+- `POST http://localhost:3003/api/projects/auth/login`: 이메일/비밀번호를 서버에서 검증하고 httpOnly 세션 쿠키를 발급합니다.
+- `GET http://localhost:3003/api/projects/auth/session`: 현재 세션 쿠키로 로그인 상태를 복원합니다.
+- `POST http://localhost:3003/api/projects/auth/logout`: 세션 쿠키를 만료합니다.
 - `POST http://localhost:3003/api/projects/refresh`: 등록된 전체 프로젝트 URL 상태를 다시 확인합니다.
 - `POST http://localhost:3003/api/projects/:id/refresh`: 단일 프로젝트 URL 상태를 다시 확인합니다.
 - `GET http://localhost:3003/api/projects/:id/events`: 프로젝트별 프리뷰, 새 탭 열기, 매칭, 갱신 이벤트 이력을 조회합니다.
 - `POST http://localhost:3003/api/projects/:id/events`: 공개 프리뷰 프로젝트의 관심 신호를 기록합니다.
 - `GET http://localhost:3003/api/projects/:id/reviews`: 회원 리뷰, 성장 의견, 대댓글을 조회합니다.
-- `POST http://localhost:3003/api/projects/:id/reviews`: 회원 리뷰, 성장 의견, 대댓글을 저장합니다.
-- `POST http://localhost:3003/api/projects/:id/reviews/:reviewId/report`: 커뮤니티 의견을 신고하고 반복 신고 시 자동 숨김 처리합니다.
-- `POST http://localhost:3003/api/projects/:id/reviews/:reviewId/moderate`: 운영자가 신고 의견을 공개 유지, 숨김, 복구 처리하고 감사 로그를 남깁니다.
-- `GET http://localhost:3003/api/projects/admin-reported-reviews?adminEmail=...`: 운영자 신고 검토 큐를 조회합니다.
-- `GET http://localhost:3003/api/projects/admin-audit-logs?adminEmail=...`: 신고, 자동 숨김, 운영 처리, 투자 관심 동의 기록을 최신순으로 조회합니다.
-- `POST http://localhost:3003/api/projects/:id/match`: 투자 의향을 구조화된 데이터로 기록합니다. 투자 권유 아님 고지, 개인정보 연락 동의, 초기 위험 안내 확인이 모두 필요합니다.
+- `POST http://localhost:3003/api/projects/:id/reviews`: 로그인 세션 기준으로 회원 리뷰, 성장 의견, 대댓글을 저장합니다.
+- `POST http://localhost:3003/api/projects/:id/reviews/:reviewId/report`: 로그인 세션 기준으로 커뮤니티 의견을 신고하고 반복 신고 시 자동 숨김 처리합니다.
+- `POST http://localhost:3003/api/projects/:id/reviews/:reviewId/moderate`: 운영자 세션으로 신고 의견을 공개 유지, 숨김, 복구 처리하고 감사 로그를 남깁니다.
+- `GET http://localhost:3003/api/projects/admin-reported-reviews`: 운영자 세션으로 신고 검토 큐를 조회합니다.
+- `GET http://localhost:3003/api/projects/admin-audit-logs`: 운영자 세션으로 신고, 자동 숨김, 운영 처리, 투자 관심 동의 기록을 최신순으로 조회합니다.
+- `POST http://localhost:3003/api/projects/:id/match`: 투자자 세션으로 투자 의향을 구조화된 데이터로 기록합니다. 투자 권유 아님 고지, 개인정보 연락 동의, 초기 위험 안내 확인이 모두 필요합니다.
 
 환경 변수:
 ```bash
@@ -84,13 +87,14 @@ CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,h
 PROJECT_STORE_PATH=./data/protolive-store.json
 RATE_LIMIT_WINDOW_MS=60000
 RATE_LIMIT_MAX_REQUESTS=120
+PROTOLIVE_SESSION_SECRET=replace-with-local-random-string
 ```
 `backend/.env.example` 파일을 기준으로 `.env`를 복사해 사용할 수 있습니다.
 
 ### 로컬 테스트 계정
 
-로컬 개발/QA 테스트 계정은 `backend/fixtures/test-accounts.json`에 정리해 두었습니다.  
-현재 앱은 로컬 테스트 계정(이메일 + 비밀번호)으로 로그인해 역할(메이커/투자자/일반 회원/운영자)을 식별합니다.
+로컬 개발/QA 테스트 계정은 `backend/fixtures/test-data.json`과 `frontend/src/data/test-accounts.json`에 맞춰 두었습니다.  
+현재 앱은 서버 로그인 API가 발급하는 httpOnly 세션 쿠키로 역할(메이커/투자자/일반 회원/운영자)을 식별합니다.
 운영자 샘플 계정은 `admin-ops@protolive.local` / `pass-admin-01`입니다.
 
 상세 목록은 `docs/test-accounts.md`를 참고하세요.

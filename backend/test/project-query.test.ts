@@ -35,6 +35,68 @@ async function withSeededService(seed: SeedFn, run: (service: ProjectsService) =
   }
 }
 
+test('login issues a signed httpOnly session cookie and enforces admin role from session', async () => {
+  await withSeededService((state) => {
+    state.users.push(
+      {
+        id: 1,
+        email: 'admin@protolive.local',
+        role: 'admin',
+        password: 'pass-admin',
+        name: '운영자',
+      },
+      {
+        id: 2,
+        email: 'investor@protolive.local',
+        role: 'investor',
+        password: 'pass-investor',
+        name: '투자자',
+      },
+    );
+    state.auditLogs.push({
+      id: 1,
+      action: 'review_reported',
+      actorEmail: 'member@protolive.local',
+      targetType: 'review',
+      targetId: 1,
+      projectId: 1,
+      message: '검토 요청',
+      createdAt: new Date('2026-06-01T00:00:00.000Z'),
+    });
+    state.nextUserId = 3;
+    state.nextAuditLogId = 2;
+  }, (service) => {
+    assert.throws(
+      () => service.login({ email: 'admin@protolive.local', password: 'wrong-password' }),
+      (error: unknown) => {
+        assert.ok(error instanceof ForbiddenException);
+        assert.equal((error as ForbiddenException).message, '이메일 또는 비밀번호가 일치하지 않습니다.');
+        return true;
+      },
+    );
+
+    const adminLogin = service.login({ email: 'ADMIN@protolive.local', password: 'pass-admin' });
+    assert.match(adminLogin.cookie, /HttpOnly/);
+    assert.match(adminLogin.cookie, /SameSite=Lax/);
+
+    const adminSession = service.getSessionFromCookie(adminLogin.cookie);
+    assert.equal(adminSession?.email, 'admin@protolive.local');
+    assert.equal(adminSession?.role, 'admin');
+    assert.equal(service.getAdminAuditLogs(adminSession!, 10).length, 1);
+
+    const investorLogin = service.login({ email: 'investor@protolive.local', password: 'pass-investor' });
+    const investorSession = service.getSessionFromCookie(investorLogin.cookie);
+    assert.throws(
+      () => service.getAdminAuditLogs(investorSession!, 10),
+      (error: unknown) => {
+        assert.ok(error instanceof ForbiddenException);
+        assert.equal((error as ForbiddenException).message, '관리자 계정만 운영 검토를 처리할 수 있습니다.');
+        return true;
+      },
+    );
+  });
+});
+
 test('getAllProjects supports category/search/access mode query filters', async () => {
   await withSeededService((state) => {
     state.users.push({ id: 1, email: 'maker@protolive.local', role: 'maker' });
