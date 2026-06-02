@@ -68,8 +68,8 @@ npm run start:dev
 - `POST http://localhost:3003/api/projects/auth/login`: 이메일/비밀번호를 서버에서 검증하고 httpOnly 세션 쿠키를 발급합니다.
 - `GET http://localhost:3003/api/projects/auth/session`: 현재 세션 쿠키로 로그인 상태를 복원합니다.
 - `POST http://localhost:3003/api/projects/auth/logout`: 세션 쿠키를 만료합니다.
-- `POST http://localhost:3003/api/projects/refresh`: 등록된 전체 프로젝트 URL 상태를 다시 확인합니다.
-- `POST http://localhost:3003/api/projects/:id/refresh`: 단일 프로젝트 URL 상태를 다시 확인합니다.
+- `POST http://localhost:3003/api/projects/refresh`: 운영자 세션으로 등록된 전체 프로젝트 URL 상태를 다시 확인합니다.
+- `POST http://localhost:3003/api/projects/:id/refresh`: 운영자 또는 해당 프로젝트를 등록한 창업자 세션으로 단일 프로젝트 URL 상태를 다시 확인합니다.
 - `GET http://localhost:3003/api/projects/:id/events`: 프로젝트별 프리뷰, 새 탭 열기, 매칭, 갱신 이벤트 이력을 조회합니다.
 - `POST http://localhost:3003/api/projects/:id/events`: 공개 프리뷰 프로젝트의 관심 신호를 기록합니다.
 - `GET http://localhost:3003/api/projects/:id/reviews`: 회원 리뷰, 성장 의견, 대댓글을 조회합니다.
@@ -90,6 +90,8 @@ RATE_LIMIT_MAX_REQUESTS=120
 PROTOLIVE_SESSION_SECRET=replace-with-local-random-string
 ```
 `backend/.env.example` 파일을 기준으로 `.env`를 복사해 사용할 수 있습니다.
+`NODE_ENV=production`에서는 `PROTOLIVE_SESSION_SECRET`을 반드시 명시해야 서버가 부팅됩니다.
+운영 환경의 CORS는 `CORS_ORIGINS`에 명시된 origin만 허용하며, localhost 자동 허용은 개발 모드에서만 적용됩니다.
 
 ### 로컬 테스트 계정
 
@@ -150,6 +152,7 @@ psql "$DATABASE_URL" -f db/seeds/sample-data.sql
 - **보안 URL 검증**: 서버가 사용자 입력 URL을 호출하므로 SSRF 방어를 위해 localhost, 사설망, 링크 로컬, 내부 도메인, 비 HTTP 프로토콜을 차단합니다.
 - **상용화 전 제품 보호**: 기본 등록은 `선별 공개` 모드로 URL과 iframe 프리뷰를 공개 API에서 마스킹합니다. 메이커는 제출 권한과 노출 위험 안내를 확인해야 등록할 수 있습니다.
 - **검색/참조 노출 최소화**: 프론트엔드와 API 응답에 `noindex`, `nofollow`, `noarchive`, `no-referrer` 정책을 적용합니다.
+- **민감 URL 마스킹**: `선별 공개` 프로젝트는 공개 응답과 검색 대상에서 원본 호스트, 경로, 토큰을 제외하고 `protected-review`만 노출합니다.
 - **Rate limiting**: 외부 URL 검증과 API 남용을 줄이기 위해 IP 기반 요청 제한을 적용합니다.
 - **운영 검토 큐와 감사 로그**: 신고된 리뷰는 운영자 화면에서 공개 유지, 숨김, 복구 처리할 수 있고 모든 처리와 투자 관심 동의는 감사 로그에 기록됩니다.
 - **투자 관심 동의 기록**: 투자 관심 제출 전 투자 권유 아님 고지, 개인정보 연락 동의, 초기 프로토타입 위험 안내 확인을 필수로 저장합니다.

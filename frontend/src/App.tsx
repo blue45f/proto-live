@@ -1242,6 +1242,10 @@ export default function App() {
   const canSubmitProject = isMaker;
   const canMatch = isInvestor;
   const canAccessAdmin = isAdmin;
+  const canRefreshProject = useCallback(
+    (project: Project) => canAccessAdmin || (session?.role === 'maker' && session.id === project.userId),
+    [canAccessAdmin, session],
+  );
   const shouldShowLogin = isLoginOpen;
 
   useEffect(() => {
@@ -2589,6 +2593,17 @@ export default function App() {
   }, [adminRevenueHealthScore, buildAdminRevenueSnapshot, downloadText]);
 
   const handleRefreshAll = useCallback(async () => {
+    if (!session) {
+      setIsLoginOpen(true);
+      toast('error', '로그인 필요', '전체 사이트 상태 갱신은 운영자 계정에서만 가능합니다.');
+      return;
+    }
+
+    if (!canAccessAdmin) {
+      toast('error', '운영자 권한 필요', '전체 사이트 상태 갱신은 운영자 계정에서만 가능합니다.');
+      return;
+    }
+
     if (!apiOnline || isRefreshing) {
       return;
     }
@@ -2604,7 +2619,7 @@ export default function App() {
     } finally {
       setIsRefreshing(false);
     }
-  }, [apiOnline, isRefreshing, loadSnapshot]);
+  }, [apiOnline, canAccessAdmin, isRefreshing, loadSnapshot, session]);
 
   const focusSearchInput = useCallback(() => {
     searchInputRef.current?.focus();
@@ -2638,14 +2653,14 @@ export default function App() {
       }
 
       if ((event.metaKey || event.ctrlKey) && (event.key === 'r' || event.key === 'R')) {
-        if (!isRefreshing && apiOnline && projects.length > 0) {
+        if (!isRefreshing && apiOnline && canAccessAdmin && projects.length > 0) {
           event.preventDefault();
           void handleRefreshAll();
         }
         return;
       }
     },
-    [apiOnline, focusSearchInput, handleRefreshAll, isRefreshing, openSubmitDialog, projects.length],
+    [apiOnline, canAccessAdmin, focusSearchInput, handleRefreshAll, isRefreshing, openSubmitDialog, projects.length],
   );
 
   useEffect(() => {
@@ -2853,6 +2868,17 @@ export default function App() {
   }
 
   async function handleRefreshProject(project: Project) {
+    if (!session) {
+      setIsLoginOpen(true);
+      toast('error', '로그인 필요', '사이트 상태 재확인은 운영자 또는 등록한 창업자만 가능합니다.');
+      return;
+    }
+
+    if (!canRefreshProject(project)) {
+      toast('error', '권한 제한', '사이트 상태 재확인은 운영자 또는 이 프로젝트를 등록한 창업자만 가능합니다.');
+      return;
+    }
+
     setProjects((current) =>
       current.map((item) =>
         item.id === project.id
@@ -2873,8 +2899,8 @@ export default function App() {
       setDiligenceProject((current) => (current?.id === refreshed.id ? refreshed : current));
       await loadSnapshot();
       toast('success', '사이트 갱신', `${refreshed.title} 상태를 갱신했습니다.`);
-    } catch {
-      toast('error', '사이트 갱신 실패', `${project.title} 상태를 갱신하지 못했습니다.`);
+    } catch (error) {
+      toast('error', '사이트 갱신 실패', getApiErrorMessage(error, `${project.title} 상태를 갱신하지 못했습니다.`));
     }
   }
 
@@ -3240,10 +3266,10 @@ export default function App() {
             <button
               type="button"
               onClick={() => void handleRefreshAll()}
-              disabled={isRefreshing || !apiOnline || projects.length === 0}
+              disabled={isRefreshing || !apiOnline || projects.length === 0 || !canAccessAdmin}
               className="protolive-btn-grid grid min-h-11 min-w-11 place-items-center rounded-lg border border-stone-700/80 bg-stone-900/70 text-stone-300 transition hover:border-cyan-300/40 hover:text-cyan-100 disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="전체 사이트 상태 새로고침"
-              title="전체 사이트 상태 새로고침 (⌘/Ctrl + R)"
+              title={canAccessAdmin ? '전체 사이트 상태 새로고침 (⌘/Ctrl + R)' : '운영자 계정에서만 전체 갱신 가능'}
             >
               <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </button>
@@ -4289,6 +4315,7 @@ export default function App() {
                 reviewBody={reviewBody}
                 replyToReview={replyToReview}
                 isSendingReview={isSendingReview}
+                canRefresh={canRefreshProject(detailProject)}
                 onBack={closeProjectDetail}
                 onPreview={() => void handleOpenPreview(detailProject)}
                 onMatch={() => void handleOpenMatchDialog(detailProject)}
@@ -4916,6 +4943,7 @@ export default function App() {
           isLoadingEvents={isDiligenceEventsLoading}
           dialogRef={diligenceDialogRef}
           signalRank={signalRankByProjectId.get(diligenceProject.id) ?? null}
+          canRefresh={canRefreshProject(diligenceProject)}
           onClose={closeDiligence}
           onMatch={() => {
             const project = diligenceProject;
@@ -5605,15 +5633,23 @@ function SignalTimeline({
     <aside id={titleId} className={`${className} min-h-0 border-l border-stone-800 bg-[oklch(15%_0.016_205)]`}>
       <div className="border-b border-stone-800 p-4">
         <div className="flex items-center gap-2">
-          <Signal className="h-4 w-4 text-lime-200" />
+          <span className="protolive-signal-live" aria-hidden="true">
+            <Signal className="h-4 w-4 text-lime-200" />
+          </span>
           <h3 className="font-black text-stone-100">{title}</h3>
+          {totalEvents > 0 && (
+            <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.12em] text-lime-200">
+              <span className="protolive-signal-pulse inline-block h-1.5 w-1.5 rounded-full bg-lime-300" aria-hidden="true" />
+              live
+            </span>
+          )}
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2">
           {(['preview', 'outbound', 'match'] as ProjectEventType[]).map((type) => {
             const meta = eventCopy[type];
             return (
               <div key={type} className={`rounded-lg border p-2 ${meta.tone}`}>
-                <p className="text-base font-black">{totals[type]}</p>
+                <p className="protolive-signal-total text-base font-black tabular-nums">{totals[type]}</p>
                 <p className="mt-0.5 text-[11px] font-bold opacity-75">{meta.label}</p>
               </div>
             );
@@ -5633,11 +5669,18 @@ function SignalTimeline({
           </div>
         ) : (
           <div className="space-y-3">
-            {events.slice(0, 20).map((event) => {
+            {events.slice(0, 20).map((event, index) => {
               const meta = eventCopy[event.type];
               const Icon = meta.icon;
+              const isNewest = index === 0;
               return (
-                <div key={event.id} className="rounded-lg border border-stone-800 bg-stone-950/55 p-3">
+                <div
+                  key={event.id}
+                  className={`protolive-signal-row rounded-lg border border-stone-800 bg-stone-950/55 p-3${
+                    isNewest ? ' protolive-signal-row--fresh' : ''
+                  }`}
+                  style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
+                >
                   <div className="flex items-center justify-between gap-3">
                     <span className={`inline-flex min-h-8 items-center gap-2 rounded-lg border px-2.5 text-xs font-black ${meta.tone}`}>
                       <Icon className="h-3.5 w-3.5" />
@@ -5952,6 +5995,7 @@ function ProjectDiligencePanel({
   onPreview,
   onMatch,
   onRefresh,
+  canRefresh,
 }: {
   project: Project;
   events: ProjectEvent[];
@@ -5962,6 +6006,7 @@ function ProjectDiligencePanel({
   onPreview: () => void;
   onMatch: () => void;
   onRefresh: () => void;
+  canRefresh: boolean;
 }) {
   const titleId = useId();
   const descriptionId = useId();
@@ -6183,7 +6228,9 @@ function ProjectDiligencePanel({
                   <button
                     type="button"
                     onClick={onRefresh}
-                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-stone-700 px-3 text-xs font-black text-stone-300 hover:border-cyan-300/40 hover:text-cyan-100"
+                    disabled={!canRefresh}
+                    title={canRefresh ? '상태 재확인' : '운영자 또는 등록한 창업자만 재확인 가능'}
+                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-stone-700 px-3 text-xs font-black text-stone-300 hover:border-cyan-300/40 hover:text-cyan-100 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <RefreshCw className="h-4 w-4" />
                     상태 재확인
@@ -6211,6 +6258,7 @@ function ProjectDetailRoute({
   reviewBody,
   replyToReview,
   isSendingReview,
+  canRefresh,
   onBack,
   onPreview,
   onMatch,
@@ -6237,6 +6285,7 @@ function ProjectDetailRoute({
   reviewBody: string;
   replyToReview: ProjectReview | null;
   isSendingReview: boolean;
+  canRefresh: boolean;
   onBack: () => void;
   onPreview: () => void;
   onMatch: () => void;
@@ -6396,7 +6445,9 @@ function ProjectDetailRoute({
               <button
                 type="button"
                 onClick={onRefresh}
-                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-stone-700 px-3 text-sm font-black text-stone-200 transition hover:border-lime-300/50 hover:text-lime-100"
+                disabled={!canRefresh}
+                title={canRefresh ? '상태 다시 확인' : '운영자 또는 등록한 창업자만 재확인 가능'}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-stone-700 px-3 text-sm font-black text-stone-200 transition hover:border-lime-300/50 hover:text-lime-100 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <RefreshCw className="h-4 w-4" />
                 상태 다시 확인
@@ -6483,7 +6534,7 @@ function ProjectCard({
 
   return (
     <article
-      className={`protolive-card rounded-xl border border-stone-800 bg-[oklch(18%_0.018_205)] transition duration-200 motion-safe:hover:-translate-y-0.5 motion-safe:hover:border-lime-300/45 ${
+      className={`protolive-card rounded-xl border border-stone-800 bg-panel ${
         isCardView ? 'p-4' : 'p-3'
       }`}
     >

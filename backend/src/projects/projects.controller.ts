@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, ParseIntPipe, Query, Req, Res } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Post, Body, Param, ParseIntPipe, Query, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { Project } from './project.models';
 import { ProjectsService, ProjectListPage } from './projects.service';
@@ -127,7 +127,8 @@ export class ProjectsController {
    * 등록된 프로젝트의 라이브 URL 상태를 다시 확인합니다.
    */
   @Post('refresh')
-  async refreshProjects(): Promise<Project[]> {
+  async refreshProjects(@Req() request: Request): Promise<Project[]> {
+    this.projectsService.requireAdminSession(request.headers.cookie);
     return this.projectsService.refreshAllProjects();
   }
 
@@ -186,8 +187,9 @@ export class ProjectsController {
    * 단일 프로젝트의 라이브 상태를 갱신합니다.
    */
   @Post(':id/refresh')
-  async refreshProject(@Param('id', ParseIntPipe) id: number): Promise<Project> {
-    return this.projectsService.refreshProject(id);
+  async refreshProject(@Param('id', ParseIntPipe) id: number, @Req() request: Request): Promise<Project> {
+    const session = this.projectsService.requireSession(request.headers.cookie);
+    return this.projectsService.refreshProjectForSession(id, session);
   }
 
   /**
@@ -267,11 +269,12 @@ export class ProjectsController {
 
   /**
    * POST /api/projects/:id/invest
-   * 프로젝트의 투자자 수를 증가시키고 업데이트된 프로젝트를 반환합니다.
+   * 명시적 고지/동의 없는 레거시 투자 카운터 엔드포인트를 차단합니다.
    */
   @Post(':id/invest')
   async investInProject(@Param('id', ParseIntPipe) id: number): Promise<Project> {
-    return this.projectsService.investInProject(id);
+    void id;
+    throw new BadRequestException('투자 관심은 필수 고지와 개인정보 연락 동의를 포함하는 /api/projects/:id/match API로만 기록할 수 있습니다.');
   }
 }
 

@@ -54,7 +54,21 @@ import {
 
 const SESSION_COOKIE_NAME = 'protolive_session';
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 12;
-const SESSION_SECRET = process.env.PROTOLIVE_SESSION_SECRET || randomBytes(32).toString('hex');
+
+export function resolveSessionSecret(env: Partial<NodeJS.ProcessEnv> = process.env): string {
+  const configuredSecret = env.PROTOLIVE_SESSION_SECRET?.trim();
+  if (configuredSecret) {
+    return configuredSecret;
+  }
+
+  if (env.NODE_ENV === 'production') {
+    throw new Error('PROTOLIVE_SESSION_SECRET must be configured in production.');
+  }
+
+  return randomBytes(32).toString('base64url');
+}
+
+const SESSION_SECRET = resolveSessionSecret();
 
 interface SignedSessionPayload {
   id: number;
@@ -789,11 +803,15 @@ export class ProjectsService {
         }
 
         if (searchText.length > 0) {
+          const visibleUrlText =
+            project.accessMode === 'screened'
+              ? ''
+              : [project.liveUrl, project.validation.finalUrl ?? ''].join(' ');
           const payload = [
             project.title,
             project.description,
             project.category,
-            project.liveUrl,
+            visibleUrlText,
             ...(project.tags ?? []),
           ]
             .join(' ')
@@ -872,8 +890,22 @@ export class ProjectsService {
 
   async refreshProject(id: number): Promise<Project> {
     const project = this.findProject(id);
+    return this.refreshProjectRecord(project);
+  }
+
+  async refreshProjectForSession(id: number, session: AuthSession): Promise<Project> {
+    const project = this.findProject(id);
+    const canRefresh = session.role === 'admin' || (session.role === 'maker' && project.userId === session.id);
+    if (!canRefresh) {
+      throw new ForbiddenException('운영자 또는 이 프로젝트를 등록한 창업자만 사이트 상태를 다시 확인할 수 있습니다.');
+    }
+
+    return this.refreshProjectRecord(project);
+  }
+
+  private async refreshProjectRecord(project: Project): Promise<Project> {
     project.validation = await this.validateUrl(project.liveUrl);
-    this.addProjectEvent(id, 'refresh');
+    this.addProjectEvent(project.id, 'refresh');
     this.persist();
     return this.hydrateProject(project);
   }
@@ -1168,17 +1200,6 @@ export class ProjectsService {
     this.addProjectEvent(id, type);
     this.persist();
     return this.hydrateProject(project);
-  }
-
-  async investInProject(id: number): Promise<Project> {
-    return this.createMatchProposal(id, {
-      email: 'legacy-investor@protolive.local',
-      fundingRangeId: 'seed-50-100',
-      message: 'Legacy investor interest endpoint.',
-      legalNoticeAccepted: true,
-      privacyConsentAccepted: true,
-      riskNoticeAccepted: true,
-    });
   }
 
   private findProject(id: number): Project {
@@ -2121,8 +2142,8 @@ export class ProjectsService {
 
   private redactUrl(value: string): string {
     try {
-      const url = new URL(value);
-      return `${url.protocol}//${url.host}/protected-review`;
+      new URL(value);
+      return 'protected-review';
     } catch {
       return 'protected-review';
     }

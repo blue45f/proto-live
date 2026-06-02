@@ -550,11 +550,6 @@ export async function createMatchProposal(id: number, payload: CreateMatchPayloa
   return response.data;
 }
 
-export async function investInProject(id: number) {
-  const response = await client.post<Project>(`/projects/${id}/invest`);
-  return response.data;
-}
-
 export async function recordProjectEvent(id: number, type: 'preview' | 'outbound' | 'refresh') {
   const response = await client.post<Project>(`/projects/${id}/events`, { type });
   return response.data;

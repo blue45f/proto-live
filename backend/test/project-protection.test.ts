@@ -64,10 +64,26 @@ test('screened projects redact URL details in public project responses', async (
     const project = await service.getProjectById(1);
 
     assert.equal(project.accessMode, 'screened');
-    assert.equal(project.liveUrl, 'https://secret.example.com/protected-review');
-    assert.equal(project.validation.finalUrl, 'https://secret.example.com/protected-review');
+    assert.equal(project.liveUrl, 'protected-review');
+    assert.equal(project.validation.finalUrl, 'protected-review');
+    assert.ok(!project.liveUrl.includes('secret.example.com'));
+    assert.ok(!String(project.validation.finalUrl).includes('secret.example.com'));
     assert.ok(!project.liveUrl.includes('internal'));
     assert.ok(!String(project.validation.finalUrl).includes('internal'));
+  });
+});
+
+test('screened project raw URL details are not searchable from public queries', async () => {
+  await withProjectsService(async (service) => {
+    const tokenHits = await service.getAllProjects({ q: 'internal' });
+    assert.equal(tokenHits.length, 0);
+
+    const hostHits = await service.getAllProjects({ q: 'secret.example.com' });
+    assert.equal(hostHits.length, 0);
+
+    const safeTitleHits = await service.getAllProjects({ q: 'Protected MVP' });
+    assert.equal(safeTitleHits.length, 1);
+    assert.equal(safeTitleHits[0].liveUrl, 'protected-review');
   });
 });
 

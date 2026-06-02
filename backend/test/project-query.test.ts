@@ -97,6 +97,20 @@ test('login issues a signed httpOnly session cookie and enforces admin role from
   });
 });
 
+test('session secret resolver requires explicit secret in production', async () => {
+  const module = await import('../src/projects/projects.service') as typeof import('../src/projects/projects.service') & {
+    resolveSessionSecret?: (env: Partial<NodeJS.ProcessEnv>) => string;
+  };
+
+  assert.equal(typeof module.resolveSessionSecret, 'function');
+  assert.equal(module.resolveSessionSecret!({ PROTOLIVE_SESSION_SECRET: ' configured-secret ' }), 'configured-secret');
+  assert.match(module.resolveSessionSecret!({ NODE_ENV: 'development' }), /^[A-Za-z0-9_-]+$/);
+  assert.throws(
+    () => module.resolveSessionSecret!({ NODE_ENV: 'production' }),
+    /PROTOLIVE_SESSION_SECRET/,
+  );
+});
+
 test('getAllProjects supports category/search/access mode query filters', async () => {
   await withSeededService((state) => {
     state.users.push({ id: 1, email: 'maker@protolive.local', role: 'maker' });
