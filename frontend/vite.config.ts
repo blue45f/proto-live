@@ -7,7 +7,11 @@ const frontendPort = Number(process.env.FRONTEND_PORT ?? process.env.VITE_PORT ?
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
-    react(),
+    react({
+      babel: {
+        plugins: [['babel-plugin-react-compiler', {}]],
+      },
+    }),
     tailwindcss(),
   ],
   server: {
