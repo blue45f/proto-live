@@ -1,0 +1,94 @@
+{
+  "accounts": [
+    {
+      "id": 1,
+      "email": "maker-mealmap@protolive.local",
+      "password": "pass-mock-01",
+      "role": "maker",
+      "name": "밀맵 팀",
+      "description": "사이트 등록과 리뷰 답글을 확인하는 창업자 계정",
+      "notes": "로컬 데모 계정"
+    },
+    {
+      "id": 2,
+      "email": "maker-careloop@protolive.local",
+      "password": "pass-mock-02",
+      "role": "maker",
+      "name": "케어루프 팀",
+      "description": "선별 공개 사이트 운영 계정",
+      "notes": "로컬 데모 계정"
+    },
+    {
+      "id": 3,
+      "email": "maker-growth@protolive.local",
+      "password": "pass-mock-05",
+      "role": "maker",
+      "name": "그로스 샘플 팀",
+      "description": "여러 프로토타입을 운영하는 창업자 계정",
+      "notes": "로컬 데모 계정"
+    },
+    {
+      "id": 4,
+      "email": "investor-seed@protolive.local",
+      "password": "pass-mock-03",
+      "role": "investor",
+      "name": "시드 투자자",
+      "description": "투자 관심과 성장 지원 의견을 남기는 계정",
+      "notes": "로컬 데모 계정"
+    },
+    {
+      "id": 5,
+      "email": "investor-impact@protolive.local",
+      "password": "pass-mock-04",
+      "role": "investor",
+      "name": "임팩트 투자자",
+      "description": "돌봄/교육/지역 커뮤니티 관점의 투자자 계정",
+      "notes": "로컬 데모 계정"
+    },
+    {
+      "id": 6,
+      "email": "investor-commerce@protolive.local",
+      "password": "pass-mock-06",
+      "role": "investor",
+      "name": "커머스 투자자",
+      "description": "소비자 앱 전환 관점의 투자자 계정",
+      "notes": "로컬 데모 계정"
+    },
+    {
+      "id": 7,
+      "email": "member-parent@protolive.local",
+      "password": "pass-member-01",
+      "role": "member",
+      "name": "학부모 회원",
+      "description": "일반 사용자 리뷰와 별점을 남기는 계정",
+      "notes": "리뷰/대댓글 테스트"
+    },
+    {
+      "id": 8,
+      "email": "member-runner@protolive.local",
+      "password": "pass-member-02",
+      "role": "member",
+      "name": "러닝 초보 회원",
+      "description": "제품 사용 아이디어와 대댓글을 남기는 계정",
+      "notes": "일반 회원 샘플"
+    },
+    {
+      "id": 9,
+      "email": "member-shopper@protolive.local",
+      "password": "pass-member-03",
+      "role": "member",
+      "name": "쇼핑 사용자 회원",
+      "description": "커머스 프로토타입 리뷰를 남기는 계정",
+      "notes": "일반 회원 샘플"
+    },
+    {
+      "id": 10,
+      "email": "admin-ops@protolive.local",
+      "password": "pass-admin-01",
+      "role": "admin",
+      "name": "프로토라이브 운영자",
+      "description": "신고 리뷰와 운영 감사 로그를 검토하는 관리자 계정",
+      "notes": "운영 검토 샘플"
+    }
+  ]
+}
