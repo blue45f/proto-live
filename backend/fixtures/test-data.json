@@ -444,6 +444,10 @@
       "type": "idea",
       "rating": null,
       "body": "학교 급식표를 가져와서 집 도시락과 겹치지 않게 추천하면 차별점이 분명해질 것 같습니다.",
+      "status": "reported",
+      "reportCount": 1,
+      "reportedBy": ["safety-reviewer@protolive.local"],
+      "lastReportedAt": "2026-05-26T13:05:00.000Z",
       "createdAt": "2026-05-26T12:20:00.000Z"
     },
     {

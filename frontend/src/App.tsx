@@ -67,6 +67,7 @@ import {
   recordProjectEvent,
   refreshAllProjects,
   refreshProject,
+  reportProjectReview,
   validateLiveUrl,
 } from './api';
 import {
@@ -1330,6 +1331,7 @@ export default function App() {
   const [reviewBody, setReviewBody] = useState('');
   const [replyToReview, setReplyToReview] = useState<ProjectReview | null>(null);
   const [isSendingReview, setIsSendingReview] = useState(false);
+  const [reportingReviewId, setReportingReviewId] = useState<number | null>(null);
   const detailProject = useMemo(
     () => projects.find((project) => project.id === detailProjectId) ?? null,
     [detailProjectId, projects],
@@ -2896,6 +2898,50 @@ export default function App() {
     }
   }
 
+  async function handleReportReview(review: ProjectReview) {
+    const targetProject = reviewProject ?? detailProject;
+    if (!targetProject) return;
+
+    if (!session) {
+      closeReviewDialog();
+      setIsLoginOpen(true);
+      toast('error', '로그인이 필요합니다', '로그인한 회원만 커뮤니티 의견을 신고할 수 있습니다.');
+      return;
+    }
+
+    setReportingReviewId(review.id);
+    try {
+      const result = await reportProjectReview(targetProject.id, review.id, {
+        email: session.email,
+        reason: '커뮤니티 운영 검토 요청',
+      });
+
+      setProjectReviews((current) => {
+        if (result.review.status === 'hidden') {
+          return current.filter(
+            (entry) => entry.id !== result.review.id && entry.parentId !== result.review.id,
+          );
+        }
+
+        return current.map((entry) => (entry.id === result.review.id ? result.review : entry));
+      });
+      setProjects((current) => upsertProject(current, result.project));
+      setReviewProject((current) => (current?.id === result.project.id ? result.project : current));
+      await loadSnapshot();
+      toast(
+        'success',
+        result.review.status === 'hidden' ? '의견 숨김 처리' : '신고 접수',
+        result.review.status === 'hidden'
+          ? '반복 신고 기준을 넘어 커뮤니티 목록에서 숨겼습니다.'
+          : '운영 검토 대기 상태로 표시됩니다.',
+      );
+    } catch (error) {
+      toast('error', '신고 실패', getApiErrorMessage(error, '의견 신고를 저장하지 못했습니다.'));
+    } finally {
+      setReportingReviewId(null);
+    }
+  }
+
   async function handleProjectEvent(project: Project, type: 'preview' | 'outbound' | 'refresh') {
     try {
       const updated = await recordProjectEvent(project.id, type);
@@ -4031,6 +4077,8 @@ export default function App() {
                 onReviewBodyChange={setReviewBody}
                 onReplyTo={setReplyToReview}
                 onCancelReply={() => setReplyToReview(null)}
+                onReportReview={(review) => void handleReportReview(review)}
+                reportingReviewId={reportingReviewId}
                 onLogin={() => {
                   closeReviewDialog();
                   setIsLoginOpen(true);
@@ -4813,6 +4861,8 @@ export default function App() {
             onBodyChange={setReviewBody}
             onReplyTo={setReplyToReview}
             onCancelReply={() => setReplyToReview(null)}
+            onReportReview={(review) => void handleReportReview(review)}
+            reportingReviewId={reportingReviewId}
             onLogin={() => {
               closeReviewDialog();
               setIsLoginOpen(true);
@@ -5345,6 +5395,8 @@ function ProjectReviewWorkspace({
   onBodyChange,
   onReplyTo,
   onCancelReply,
+  onReportReview,
+  reportingReviewId,
   onLogin,
   onSubmit,
 }: {
@@ -5362,6 +5414,8 @@ function ProjectReviewWorkspace({
   onBodyChange: (body: string) => void;
   onReplyTo: (review: ProjectReview) => void;
   onCancelReply: () => void;
+  onReportReview: (review: ProjectReview) => void;
+  reportingReviewId: number | null;
   onLogin: () => void;
   onSubmit: (event: React.FormEvent) => void;
 }) {
@@ -5370,36 +5424,46 @@ function ProjectReviewWorkspace({
   const summary = project.reviewSummary;
 
   return (
-    <div className="space-y-4">
-      <div>
+    <div className="protolive-community-panel space-y-4 rounded-2xl border border-stone-800 bg-stone-950/45 p-4 sm:p-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0">
         <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-200">Community signal</p>
         <h3 className="mt-1 text-xl font-black tracking-tight text-stone-50">회원 리뷰와 성장 의견</h3>
         <p className="mt-1 text-sm leading-6 text-stone-400">
           투자자뿐 아니라 일반 회원도 평가, 아이디어, 도움 제안을 남길 수 있습니다.
         </p>
+        </div>
+        <div className="protolive-safety-note flex flex-wrap gap-2 text-[11px] font-black">
+          <span className="rounded-full border border-cyan-300/35 bg-cyan-300/10 px-3 py-1 text-cyan-100">
+            1단계 대댓글
+          </span>
+          <span className="rounded-full border border-amber-300/35 bg-amber-300/10 px-3 py-1 text-amber-100">
+            3회 신고 자동 숨김
+          </span>
+        </div>
       </div>
       <div className="grid gap-2 sm:grid-cols-4">
-        <div className="rounded-lg border border-stone-800 bg-stone-950/50 p-3">
+        <div className="protolive-community-stat rounded-lg border border-stone-800 bg-stone-950/50 p-3">
           <p className="text-xs text-stone-500">전체 의견</p>
           <p className="mt-1 text-lg font-black text-stone-50">{summary?.rootCount ?? roots.length}</p>
         </div>
-        <div className="rounded-lg border border-stone-800 bg-stone-950/50 p-3">
+        <div className="protolive-community-stat rounded-lg border border-stone-800 bg-stone-950/50 p-3">
           <p className="text-xs text-stone-500">평균 별점</p>
           <p className="mt-1 text-lg font-black text-stone-50">
             {summary?.averageRating ? `${summary.averageRating.toFixed(1)}점` : '아직 없음'}
           </p>
         </div>
-        <div className="rounded-lg border border-stone-800 bg-stone-950/50 p-3">
+        <div className="protolive-community-stat rounded-lg border border-stone-800 bg-stone-950/50 p-3">
           <p className="text-xs text-stone-500">성장 도움</p>
           <p className="mt-1 text-lg font-black text-lime-100">{summary?.supportCount ?? 0}</p>
         </div>
-        <div className="rounded-lg border border-stone-800 bg-stone-950/50 p-3">
+        <div className="protolive-community-stat rounded-lg border border-stone-800 bg-stone-950/50 p-3">
           <p className="text-xs text-stone-500">대댓글</p>
           <p className="mt-1 text-lg font-black text-cyan-100">{summary?.replyCount ?? 0}</p>
         </div>
       </div>
 
-      <form onSubmit={onSubmit} className="rounded-xl border border-stone-800 bg-stone-950/45 p-4">
+      <form onSubmit={onSubmit} className="protolive-review-composer rounded-xl border border-stone-800 bg-stone-950/45 p-4">
         {session ? (
           <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-stone-400">
             <span className="rounded-full border border-lime-300/35 bg-lime-300/10 px-2.5 py-1 font-black text-lime-100">
@@ -5513,13 +5577,24 @@ function ProjectReviewWorkspace({
           </div>
         ) : (
           roots.map((review) => (
-            <div key={review.id} className="rounded-xl border border-stone-800 bg-stone-950/45 p-4">
-              <ReviewItem review={review} onReplyTo={onReplyTo} />
+            <div key={review.id} className="protolive-thread-card rounded-xl border border-stone-800 bg-stone-950/45 p-4">
+              <ReviewItem
+                review={review}
+                onReplyTo={onReplyTo}
+                onReportReview={onReportReview}
+                isReporting={reportingReviewId === review.id}
+              />
               {(repliesByParent[review.id] ?? []).length > 0 && (
                 <div className="mt-3 space-y-2 border-t border-stone-800 pt-3">
                   {(repliesByParent[review.id] ?? []).map((reply) => (
-                    <div key={reply.id} className="rounded-lg border border-stone-800 bg-stone-900/45 p-3">
-                      <ReviewItem review={reply} isReply onReplyTo={onReplyTo} />
+                    <div key={reply.id} className="protolive-thread-reply rounded-lg border border-stone-800 bg-stone-900/45 p-3">
+                      <ReviewItem
+                        review={reply}
+                        isReply
+                        onReplyTo={onReplyTo}
+                        onReportReview={onReportReview}
+                        isReporting={reportingReviewId === reply.id}
+                      />
                     </div>
                   ))}
                 </div>
@@ -5536,10 +5611,14 @@ function ReviewItem({
   review,
   isReply = false,
   onReplyTo,
+  onReportReview,
+  isReporting,
 }: {
   review: ProjectReview;
   isReply?: boolean;
   onReplyTo: (review: ProjectReview) => void;
+  onReportReview: (review: ProjectReview) => void;
+  isReporting: boolean;
 }) {
   return (
     <div>
@@ -5547,22 +5626,38 @@ function ReviewItem({
         <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${reviewTypeCopy[review.type].tone}`}>
           {isReply ? '답글' : reviewTypeCopy[review.type].label}
         </span>
+        {review.status === 'reported' && (
+          <span className="rounded-full border border-amber-300/35 bg-amber-300/10 px-2.5 py-1 text-[11px] font-black text-amber-100">
+            신고 검토중 {review.reportCount > 0 ? review.reportCount : ''}
+          </span>
+        )}
         <span className="text-xs font-black text-stone-300">{maskEmail(review.authorEmail)}</span>
         <span className="text-xs text-stone-500">{getRoleLabel(review.authorRole)}</span>
         {review.rating ? <span className="text-xs font-black text-amber-100">{review.rating}점</span> : null}
         <span className="text-xs text-stone-500">{formatRelativeTime(review.createdAt)}</span>
       </div>
       <p className="mt-2 overflow-wrap-anywhere text-sm leading-6 text-stone-200">{review.body}</p>
-      {!isReply && (
+      <div className="mt-3 flex flex-wrap gap-2">
+        {!isReply && (
+          <button
+            type="button"
+            onClick={() => onReplyTo(review)}
+            className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-stone-700 px-3 text-xs font-black text-stone-300 hover:border-cyan-300/50 hover:text-cyan-100"
+          >
+            <Send className="h-3.5 w-3.5" />
+            답글 달기
+          </button>
+        )}
         <button
           type="button"
-          onClick={() => onReplyTo(review)}
-          className="mt-3 inline-flex min-h-9 items-center gap-2 rounded-lg border border-stone-700 px-3 text-xs font-black text-stone-300 hover:border-cyan-300/50 hover:text-cyan-100"
+          onClick={() => onReportReview(review)}
+          disabled={isReporting}
+          className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-stone-700 px-3 text-xs font-black text-stone-400 hover:border-amber-300/50 hover:text-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <Send className="h-3.5 w-3.5" />
-          답글 달기
+          {isReporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <AlertTriangle className="h-3.5 w-3.5" />}
+          신고
         </button>
-      )}
+      </div>
     </div>
   );
 }
@@ -5847,6 +5942,8 @@ function ProjectDetailRoute({
   onReviewBodyChange,
   onReplyTo,
   onCancelReply,
+  onReportReview,
+  reportingReviewId,
   onLogin,
 }: {
   project: Project;
@@ -5871,6 +5968,8 @@ function ProjectDetailRoute({
   onReviewBodyChange: (body: string) => void;
   onReplyTo: (review: ProjectReview) => void;
   onCancelReply: () => void;
+  onReportReview: (review: ProjectReview) => void;
+  reportingReviewId: number | null;
   onLogin: () => void;
 }) {
   const isProtected = project.accessMode === 'screened';
@@ -6070,6 +6169,8 @@ function ProjectDetailRoute({
         onBodyChange={onReviewBodyChange}
         onReplyTo={onReplyTo}
         onCancelReply={onCancelReply}
+        onReportReview={onReportReview}
+        reportingReviewId={reportingReviewId}
         onLogin={onLogin}
         onSubmit={onSubmitReview}
       />

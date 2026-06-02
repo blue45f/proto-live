@@ -58,6 +58,7 @@ const ALLOWED_ACCESS_MODES = new Set(['screened', 'open']);
 const ALLOWED_EVENT_TYPES = new Set(['create', 'preview', 'outbound', 'match', 'refresh']);
 const ALLOWED_REVIEW_ROLES = new Set(['maker', 'investor', 'member']);
 const ALLOWED_REVIEW_TYPES = new Set(['review', 'support', 'idea']);
+const ALLOWED_REVIEW_STATUSES = new Set(['visible', 'reported', 'hidden']);
 
 const FUNDING_RANGES = {
   'pre-seed-10-30': { minAmount: 10_000_000, maxAmount: 30_000_000 },
@@ -129,6 +130,14 @@ function normalizeRole(value) {
 
 function normalizeStringLower(value) {
   return typeof value === 'string' ? value.trim().toLowerCase() : null;
+}
+
+function normalizeEmailList(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return Array.from(new Set(value.map((email) => normalizeEmail(email)).filter(Boolean)));
 }
 
 function safeReadJson(filePath) {
@@ -358,6 +367,8 @@ function normalizeReviews(reviews) {
       const rating = safeParseInt(entry?.rating, null);
       const authorEmail = normalizeEmail(entry?.authorEmail);
       const body = safeString(entry?.body, null);
+      const status = normalizeStringLower(entry?.status);
+      const reportCount = safeParseInt(entry?.reportCount, 0);
 
       if (!Number.isInteger(id) || id <= 0) {
         return null;
@@ -378,6 +389,10 @@ function normalizeReviews(reviews) {
         type,
         rating: Number.isInteger(rating) && rating >= 1 && rating <= 5 ? rating : null,
         body,
+        status: ALLOWED_REVIEW_STATUSES.has(status) ? status : 'visible',
+        reportCount: Math.max(0, reportCount),
+        reportedBy: normalizeEmailList(entry?.reportedBy),
+        lastReportedAt: entry?.lastReportedAt ? safeDateIso(entry.lastReportedAt, null) : null,
         createdAt: safeDateIso(entry?.createdAt, new Date().toISOString()),
       };
     })

@@ -1,0 +1,12 @@
+import { IsEmail, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+
+export class ReportProjectReviewDto {
+  @IsEmail({}, { message: '신고자 이메일 형식이 올바르지 않습니다.' })
+  @IsNotEmpty({ message: '신고자 이메일이 필요합니다.' })
+  email: string;
+
+  @IsString({ message: '신고 사유는 문자열이어야 합니다.' })
+  @IsOptional()
+  @MaxLength(300, { message: '신고 사유는 300자 이하로 입력해주세요.' })
+  reason?: string;
+}

@@ -36,6 +36,7 @@ import {
 import { CreateMatchProposalDto } from './dto/create-match-proposal.dto';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { CreateProjectReviewDto } from './dto/create-project-review.dto';
+import { ReportProjectReviewDto } from './dto/report-project-review.dto';
 import { calculateProjectSignalScore, summarizeProjectEvents } from './project-signals';
 import { JsonProjectsStore } from './projects.store';
 import {
@@ -767,8 +768,7 @@ export class ProjectsService {
 
   getProjectReviews(id: number): ProjectReview[] {
     this.findProject(id);
-    return this.reviews
-      .filter((review) => review.projectId === id)
+    return this.getVisibleProjectReviews(id)
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   }
 
@@ -892,12 +892,53 @@ export class ProjectsService {
       type: parentReview?.type ?? data.type,
       rating: parentId ? null : data.rating ?? null,
       body,
+      status: 'visible',
+      reportCount: 0,
+      reportedBy: [],
+      lastReportedAt: null,
       createdAt: new Date(),
     };
 
     this.reviews.push(review);
     this.persist();
     this.logger.log(`Project review recorded for project ${id}`);
+
+    return {
+      review,
+      project: this.hydrateProject(project),
+    };
+  }
+
+  reportProjectReview(
+    projectId: number,
+    reviewId: number,
+    data: ReportProjectReviewDto,
+  ): { review: ProjectReview; project: Project } {
+    const project = this.findProject(projectId);
+    const review = this.reviews.find((entry) => entry.id === reviewId && entry.projectId === projectId);
+    if (!review) {
+      throw new BadRequestException('신고할 의견을 찾을 수 없습니다.');
+    }
+
+    if (review.status === 'hidden') {
+      throw new BadRequestException('이미 숨김 처리된 의견입니다.');
+    }
+
+    const reporterEmail = data.email.trim().toLowerCase();
+    const reportedBy = review.reportedBy ?? [];
+    if (reportedBy.includes(reporterEmail)) {
+      throw new BadRequestException('이미 신고한 의견입니다.');
+    }
+
+    review.reportedBy = [...reportedBy, reporterEmail];
+    review.reportCount = Math.max(0, review.reportCount ?? 0) + 1;
+    review.lastReportedAt = new Date();
+    review.status = review.reportCount >= 3 ? 'hidden' : 'reported';
+
+    this.persist();
+    this.logger.warn(
+      `Project review ${reviewId} reported for project ${projectId}: ${data.reason?.trim() || 'no reason'}`,
+    );
 
     return {
       review,
@@ -982,6 +1023,23 @@ export class ProjectsService {
           .map((tag) => tag.slice(0, 24)),
       ),
     ).slice(0, 8);
+  }
+
+  private getVisibleProjectReviews(projectId: number): ProjectReview[] {
+    const projectReviews = this.reviews.filter((review) => review.projectId === projectId);
+    const hiddenReviewIds = new Set(
+      projectReviews
+        .filter((review) => review.status === 'hidden')
+        .map((review) => review.id),
+    );
+
+    return projectReviews.filter((review) => {
+      if (review.status === 'hidden') {
+        return false;
+      }
+
+      return !review.parentId || !hiddenReviewIds.has(review.parentId);
+    });
   }
 
   private addProjectEvent(projectId: number, type: ProjectEventType): ProjectEvent {
@@ -1681,7 +1739,7 @@ export class ProjectsService {
 
   private hydrateProject(project: Project): Project {
     const events = this.events.filter((event) => event.projectId === project.id);
-    const reviews = this.reviews.filter((review) => review.projectId === project.id);
+    const reviews = this.getVisibleProjectReviews(project.id);
     const accessMode = project.accessMode ?? 'open';
     const displayUrl = accessMode === 'screened' ? this.redactUrl(project.liveUrl) : project.liveUrl;
     const displayFinalUrl =

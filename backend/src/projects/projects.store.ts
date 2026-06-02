@@ -85,6 +85,10 @@ function deserializeState(state: SerializedProjectsState): ProjectsState {
       ? state.reviews.map((review) => ({
           ...review,
           parentId: review.parentId ?? null,
+          status: review.status ?? 'visible',
+          reportCount: Number.isInteger(review.reportCount) ? review.reportCount : 0,
+          reportedBy: Array.isArray(review.reportedBy) ? review.reportedBy : [],
+          lastReportedAt: review.lastReportedAt ? new Date(review.lastReportedAt) : null,
           createdAt: new Date(review.createdAt),
         }))
       : [],

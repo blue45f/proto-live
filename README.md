@@ -69,6 +69,9 @@ npm run start:dev
 - `POST http://localhost:3003/api/projects/:id/refresh`: 단일 프로젝트 URL 상태를 다시 확인합니다.
 - `GET http://localhost:3003/api/projects/:id/events`: 프로젝트별 프리뷰, 새 탭 열기, 매칭, 갱신 이벤트 이력을 조회합니다.
 - `POST http://localhost:3003/api/projects/:id/events`: 공개 프리뷰 프로젝트의 관심 신호를 기록합니다.
+- `GET http://localhost:3003/api/projects/:id/reviews`: 회원 리뷰, 성장 의견, 대댓글을 조회합니다.
+- `POST http://localhost:3003/api/projects/:id/reviews`: 회원 리뷰, 성장 의견, 대댓글을 저장합니다.
+- `POST http://localhost:3003/api/projects/:id/reviews/:reviewId/report`: 커뮤니티 의견을 신고하고 반복 신고 시 자동 숨김 처리합니다.
 - `POST http://localhost:3003/api/projects/:id/match`: 투자 의향을 구조화된 데이터로 기록합니다.
 
 환경 변수:

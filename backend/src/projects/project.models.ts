@@ -49,6 +49,8 @@ export type ProjectReviewType = 'review' | 'support' | 'idea';
 
 export type ProjectReviewAuthorRole = 'maker' | 'investor' | 'member';
 
+export type ProjectReviewStatus = 'visible' | 'reported' | 'hidden';
+
 export interface ProjectReview {
   id: number;
   projectId: number;
@@ -58,6 +60,10 @@ export interface ProjectReview {
   type: ProjectReviewType;
   rating?: number | null;
   body: string;
+  status: ProjectReviewStatus;
+  reportCount: number;
+  reportedBy: string[];
+  lastReportedAt?: Date | null;
   createdAt: Date;
 }
 

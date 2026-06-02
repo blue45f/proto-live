@@ -5,6 +5,7 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { ValidateUrlDto } from './dto/validate-url.dto';
 import { CreateMatchProposalDto } from './dto/create-match-proposal.dto';
 import { CreateProjectReviewDto } from './dto/create-project-review.dto';
+import { ReportProjectReviewDto } from './dto/report-project-review.dto';
 import { RecordProjectEventDto } from './dto/record-project-event.dto';
 import { GetProjectsQueryDto, ProjectQueryInput } from './dto/get-projects-query.dto';
 import { AdminRevenueProjectionQueryDto } from './dto/admin-revenue-projection-query.dto';
@@ -151,6 +152,19 @@ export class ProjectsController {
     @Body() body: CreateProjectReviewDto,
   ) {
     return this.projectsService.createProjectReview(id, body);
+  }
+
+  /**
+   * POST /api/projects/:id/reviews/:reviewId/report
+   * 커뮤니티 의견을 신고하고 자동 숨김 기준을 적용합니다.
+   */
+  @Post(':id/reviews/:reviewId/report')
+  reportProjectReview(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('reviewId', ParseIntPipe) reviewId: number,
+    @Body() body: ReportProjectReviewDto,
+  ) {
+    return this.projectsService.reportProjectReview(id, reviewId, body);
   }
 
   /**

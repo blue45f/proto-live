@@ -253,6 +253,40 @@ test('createProjectReview records reviews and one-level replies with summaries',
     const reviews = service.getProjectReviews(1);
     assert.deepEqual(reviews.map((review) => review.id), [1, 2]);
 
+    const firstReport = service.reportProjectReview(1, first.review.id, {
+      email: 'observer-one@protolive.local',
+      reason: '공개 커뮤니티 운영 검토가 필요합니다.',
+    });
+    assert.equal(firstReport.review.status, 'reported');
+    assert.equal(firstReport.review.reportCount, 1);
+    assert.equal(firstReport.project.reviewSummary?.rootCount, 1);
+
+    assert.throws(
+      () =>
+        service.reportProjectReview(1, first.review.id, {
+          email: 'observer-one@protolive.local',
+          reason: '같은 사용자의 중복 신고입니다.',
+        }),
+      (error: unknown) => {
+        assert.ok(error instanceof BadRequestException);
+        assert.equal((error as BadRequestException).message, '이미 신고한 의견입니다.');
+        return true;
+      },
+    );
+
+    service.reportProjectReview(1, first.review.id, {
+      email: 'observer-two@protolive.local',
+      reason: '두 번째 신고입니다.',
+    });
+    const hidden = service.reportProjectReview(1, first.review.id, {
+      email: 'observer-three@protolive.local',
+      reason: '세 번째 신고입니다.',
+    });
+    assert.equal(hidden.review.status, 'hidden');
+    assert.equal(hidden.review.reportCount, 3);
+    assert.equal(hidden.project.reviewSummary?.total, 0);
+    assert.deepEqual(service.getProjectReviews(1), []);
+
     assert.throws(
       () =>
         service.createProjectReview(1, {

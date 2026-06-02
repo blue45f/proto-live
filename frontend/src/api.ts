@@ -35,6 +35,7 @@ export type ProjectAccessMode = 'screened' | 'open';
 export type ProjectEventType = 'create' | 'preview' | 'outbound' | 'match' | 'refresh';
 export type ProjectReviewType = 'review' | 'support' | 'idea';
 export type ProjectReviewAuthorRole = 'maker' | 'investor' | 'member';
+export type ProjectReviewStatus = 'visible' | 'reported' | 'hidden';
 
 export interface ProjectEventSummary {
   total: number;
@@ -58,6 +59,8 @@ export interface ProjectReview {
   type: ProjectReviewType;
   rating?: number | null;
   body: string;
+  status: ProjectReviewStatus;
+  reportCount: number;
   createdAt: string;
 }
 
@@ -318,6 +321,16 @@ export interface CreateProjectReviewResponse {
   project: Project;
 }
 
+export interface ReportProjectReviewPayload {
+  email: string;
+  reason?: string;
+}
+
+export interface ReportProjectReviewResponse {
+  review: ProjectReview;
+  project: Project;
+}
+
 export interface ProjectListQuery {
   q?: string;
   category?: string;
@@ -480,6 +493,14 @@ export async function fetchProjectReviews(id: number) {
 
 export async function createProjectReview(id: number, payload: CreateProjectReviewPayload) {
   const response = await client.post<CreateProjectReviewResponse>(`/projects/${id}/reviews`, payload);
+  return response.data;
+}
+
+export async function reportProjectReview(id: number, reviewId: number, payload: ReportProjectReviewPayload) {
+  const response = await client.post<ReportProjectReviewResponse>(
+    `/projects/${id}/reviews/${reviewId}/report`,
+    payload,
+  );
   return response.data;
 }
 

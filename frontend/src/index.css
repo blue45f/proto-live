@@ -975,3 +975,80 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Community commercialization pass: clearer trust affordances and warmer public-product tone. */
+.protolive-community-panel {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(32rem 18rem at 8% 0%, oklch(92% 0.058 183 / 0.62), transparent 70%),
+    radial-gradient(28rem 16rem at 96% 8%, oklch(94% 0.064 76 / 0.72), transparent 74%),
+    var(--proto-surface) !important;
+  border-color: color-mix(in oklch, var(--proto-primary) 18%, var(--proto-border)) !important;
+  box-shadow: 0 18px 50px oklch(38% 0.04 185 / 0.12) !important;
+}
+
+.protolive-community-panel::after {
+  content: '';
+  position: absolute;
+  inset: auto -4rem -5rem auto;
+  width: 14rem;
+  height: 14rem;
+  border-radius: 999px;
+  background: oklch(88% 0.12 146 / 0.28);
+  pointer-events: none;
+}
+
+.protolive-community-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
+.protolive-safety-note span {
+  background: color-mix(in oklch, var(--proto-surface) 84%, transparent) !important;
+  box-shadow: 0 1px 0 oklch(100% 0 0 / 0.8) inset;
+}
+
+.protolive-community-stat,
+.protolive-review-composer,
+.protolive-thread-card,
+.protolive-thread-reply {
+  background: color-mix(in oklch, var(--proto-surface) 92%, transparent) !important;
+  border-color: color-mix(in oklch, var(--proto-border) 82%, var(--proto-primary)) !important;
+  box-shadow: 0 1px 0 oklch(100% 0 0 / 0.84) inset, 0 10px 24px oklch(39% 0.035 205 / 0.07) !important;
+}
+
+.protolive-review-composer {
+  background:
+    linear-gradient(135deg, color-mix(in oklch, var(--proto-primary-soft) 55%, var(--proto-surface)), var(--proto-surface) 44%),
+    var(--proto-surface) !important;
+}
+
+.protolive-thread-card {
+  transition: transform 180ms var(--ease-out-expo), box-shadow 180ms var(--ease-out-expo), border-color 180ms var(--ease-out-expo);
+}
+
+.protolive-thread-card:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklch, var(--proto-primary) 28%, var(--proto-border)) !important;
+  box-shadow: 0 18px 42px oklch(39% 0.035 205 / 0.11) !important;
+}
+
+.protolive-thread-reply {
+  background: color-mix(in oklch, var(--proto-primary-soft) 34%, var(--proto-surface)) !important;
+}
+
+@media (max-width: 767px) {
+  .protolive-community-panel {
+    border-radius: 1.2rem !important;
+    padding: 1rem !important;
+  }
+
+  .protolive-community-panel::after {
+    opacity: 0.45;
+  }
+
+  .protolive-thread-card:hover {
+    transform: none;
+  }
+}
