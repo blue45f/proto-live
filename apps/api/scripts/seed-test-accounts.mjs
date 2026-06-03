@@ -8,7 +8,7 @@ const args = new Set(process.argv.slice(2));
 const isDryRun = args.has('--dry-run');
 
 const ROOT = process.cwd();
-const ROOT_BACKEND_DIR = join(ROOT, 'backend');
+const ROOT_BACKEND_DIR = join(ROOT, 'apps', 'api');
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const BACKEND_DIR =
   existsSync(join(ROOT, 'package.json')) && existsSync(ROOT_BACKEND_DIR)
