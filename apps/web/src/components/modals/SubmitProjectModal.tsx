@@ -1,10 +1,10 @@
-import React from 'react';
-import { AlertTriangle, BadgeCheck, CheckCircle2, Globe2, Loader2, ShieldCheck } from 'lucide-react';
-import type { AuthSession } from '../../local-auth';
-import type { MarketConfig, ProjectAccessMode } from '../../api';
-import { getValidationTone } from '../../lib/format';
-import { parseTagInput } from '../../state/storage';
-import { Modal } from '../Modal';
+import React from 'react'
+import { AlertTriangle, BadgeCheck, CheckCircle2, Globe2, Loader2, ShieldCheck } from 'lucide-react'
+import type { AuthSession } from '../../local-auth'
+import type { MarketConfig, ProjectAccessMode } from '../../api'
+import { getValidationTone } from '../../lib/format'
+import { parseTagInput } from '../../state/storage'
+import { Modal } from '../Modal'
 
 export function SubmitProjectModal({
   session,
@@ -31,29 +31,29 @@ export function SubmitProjectModal({
   onVerifyUrl,
   onSubmit,
 }: {
-  session: AuthSession | null;
-  title: string;
-  category: string;
-  config: MarketConfig;
-  accessMode: ProjectAccessMode;
-  protectionNoticeAccepted: boolean;
-  description: string;
-  tagInput: string;
-  liveUrl: string;
-  urlCheckStatus: 'idle' | 'checking' | 'success' | 'error';
-  urlCheckMessage: string;
-  isSubmitting: boolean;
-  dialogRef?: React.RefObject<HTMLElement | null>;
-  onClose: () => void;
-  onTitleChange: (value: string) => void;
-  onCategoryChange: (value: string) => void;
-  onAccessModeChange: (value: ProjectAccessMode) => void;
-  onProtectionNoticeChange: (value: boolean) => void;
-  onDescriptionChange: (value: string) => void;
-  onTagInputChange: (value: string) => void;
-  onLiveUrlChange: (value: string) => void;
-  onVerifyUrl: () => void;
-  onSubmit: (event: React.FormEvent) => void;
+  session: AuthSession | null
+  title: string
+  category: string
+  config: MarketConfig
+  accessMode: ProjectAccessMode
+  protectionNoticeAccepted: boolean
+  description: string
+  tagInput: string
+  liveUrl: string
+  urlCheckStatus: 'idle' | 'checking' | 'success' | 'error'
+  urlCheckMessage: string
+  isSubmitting: boolean
+  dialogRef?: React.RefObject<HTMLElement | null>
+  onClose: () => void
+  onTitleChange: (value: string) => void
+  onCategoryChange: (value: string) => void
+  onAccessModeChange: (value: ProjectAccessMode) => void
+  onProtectionNoticeChange: (value: boolean) => void
+  onDescriptionChange: (value: string) => void
+  onTagInputChange: (value: string) => void
+  onLiveUrlChange: (value: string) => void
+  onVerifyUrl: () => void
+  onSubmit: (event: React.FormEvent) => void
 }) {
   return (
     <Modal
@@ -134,7 +134,9 @@ export function SubmitProjectModal({
                 }`}
               >
                 <span className="block text-sm font-black">{mode.label}</span>
-                <span className={`mt-1 block text-xs leading-5 ${accessMode === mode.id ? 'text-slate-800' : 'text-stone-500'}`}>
+                <span
+                  className={`mt-1 block text-xs leading-5 ${accessMode === mode.id ? 'text-slate-800' : 'text-stone-500'}`}
+                >
                   {mode.description}
                 </span>
               </button>
@@ -149,8 +151,8 @@ export function SubmitProjectModal({
               className="mt-1 h-4 w-4 rounded border-amber-300/50 bg-stone-950 accent-lime-300"
             />
             <span>
-              제출 권한이 있는 서비스이며, 공개 사이트 확인 및 선택한 공개 범위에 따라 외부 투자자에게
-              정보가 노출될 수 있음을 확인합니다.
+              제출 권한이 있는 서비스이며, 공개 사이트 확인 및 선택한 공개 범위에 따라 외부
+              투자자에게 정보가 노출될 수 있음을 확인합니다.
             </span>
           </label>
         </div>
@@ -212,13 +214,19 @@ export function SubmitProjectModal({
               disabled={urlCheckStatus === 'checking'}
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-cyan-300/40 px-4 text-sm font-black text-cyan-100 transition hover:bg-cyan-300/10 disabled:opacity-50"
             >
-              {urlCheckStatus === 'checking' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe2 className="h-4 w-4" />}
+              {urlCheckStatus === 'checking' ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Globe2 className="h-4 w-4" />
+              )}
               사이트 확인
             </button>
           </div>
         </label>
         {urlCheckStatus !== 'idle' && (
-          <div className={`rounded-lg border p-3 text-sm ${getValidationTone({ success: urlCheckStatus === 'success', message: urlCheckMessage, checkedAt: new Date().toISOString() })}`}>
+          <div
+            className={`rounded-lg border p-3 text-sm ${getValidationTone({ success: urlCheckStatus === 'success', message: urlCheckMessage, checkedAt: new Date().toISOString() })}`}
+          >
             <div className="flex items-start gap-2">
               {urlCheckStatus === 'checking' ? (
                 <Loader2 className="mt-0.5 h-4 w-4 animate-spin" />
@@ -244,11 +252,15 @@ export function SubmitProjectModal({
             disabled={isSubmitting || urlCheckStatus !== 'success' || !protectionNoticeAccepted}
             className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-lime-300 text-sm font-black text-slate-950 disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-stone-400"
           >
-            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <BadgeCheck className="h-4 w-4" />}
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <BadgeCheck className="h-4 w-4" />
+            )}
             확인 등록
           </button>
         </div>
       </form>
     </Modal>
-  );
+  )
 }

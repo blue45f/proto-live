@@ -1,7 +1,12 @@
-import { ArrowUpRight, Star } from 'lucide-react';
-import type { Project } from '../api';
-import { type ProjectListViewMode, reviewTypeCopy } from '../lib/constants';
-import { formatRelativeTime, getResponseTimeTone, getValidationTone, maskEmail } from '../lib/format';
+import { ArrowUpRight, Star } from 'lucide-react'
+import type { Project } from '../api'
+import { type ProjectListViewMode, reviewTypeCopy } from '../lib/constants'
+import {
+  formatRelativeTime,
+  getResponseTimeTone,
+  getValidationTone,
+  maskEmail,
+} from '../lib/format'
 
 export function ProjectCard({
   project,
@@ -11,20 +16,20 @@ export function ProjectCard({
   onToggleFavorite,
   isFavorite,
 }: {
-  project: Project;
-  viewMode: ProjectListViewMode;
-  signalRank: number | null;
-  onOpenDetail: () => void;
-  onToggleFavorite: () => void;
-  isFavorite: boolean;
+  project: Project
+  viewMode: ProjectListViewMode
+  signalRank: number | null
+  onOpenDetail: () => void
+  onToggleFavorite: () => void
+  isFavorite: boolean
 }) {
-  const isProtected = project.accessMode === 'screened';
-  const responseTone = getResponseTimeTone(project.validation.responseTimeMs);
-  const signalRankText = signalRank === null ? null : '#' + signalRank;
-  const tags = project.tags ?? [];
-  const latestReview = project.reviewSummary?.latest;
-  const isCardView = viewMode === 'cards';
-  const isReviewView = viewMode === 'reviews';
+  const isProtected = project.accessMode === 'screened'
+  const responseTone = getResponseTimeTone(project.validation.responseTimeMs)
+  const signalRankText = signalRank === null ? null : '#' + signalRank
+  const tags = project.tags ?? []
+  const latestReview = project.reviewSummary?.latest
+  const isCardView = viewMode === 'cards'
+  const isReviewView = viewMode === 'reviews'
 
   return (
     <article
@@ -41,7 +46,11 @@ export function ProjectCard({
               : 'grid gap-3 sm:grid-cols-[148px_minmax(0,1fr)_auto] sm:items-center'
         }
       >
-        <button type="button" onClick={onOpenDetail} className="protolive-shot-card overflow-hidden rounded-xl border border-stone-700 bg-stone-950/60 text-left">
+        <button
+          type="button"
+          onClick={onOpenDetail}
+          className="protolive-shot-card overflow-hidden rounded-xl border border-stone-700 bg-stone-950/60 text-left"
+        >
           {project.thumbnail ? (
             <img
               src={project.thumbnail}
@@ -50,7 +59,9 @@ export function ProjectCard({
               loading="lazy"
             />
           ) : (
-            <div className="grid aspect-[16/10] place-items-center text-xs font-black text-stone-500">스크린샷 준비 중</div>
+            <div className="grid aspect-[16/10] place-items-center text-xs font-black text-stone-500">
+              스크린샷 준비 중
+            </div>
           )}
         </button>
         <div className="min-w-0">
@@ -63,18 +74,37 @@ export function ProjectCard({
             <span className="rounded-full border border-stone-700 bg-stone-950/60 px-2.5 py-1 text-[11px] font-black text-stone-300">
               {project.category}
             </span>
-            <span className={'rounded-full border px-2.5 py-1 text-[11px] font-black ' + getValidationTone(project.validation)}>
+            <span
+              className={
+                'rounded-full border px-2.5 py-1 text-[11px] font-black ' +
+                getValidationTone(project.validation)
+              }
+            >
               {project.validation.success ? '확인 완료' : '확인 필요'}
             </span>
-            <span className={'rounded-full border px-2.5 py-1 text-[11px] font-black ' + responseTone.tone}>
-              {project.validation.responseTimeMs ? project.validation.responseTimeMs + 'ms' : responseTone.label}
+            <span
+              className={
+                'rounded-full border px-2.5 py-1 text-[11px] font-black ' + responseTone.tone
+              }
+            >
+              {project.validation.responseTimeMs
+                ? project.validation.responseTimeMs + 'ms'
+                : responseTone.label}
             </span>
-            {isProtected && <span className="rounded-full border border-amber-300/30 bg-amber-300/10 px-2.5 py-1 text-[11px] font-black text-amber-100">요청 후 공개</span>}
+            {isProtected && (
+              <span className="rounded-full border border-amber-300/30 bg-amber-300/10 px-2.5 py-1 text-[11px] font-black text-amber-100">
+                요청 후 공개
+              </span>
+            )}
           </div>
           <button type="button" onClick={onOpenDetail} className="block max-w-full text-left">
-            <h3 className="overflow-wrap-anywhere text-lg font-black tracking-tight text-stone-50">{project.title}</h3>
+            <h3 className="overflow-wrap-anywhere text-lg font-black tracking-tight text-stone-50">
+              {project.title}
+            </h3>
           </button>
-          <p className="mt-1 max-w-[72ch] overflow-wrap-anywhere text-sm leading-6 text-stone-300">{project.description}</p>
+          <p className="mt-1 max-w-[72ch] overflow-wrap-anywhere text-sm leading-6 text-stone-300">
+            {project.description}
+          </p>
           {tags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {tags.slice(0, isCardView ? 6 : 4).map((tag) => (
@@ -90,7 +120,9 @@ export function ProjectCard({
           {isReviewView && latestReview && (
             <div className="mt-3 rounded-lg border border-stone-800 bg-stone-950/55 p-3">
               <p className="text-[11px] font-black text-stone-500">최근 회원 의견</p>
-              <p className="mt-1 overflow-wrap-anywhere text-sm leading-6 text-stone-200">{latestReview.body}</p>
+              <p className="mt-1 overflow-wrap-anywhere text-sm leading-6 text-stone-200">
+                {latestReview.body}
+              </p>
               <p className="mt-2 text-xs text-stone-500">
                 {reviewTypeCopy[latestReview.type].label} · {maskEmail(latestReview.authorEmail)}
               </p>
@@ -100,7 +132,12 @@ export function ProjectCard({
             <span>리뷰 {project.reviewSummary?.rootCount ?? 0}</span>
             <span>답글 {project.reviewSummary?.replyCount ?? 0}</span>
             <span>투자 관심 {project.matchCount}</span>
-            <span>최근 {formatRelativeTime(project.reviewSummary?.latestAt ?? project.eventSummary?.latestAt ?? undefined)}</span>
+            <span>
+              최근{' '}
+              {formatRelativeTime(
+                project.reviewSummary?.latestAt ?? project.eventSummary?.latestAt ?? undefined
+              )}
+            </span>
           </div>
         </div>
         <div className={isCardView ? 'grid grid-cols-2 gap-2' : 'grid gap-2 sm:min-w-[132px]'}>
@@ -115,12 +152,15 @@ export function ProjectCard({
           <button
             type="button"
             onClick={onToggleFavorite}
-            className={'inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 text-xs font-black transition ' + (
-              isFavorite
+            className={
+              'inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border px-3 text-xs font-black transition ' +
+              (isFavorite
                 ? 'border-amber-300/70 bg-amber-300/10 text-amber-100'
-                : 'border-stone-700 text-stone-300 hover:border-stone-500'
-            )}
-            aria-label={isFavorite ? project.title + ' 즐겨찾기 해제' : project.title + ' 즐겨찾기 추가'}
+                : 'border-stone-700 text-stone-300 hover:border-stone-500')
+            }
+            aria-label={
+              isFavorite ? project.title + ' 즐겨찾기 해제' : project.title + ' 즐겨찾기 추가'
+            }
           >
             <Star className={'h-4 w-4 ' + (isFavorite ? 'fill-amber-100' : '')} />
             저장
@@ -128,5 +168,5 @@ export function ProjectCard({
         </div>
       </div>
     </article>
-  );
+  )
 }

@@ -1,7 +1,7 @@
-import React from 'react';
-import { Loader2, Send } from 'lucide-react';
-import type { FundingRange, MarketConfig, Project } from '../../api';
-import { Modal } from '../Modal';
+import React from 'react'
+import { Loader2, Send } from 'lucide-react'
+import type { FundingRange, MarketConfig, Project } from '../../api'
+import { Modal } from '../Modal'
 
 export function MatchModal({
   project,
@@ -21,28 +21,30 @@ export function MatchModal({
   onRiskNoticeChange,
   onSubmit,
 }: {
-  project: Project;
-  config: MarketConfig;
-  fundingRangeId: string;
-  matchMessage: string;
-  matchLegalNoticeAccepted: boolean;
-  matchPrivacyConsentAccepted: boolean;
-  matchRiskNoticeAccepted: boolean;
-  isSendingMatch: boolean;
-  dialogRef?: React.RefObject<HTMLElement | null>;
-  onClose: () => void;
-  onFundingRangeChange: (value: string) => void;
-  onMessageChange: (value: string) => void;
-  onLegalNoticeChange: (value: boolean) => void;
-  onPrivacyConsentChange: (value: boolean) => void;
-  onRiskNoticeChange: (value: boolean) => void;
-  onSubmit: (event: React.FormEvent) => void;
+  project: Project
+  config: MarketConfig
+  fundingRangeId: string
+  matchMessage: string
+  matchLegalNoticeAccepted: boolean
+  matchPrivacyConsentAccepted: boolean
+  matchRiskNoticeAccepted: boolean
+  isSendingMatch: boolean
+  dialogRef?: React.RefObject<HTMLElement | null>
+  onClose: () => void
+  onFundingRangeChange: (value: string) => void
+  onMessageChange: (value: string) => void
+  onLegalNoticeChange: (value: boolean) => void
+  onPrivacyConsentChange: (value: boolean) => void
+  onRiskNoticeChange: (value: boolean) => void
+  onSubmit: (event: React.FormEvent) => void
 }) {
   return (
     <Modal title="투자 관심 기록" subtitle={project.title} onClose={onClose} dialogRef={dialogRef}>
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="rounded-lg border border-stone-800 bg-stone-950/50 p-3">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-200">투자자 확인 포인트</p>
+          <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-200">
+            투자자 확인 포인트
+          </p>
           <p className="mt-1 text-sm leading-6 text-stone-300">{project.description}</p>
         </div>
         <label className="block">
@@ -60,7 +62,9 @@ export function MatchModal({
           </select>
         </label>
         <label className="block">
-          <span className="mb-2 block text-xs font-black text-stone-300">창업자를 설득할 메시지</span>
+          <span className="mb-2 block text-xs font-black text-stone-300">
+            창업자를 설득할 메시지
+          </span>
           <textarea
             required
             maxLength={700}
@@ -89,7 +93,9 @@ export function MatchModal({
               onChange={(event) => onPrivacyConsentChange(event.target.checked)}
               className="mt-1 h-4 w-4 rounded border-stone-600"
             />
-            <span>연락을 위해 내 이메일과 메시지가 해당 창업자 및 운영자에게 전달되는 데 동의합니다.</span>
+            <span>
+              연락을 위해 내 이메일과 메시지가 해당 창업자 및 운영자에게 전달되는 데 동의합니다.
+            </span>
           </label>
           <label className="flex gap-2">
             <input
@@ -111,14 +117,23 @@ export function MatchModal({
           </button>
           <button
             type="submit"
-            disabled={isSendingMatch || !matchLegalNoticeAccepted || !matchPrivacyConsentAccepted || !matchRiskNoticeAccepted}
+            disabled={
+              isSendingMatch ||
+              !matchLegalNoticeAccepted ||
+              !matchPrivacyConsentAccepted ||
+              !matchRiskNoticeAccepted
+            }
             className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-lime-300 text-sm font-black text-slate-950 disabled:opacity-50"
           >
-            {isSendingMatch ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            {isSendingMatch ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
             의향 기록
           </button>
         </div>
       </form>
     </Modal>
-  );
+  )
 }

@@ -1,5 +1,5 @@
-import { vi } from 'vitest';
-import type { AuthSession } from '../api';
+import { vi } from 'vitest'
+import type { AuthSession } from '../api'
 import {
   adminDashboard,
   marketConfig,
@@ -7,7 +7,7 @@ import {
   projectEvents,
   projectReviews,
   projects,
-} from './fixtures';
+} from './fixtures'
 
 // ---------------------------------------------------------------------------
 // Hermetic mock of ./api. App.tsx talks to the NestJS backend exclusively
@@ -29,16 +29,16 @@ import {
 // ---------------------------------------------------------------------------
 
 export function makeApiMock() {
-  return apiMock;
+  return apiMock
 }
 
-const apiMock = buildApiMock();
+const apiMock = buildApiMock()
 
 function buildApiMock() {
   return {
     fetchAuthSession: vi.fn(async (): Promise<AuthSession | null> => null),
     loginUser: vi.fn(async (): Promise<AuthSession> => {
-      throw new Error('loginUser not stubbed for this test');
+      throw new Error('loginUser not stubbed for this test')
     }),
     logoutUser: vi.fn(async () => ({ success: true })),
     fetchMarketConfig: vi.fn(async () => marketConfig),
@@ -59,7 +59,7 @@ function buildApiMock() {
     moderateProjectReview: vi.fn(async () => ({ review: projectReviews[0], project: projects[0] })),
     recordProjectEvent: vi.fn(async () => projects[0]),
     validateLiveUrl: vi.fn(async () => projects[0].validation),
-  };
+  }
 }
 
 export const adminSession: AuthSession = {
@@ -68,7 +68,7 @@ export const adminSession: AuthSession = {
   role: 'admin',
   name: '프로토라이브 운영자',
   expiresAt: '2099-01-01T00:00:00.000Z',
-};
+}
 
 export const makerSession: AuthSession = {
   id: 1,
@@ -76,4 +76,4 @@ export const makerSession: AuthSession = {
   role: 'maker',
   name: '밀맵 팀',
   expiresAt: '2099-01-01T00:00:00.000Z',
-};
+}

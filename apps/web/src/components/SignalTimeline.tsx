@@ -1,7 +1,7 @@
-import { Loader2, Signal } from 'lucide-react';
-import type { ProjectEvent, ProjectEventType } from '../api';
-import { eventCopy } from '../lib/constants';
-import { formatRelativeTime } from '../lib/format';
+import { Loader2, Signal } from 'lucide-react'
+import type { ProjectEvent, ProjectEventType } from '../api'
+import { eventCopy } from '../lib/constants'
+import { formatRelativeTime } from '../lib/format'
 
 export function SignalTimeline({
   events,
@@ -10,23 +10,26 @@ export function SignalTimeline({
   title = 'Activity Timeline',
   titleId,
 }: {
-  events: ProjectEvent[];
-  isLoading: boolean;
-  className?: string;
-  title?: string;
-  titleId?: string;
+  events: ProjectEvent[]
+  isLoading: boolean
+  className?: string
+  title?: string
+  titleId?: string
 }) {
   const totals = events.reduce<Record<ProjectEventType, number>>(
     (counts, event) => {
-      counts[event.type] += 1;
-      return counts;
+      counts[event.type] += 1
+      return counts
     },
-    { create: 0, preview: 0, outbound: 0, match: 0, refresh: 0 },
-  );
-  const totalEvents = events.length;
+    { create: 0, preview: 0, outbound: 0, match: 0, refresh: 0 }
+  )
+  const totalEvents = events.length
 
   return (
-    <aside id={titleId} className={`${className} min-h-0 border-l border-stone-800 bg-[oklch(15%_0.016_205)]`}>
+    <aside
+      id={titleId}
+      className={`${className} min-h-0 border-l border-stone-800 bg-[oklch(15%_0.016_205)]`}
+    >
       <div className="border-b border-stone-800 p-4">
         <div className="flex items-center gap-2">
           <span className="protolive-signal-live" aria-hidden="true">
@@ -35,20 +38,25 @@ export function SignalTimeline({
           <h3 className="font-black text-stone-100">{title}</h3>
           {totalEvents > 0 && (
             <span className="ml-auto inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.12em] text-lime-200">
-              <span className="protolive-signal-pulse inline-block h-1.5 w-1.5 rounded-full bg-lime-300" aria-hidden="true" />
+              <span
+                className="protolive-signal-pulse inline-block h-1.5 w-1.5 rounded-full bg-lime-300"
+                aria-hidden="true"
+              />
               live
             </span>
           )}
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2">
           {(['preview', 'outbound', 'match'] as ProjectEventType[]).map((type) => {
-            const meta = eventCopy[type];
+            const meta = eventCopy[type]
             return (
               <div key={type} className={`rounded-lg border p-2 ${meta.tone}`}>
-                <p className="protolive-signal-total text-base font-black tabular-nums">{totals[type]}</p>
+                <p className="protolive-signal-total text-base font-black tabular-nums">
+                  {totals[type]}
+                </p>
                 <p className="mt-0.5 text-[11px] font-bold opacity-75">{meta.label}</p>
               </div>
-            );
+            )
           })}
         </div>
       </div>
@@ -66,9 +74,9 @@ export function SignalTimeline({
         ) : (
           <div className="space-y-3">
             {events.slice(0, 20).map((event, index) => {
-              const meta = eventCopy[event.type];
-              const Icon = meta.icon;
-              const isNewest = index === 0;
+              const meta = eventCopy[event.type]
+              const Icon = meta.icon
+              const isNewest = index === 0
               return (
                 <div
                   key={event.id}
@@ -78,14 +86,18 @@ export function SignalTimeline({
                   style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <span className={`inline-flex min-h-8 items-center gap-2 rounded-lg border px-2.5 text-xs font-black ${meta.tone}`}>
+                    <span
+                      className={`inline-flex min-h-8 items-center gap-2 rounded-lg border px-2.5 text-xs font-black ${meta.tone}`}
+                    >
                       <Icon className="h-3.5 w-3.5" />
                       {meta.label}
                     </span>
-                    <span className="text-xs text-stone-500">{formatRelativeTime(event.createdAt)}</span>
+                    <span className="text-xs text-stone-500">
+                      {formatRelativeTime(event.createdAt)}
+                    </span>
                   </div>
                 </div>
-              );
+              )
             })}
             {events.length > 20 && (
               <p className="pt-1 text-center text-xs text-stone-500">
@@ -96,5 +108,5 @@ export function SignalTimeline({
         )}
       </div>
     </aside>
-  );
+  )
 }

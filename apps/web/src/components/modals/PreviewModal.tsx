@@ -1,7 +1,7 @@
-import React from 'react';
-import { Activity, ArrowUpRight, Loader2, RefreshCw, X } from 'lucide-react';
-import type { Project, ProjectEvent } from '../../api';
-import { SignalTimeline } from '../SignalTimeline';
+import React from 'react'
+import { Activity, ArrowUpRight, Loader2, RefreshCw, X } from 'lucide-react'
+import type { Project, ProjectEvent } from '../../api'
+import { SignalTimeline } from '../SignalTimeline'
 
 export function PreviewModal({
   project,
@@ -18,19 +18,19 @@ export function PreviewModal({
   onToggleTimeline,
   onIframeLoad,
 }: {
-  project: Project;
-  iframeKey: number;
-  iframeLoading: boolean;
-  isMobileTimelineOpen: boolean;
-  previewEvents: ProjectEvent[];
-  isPreviewEventsLoading: boolean;
-  dialogRef?: React.RefObject<HTMLElement | null>;
-  onClose: () => void;
-  onRefresh: () => void;
-  onOutbound: () => void;
-  onMatch: () => void;
-  onToggleTimeline: () => void;
-  onIframeLoad: () => void;
+  project: Project
+  iframeKey: number
+  iframeLoading: boolean
+  isMobileTimelineOpen: boolean
+  previewEvents: ProjectEvent[]
+  isPreviewEventsLoading: boolean
+  dialogRef?: React.RefObject<HTMLElement | null>
+  onClose: () => void
+  onRefresh: () => void
+  onOutbound: () => void
+  onMatch: () => void
+  onToggleTimeline: () => void
+  onIframeLoad: () => void
 }) {
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm">
@@ -136,9 +136,7 @@ export function PreviewModal({
             <SignalTimeline
               events={previewEvents}
               isLoading={isPreviewEventsLoading}
-              className={`xl:block ${
-                isMobileTimelineOpen ? 'block' : 'hidden'
-              }`}
+              className={`xl:block ${isMobileTimelineOpen ? 'block' : 'hidden'}`}
               title="사이트 활동"
               titleId="preview-timeline-mobile"
             />
@@ -146,5 +144,5 @@ export function PreviewModal({
         </div>
       </section>
     </div>
-  );
+  )
 }

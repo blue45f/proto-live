@@ -1,5 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import {
   createEmptyProjectsState,
   AuditLog,
@@ -9,46 +9,55 @@ import {
   ProjectReview,
   ProjectReviewReport,
   ProjectsState,
-} from './project.models';
+} from './project.models'
 
 interface SerializedProject extends Omit<Project, 'createdAt'> {
-  createdAt: string;
+  createdAt: string
 }
 
-interface SerializedMatchProposal extends Omit<MatchProposal, 'createdAt' | 'complianceAcceptedAt'> {
-  createdAt: string;
-  complianceAcceptedAt?: string;
+interface SerializedMatchProposal extends Omit<
+  MatchProposal,
+  'createdAt' | 'complianceAcceptedAt'
+> {
+  createdAt: string
+  complianceAcceptedAt?: string
 }
 
 interface SerializedProjectEvent extends Omit<ProjectEvent, 'createdAt'> {
-  createdAt: string;
+  createdAt: string
 }
 
 interface SerializedProjectReviewReport extends Omit<ProjectReviewReport, 'createdAt'> {
-  createdAt: string;
+  createdAt: string
 }
 
-interface SerializedProjectReview extends Omit<ProjectReview, 'createdAt' | 'lastReportedAt' | 'lastModeratedAt' | 'reportReasons'> {
-  createdAt: string;
-  lastReportedAt?: string | null;
-  lastModeratedAt?: string | null;
-  reportReasons?: SerializedProjectReviewReport[];
+interface SerializedProjectReview extends Omit<
+  ProjectReview,
+  'createdAt' | 'lastReportedAt' | 'lastModeratedAt' | 'reportReasons'
+> {
+  createdAt: string
+  lastReportedAt?: string | null
+  lastModeratedAt?: string | null
+  reportReasons?: SerializedProjectReviewReport[]
 }
 
 interface SerializedAuditLog extends Omit<AuditLog, 'createdAt'> {
-  createdAt: string;
+  createdAt: string
 }
 
-interface SerializedProjectsState extends Omit<ProjectsState, 'projects' | 'proposals' | 'events' | 'reviews' | 'auditLogs'> {
-  projects: SerializedProject[];
-  proposals: SerializedMatchProposal[];
-  events: SerializedProjectEvent[];
-  reviews: SerializedProjectReview[];
-  auditLogs: SerializedAuditLog[];
+interface SerializedProjectsState extends Omit<
+  ProjectsState,
+  'projects' | 'proposals' | 'events' | 'reviews' | 'auditLogs'
+> {
+  projects: SerializedProject[]
+  proposals: SerializedMatchProposal[]
+  events: SerializedProjectEvent[]
+  reviews: SerializedProjectReview[]
+  auditLogs: SerializedAuditLog[]
 }
 
 function defaultStorePath(): string {
-  return process.env.PROJECT_STORE_PATH ?? join(process.cwd(), 'data', 'protolive-store.json');
+  return process.env.PROJECT_STORE_PATH ?? join(process.cwd(), 'data', 'protolive-store.json')
 }
 
 function serializeState(state: ProjectsState): SerializedProjectsState {
@@ -81,7 +90,7 @@ function serializeState(state: ProjectsState): SerializedProjectsState {
       ...entry,
       createdAt: entry.createdAt.toISOString(),
     })),
-  };
+  }
 }
 
 function deserializeState(state: SerializedProjectsState): ProjectsState {
@@ -147,7 +156,7 @@ function deserializeState(state: SerializedProjectsState): ProjectsState {
     nextEventId: Number.isInteger(state.nextEventId) ? state.nextEventId : 1,
     nextReviewId: Number.isInteger(state.nextReviewId) ? state.nextReviewId : 1,
     nextAuditLogId: Number.isInteger(state.nextAuditLogId) ? state.nextAuditLogId : 1,
-  };
+  }
 }
 
 export class JsonProjectsStore {
@@ -155,22 +164,22 @@ export class JsonProjectsStore {
 
   read(): ProjectsState {
     if (!existsSync(this.filePath)) {
-      return createEmptyProjectsState();
+      return createEmptyProjectsState()
     }
 
-    const contents = readFileSync(this.filePath, 'utf8');
+    const contents = readFileSync(this.filePath, 'utf8')
     if (!contents.trim()) {
-      return createEmptyProjectsState();
+      return createEmptyProjectsState()
     }
 
-    return deserializeState(JSON.parse(contents) as SerializedProjectsState);
+    return deserializeState(JSON.parse(contents) as SerializedProjectsState)
   }
 
   write(state: ProjectsState): void {
-    mkdirSync(dirname(this.filePath), { recursive: true });
+    mkdirSync(dirname(this.filePath), { recursive: true })
 
-    const temporaryPath = `${this.filePath}.${process.pid}.${Date.now()}.tmp`;
-    writeFileSync(temporaryPath, `${JSON.stringify(serializeState(state), null, 2)}\n`, 'utf8');
-    renameSync(temporaryPath, this.filePath);
+    const temporaryPath = `${this.filePath}.${process.pid}.${Date.now()}.tmp`
+    writeFileSync(temporaryPath, `${JSON.stringify(serializeState(state), null, 2)}\n`, 'utf8')
+    renameSync(temporaryPath, this.filePath)
   }
 }

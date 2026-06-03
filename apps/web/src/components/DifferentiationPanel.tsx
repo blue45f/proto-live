@@ -1,5 +1,5 @@
-import { Layers3 } from 'lucide-react';
-import { differentiationRows } from '../lib/constants';
+import { Layers3 } from 'lucide-react'
+import { differentiationRows } from '../lib/constants'
 
 export function DifferentiationPanel() {
   return (
@@ -10,7 +10,10 @@ export function DifferentiationPanel() {
       </div>
       <div className="space-y-2">
         {differentiationRows.map((row) => (
-          <div key={row.label} className="protolive-reco-item rounded-lg border border-stone-800 bg-[oklch(15%_0.015_205)] p-3">
+          <div
+            key={row.label}
+            className="protolive-reco-item rounded-lg border border-stone-800 bg-[oklch(15%_0.015_205)] p-3"
+          >
             <p className="text-xs font-black text-cyan-100">{row.label}</p>
             <p className="mt-2 text-xs leading-5 text-stone-500">일반: {row.usual}</p>
             <p className="mt-1 text-xs leading-5 text-stone-200">ProtoLive: {row.protolive}</p>
@@ -18,5 +21,5 @@ export function DifferentiationPanel() {
         ))}
       </div>
     </section>
-  );
+  )
 }

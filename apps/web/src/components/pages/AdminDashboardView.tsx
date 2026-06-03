@@ -11,13 +11,13 @@ import {
   Signal,
   Sparkles,
   TrendingUp,
-} from 'lucide-react';
+} from 'lucide-react'
 import type {
   AdminActionRecommendation,
   AdminDashboardSnapshot,
   AdminReportedReview,
   AuditLog,
-} from '../../api';
+} from '../../api'
 import {
   ADMIN_DASHBOARD_TREND_KEY_DAYS,
   DECIMAL_DIGITS,
@@ -26,8 +26,8 @@ import {
   REVENUE_MODEL_FIELDS,
   REVENUE_PRESETS,
   type RevenueModelConfig,
-} from '../../lib/revenue-config';
-import { PRIORITY_COPY } from '../../lib/format';
+} from '../../lib/revenue-config'
+import { PRIORITY_COPY } from '../../lib/format'
 import {
   formatCurrency,
   formatDaysSince,
@@ -46,20 +46,20 @@ import {
   getRecommendationTone,
   isEqualPreset,
   maskEmail,
-} from '../../lib/format';
+} from '../../lib/format'
 
 type AdminTrendMetrics = {
-  trend: AdminDashboardSnapshot['eventTrend14d'];
-  recentTotal: number;
-  previousTotal: number;
-  trendDelta: number;
-  maxDaily: number;
-};
+  trend: AdminDashboardSnapshot['eventTrend14d']
+  recentTotal: number
+  previousTotal: number
+  trendDelta: number
+  maxDaily: number
+}
 
 type AdminRevenueProjectionParams = RevenueModelConfig & {
-  scenarioMultipliers: number[];
-  targetMonthlyRevenue: number;
-};
+  scenarioMultipliers: number[]
+  targetMonthlyRevenue: number
+}
 
 export function AdminDashboardView({
   adminDashboard,
@@ -93,36 +93,36 @@ export function AdminDashboardView({
   onRevenueTargetChange,
   onRevenueInputChange,
 }: {
-  adminDashboard: AdminDashboardSnapshot;
-  adminDashboardError: string;
-  adminReportedReviews: AdminReportedReview[];
-  adminAuditLogs: AuditLog[];
-  moderatingReviewId: number | null;
-  recommendationSummary: { high: number; medium: number; low: number };
-  orderedAdminRecommendations: AdminActionRecommendation[];
-  isApplyingAllAdminRecommendations: boolean;
-  adminRevenueConfig: RevenueModelConfig;
-  adminScenarioMultipliers: number[];
-  adminRevenueTargetMonthly: number;
-  adminRevenueProjectionParams: AdminRevenueProjectionParams;
-  revenueProjection: AdminDashboardSnapshot['revenue'];
-  adminRevenueTargetGap: AdminDashboardSnapshot['revenue']['targetGap'];
-  targetGapRate: number;
-  adminRevenueHealthScore: number;
-  adminRevenueHealthTone: string;
-  adminTrendMetrics: AdminTrendMetrics;
-  isAdminDashboardAvailable: boolean;
-  onModerateReview: (entry: AdminReportedReview, action: 'keep' | 'hide' | 'restore') => void;
-  onApplyAllRecommendations: () => void;
-  onApplyRecommendation: (entry: AdminActionRecommendation) => void;
-  onCopyRevenueSnapshot: () => void;
-  onExportRevenueReport: (format: 'json' | 'csv') => void;
-  onApplyObservedConversionRates: () => void;
-  onApplyRevenueModelPreset: (config: RevenueModelConfig) => void;
-  onResetScenarioMultipliers: () => void;
-  onScenarioMultiplierChange: (index: number, rawValue: string) => void;
-  onRevenueTargetChange: (rawValue: string) => void;
-  onRevenueInputChange: (key: keyof RevenueModelConfig, rawValue: string) => void;
+  adminDashboard: AdminDashboardSnapshot
+  adminDashboardError: string
+  adminReportedReviews: AdminReportedReview[]
+  adminAuditLogs: AuditLog[]
+  moderatingReviewId: number | null
+  recommendationSummary: { high: number; medium: number; low: number }
+  orderedAdminRecommendations: AdminActionRecommendation[]
+  isApplyingAllAdminRecommendations: boolean
+  adminRevenueConfig: RevenueModelConfig
+  adminScenarioMultipliers: number[]
+  adminRevenueTargetMonthly: number
+  adminRevenueProjectionParams: AdminRevenueProjectionParams
+  revenueProjection: AdminDashboardSnapshot['revenue']
+  adminRevenueTargetGap: AdminDashboardSnapshot['revenue']['targetGap']
+  targetGapRate: number
+  adminRevenueHealthScore: number
+  adminRevenueHealthTone: string
+  adminTrendMetrics: AdminTrendMetrics
+  isAdminDashboardAvailable: boolean
+  onModerateReview: (entry: AdminReportedReview, action: 'keep' | 'hide' | 'restore') => void
+  onApplyAllRecommendations: () => void
+  onApplyRecommendation: (entry: AdminActionRecommendation) => void
+  onCopyRevenueSnapshot: () => void
+  onExportRevenueReport: (format: 'json' | 'csv') => void
+  onApplyObservedConversionRates: () => void
+  onApplyRevenueModelPreset: (config: RevenueModelConfig) => void
+  onResetScenarioMultipliers: () => void
+  onScenarioMultiplierChange: (index: number, rawValue: string) => void
+  onRevenueTargetChange: (rawValue: string) => void
+  onRevenueInputChange: (key: keyof RevenueModelConfig, rawValue: string) => void
 }) {
   return (
     <section className="col-span-full space-y-6">
@@ -137,8 +137,8 @@ export function AdminDashboardView({
               투자 딜 성사율을 높이는 운영 정책을 수익 가정 기반으로 설계하세요.
             </h2>
             <p className="protolive-subtitle mt-3 max-w-[70ch] text-sm leading-6 text-stone-300">
-              투자자 유입, 연결 전환, 투자 관심 단계를 기준으로 월/연 매출과
-              딜 파이프라인 성과를 즉시 계산해 의사결정에 쓰는 내부 운영 현황입니다.
+              투자자 유입, 연결 전환, 투자 관심 단계를 기준으로 월/연 매출과 딜 파이프라인 성과를
+              즉시 계산해 의사결정에 쓰는 내부 운영 현황입니다.
             </p>
           </div>
           <div className="protolive-mini-tile rounded-lg border border-stone-700/70 bg-stone-950/55 p-3 text-xs text-stone-400">
@@ -167,7 +167,9 @@ export function AdminDashboardView({
         <section className="protolive-ops-panel rounded-xl border border-amber-300/25 bg-stone-950/65 p-4">
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-100">Trust operations</p>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-100">
+                Trust operations
+              </p>
               <h3 className="mt-1 text-lg font-black text-stone-50">신고 리뷰 검토 큐</h3>
               <p className="mt-1 text-sm leading-6 text-stone-400">
                 신고된 의견을 운영자가 확인하고 공개 유지, 숨김, 복구로 처리합니다.
@@ -192,7 +194,8 @@ export function AdminDashboardView({
                     <div className="min-w-0">
                       <p className="truncate font-black text-stone-100">{entry.project.title}</p>
                       <p className="mt-1 text-xs text-stone-500">
-                        {entry.project.category} · {entry.project.accessMode} · 답글 {entry.replyCount}개
+                        {entry.project.category} · {entry.project.accessMode} · 답글{' '}
+                        {entry.replyCount}개
                       </p>
                     </div>
                     <span
@@ -202,7 +205,9 @@ export function AdminDashboardView({
                           : 'border-amber-300/45 bg-amber-300/10 text-amber-100'
                       }`}
                     >
-                      {entry.review.status === 'hidden' ? '숨김 처리됨' : `신고 ${entry.review.reportCount}회`}
+                      {entry.review.status === 'hidden'
+                        ? '숨김 처리됨'
+                        : `신고 ${entry.review.reportCount}회`}
                     </span>
                   </div>
                   <p className="mt-3 overflow-wrap-anywhere rounded-lg border border-stone-800 bg-stone-950/45 p-3 leading-6 text-stone-200">
@@ -210,13 +215,20 @@ export function AdminDashboardView({
                   </p>
                   <div className="mt-2 grid gap-2 text-xs text-stone-400 sm:grid-cols-2">
                     <p>작성자: {maskEmail(entry.review.authorEmail)}</p>
-                    <p>최근 신고: {entry.review.lastReportedAt ? formatRelativeTime(entry.review.lastReportedAt) : '기록 없음'}</p>
+                    <p>
+                      최근 신고:{' '}
+                      {entry.review.lastReportedAt
+                        ? formatRelativeTime(entry.review.lastReportedAt)
+                        : '기록 없음'}
+                    </p>
                   </div>
                   {(entry.review.reportReasons ?? []).length > 0 ? (
                     <div className="mt-2 rounded-lg border border-amber-300/20 bg-amber-300/10 p-2 text-xs text-amber-50">
                       <p className="font-black">최근 신고 사유</p>
                       <p className="mt-1 overflow-wrap-anywhere">
-                        {(entry.review.reportReasons ?? [])[(entry.review.reportReasons ?? []).length - 1]?.reason ?? '사유 없음'}
+                        {(entry.review.reportReasons ?? [])[
+                          (entry.review.reportReasons ?? []).length - 1
+                        ]?.reason ?? '사유 없음'}
                       </p>
                     </div>
                   ) : null}
@@ -256,7 +268,9 @@ export function AdminDashboardView({
 
         <section className="protolive-ops-panel rounded-xl border border-cyan-300/25 bg-stone-950/65 p-4">
           <div className="mb-4">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-100">Audit trail</p>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-100">
+              Audit trail
+            </p>
             <h3 className="mt-1 text-lg font-black text-stone-50">운영 감사 로그</h3>
             <p className="mt-1 text-sm leading-6 text-stone-400">
               신고, 자동 숨김, 운영 처리, 투자 동의 기록을 최신순으로 남깁니다.
@@ -269,13 +283,20 @@ export function AdminDashboardView({
           ) : (
             <div className="space-y-2">
               {adminAuditLogs.slice(0, 8).map((entry) => (
-                <div key={entry.id} className="rounded-lg border border-stone-800 bg-stone-950/45 p-3 text-xs">
+                <div
+                  key={entry.id}
+                  className="rounded-lg border border-stone-800 bg-stone-950/45 p-3 text-xs"
+                >
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className="font-black text-stone-100">{getAuditActionLabel(entry.action)}</span>
+                    <span className="font-black text-stone-100">
+                      {getAuditActionLabel(entry.action)}
+                    </span>
                     <span className="text-stone-500">{formatRelativeTime(entry.createdAt)}</span>
                   </div>
                   <p className="mt-1 overflow-wrap-anywhere text-stone-300">{entry.message}</p>
-                  <p className="mt-1 text-stone-500">{maskEmail(entry.actorEmail)} · {entry.targetType} #{entry.targetId}</p>
+                  <p className="mt-1 text-stone-500">
+                    {maskEmail(entry.actorEmail)} · {entry.targetType} #{entry.targetId}
+                  </p>
                 </div>
               ))}
             </div>
@@ -284,7 +305,7 @@ export function AdminDashboardView({
       </div>
 
       <div className="grid gap-4 xl:grid-cols-3">
-      <div className="protolive-panel rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+        <div className="protolive-panel rounded-xl border border-stone-800 bg-stone-950/65 p-4">
           <div className="mb-4 flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-lime-200" />
             <h3 className="font-black text-stone-100">플랫폼 건강도</h3>
@@ -292,7 +313,9 @@ export function AdminDashboardView({
           <div className="space-y-3">
             <div className="flex items-center justify-between text-sm">
               <span className="font-black text-stone-300">총점</span>
-              <span className="text-stone-100">{formatHealthScore(adminDashboard.health.healthScore)}</span>
+              <span className="text-stone-100">
+                {formatHealthScore(adminDashboard.health.healthScore)}
+              </span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-stone-800">
               <div
@@ -303,28 +326,37 @@ export function AdminDashboardView({
             <div className="grid gap-2 text-xs">
               <div className="flex justify-between border-b border-stone-800 pb-1 text-stone-400">
                 <span>확인 완료율</span>
-                <span className="text-stone-100">{formatRate(adminDashboard.health.verifiedHealth)}</span>
+                <span className="text-stone-100">
+                  {formatRate(adminDashboard.health.verifiedHealth)}
+                </span>
               </div>
               <div className="flex justify-between border-b border-stone-800 pb-1 text-stone-400">
                 <span>퍼널 효율</span>
-                <span className="text-stone-100">{formatRate(adminDashboard.health.conversionHealth)}</span>
+                <span className="text-stone-100">
+                  {formatRate(adminDashboard.health.conversionHealth)}
+                </span>
               </div>
               <div className="flex justify-between border-b border-stone-800 pb-1 text-stone-400">
                 <span>활동성</span>
-                <span className="text-stone-100">{formatRate(adminDashboard.health.engagementHealth)}</span>
+                <span className="text-stone-100">
+                  {formatRate(adminDashboard.health.engagementHealth)}
+                </span>
               </div>
               <div className="flex justify-between text-stone-400">
                 <span>응답성</span>
-                <span className="text-stone-100">{formatRate(adminDashboard.health.responseHealth)}</span>
+                <span className="text-stone-100">
+                  {formatRate(adminDashboard.health.responseHealth)}
+                </span>
               </div>
             </div>
             <div className="rounded-lg border border-stone-700 bg-[oklch(15%_0.016_205)] p-2 text-xs text-stone-400">
-              경고 {adminDashboard.health.warningCount}건 / 리스크 {adminDashboard.health.riskCount}건
+              경고 {adminDashboard.health.warningCount}건 / 리스크 {adminDashboard.health.riskCount}
+              건
             </div>
           </div>
         </div>
 
-      <div className="protolive-panel rounded-xl border border-stone-800 bg-stone-950/65 p-4">
+        <div className="protolive-panel rounded-xl border border-stone-800 bg-stone-950/65 p-4">
           <div className="mb-4 flex items-center gap-2">
             <Clock3 className="h-4 w-4 text-amber-200" />
             <h3 className="font-black text-stone-100">리스크 상위 사이트</h3>
@@ -341,9 +373,7 @@ export function AdminDashboardView({
                   className="rounded-lg border border-amber-400/30 bg-amber-950/20 p-2 text-xs text-stone-300"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <p className="truncate font-black text-stone-100">
-                      {entry.title}
-                    </p>
+                    <p className="truncate font-black text-stone-100">{entry.title}</p>
                     <span className="rounded-full border border-red-400/50 px-2 py-0.5 text-[10px] text-red-200">
                       위험도 {entry.riskScore}
                     </span>
@@ -365,18 +395,20 @@ export function AdminDashboardView({
             <div className="flex min-w-0 items-center gap-2">
               <h3 className="font-black text-stone-100">운영 추천 액션</h3>
               <span className="protolive-badge rounded-full border border-stone-700/55 bg-stone-900/55 px-2 py-0.5 text-[10px] font-black tracking-[0.16em] text-stone-300">
-                {recommendationSummary.high}/{recommendationSummary.medium}/{recommendationSummary.low} (고/중/저)
+                {recommendationSummary.high}/{recommendationSummary.medium}/
+                {recommendationSummary.low} (고/중/저)
               </span>
               <span className="protolive-badge rounded-full border border-cyan-300/35 bg-cyan-950/40 px-2 py-0.5 text-xs font-black text-cyan-100">
                 {orderedAdminRecommendations.length}건
               </span>
               {orderedAdminRecommendations[0] ? (
                 <span
-                  className={`rounded-full border px-2 py-0.5 text-[11px] font-black ${
-                    getRecommendationPriorityTone(orderedAdminRecommendations[0].priority)
-                  }`}
+                  className={`rounded-full border px-2 py-0.5 text-[11px] font-black ${getRecommendationPriorityTone(
+                    orderedAdminRecommendations[0].priority
+                  )}`}
                 >
-                  최상위: {getRecommendationPriorityLabel(orderedAdminRecommendations[0].priority)} 우선순위
+                  최상위: {getRecommendationPriorityLabel(orderedAdminRecommendations[0].priority)}{' '}
+                  우선순위
                 </span>
               ) : null}
             </div>
@@ -388,17 +420,22 @@ export function AdminDashboardView({
                   ? 'border-amber-300/45 bg-amber-950/45 animate-pulse hover:bg-amber-900/20'
                   : 'border-cyan-300/45 hover:bg-cyan-300/12'
               }`}
-              disabled={orderedAdminRecommendations.length === 0 || isApplyingAllAdminRecommendations}
+              disabled={
+                orderedAdminRecommendations.length === 0 || isApplyingAllAdminRecommendations
+              }
             >
-              {isApplyingAllAdminRecommendations
-                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                : <Radar className="h-3.5 w-3.5" />}
+              {isApplyingAllAdminRecommendations ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Radar className="h-3.5 w-3.5" />
+              )}
               {isApplyingAllAdminRecommendations ? '일괄 적용 중...' : '우선순위 일괄 실행'}
             </button>
           </div>
           {isApplyingAllAdminRecommendations ? (
             <p className="mb-3 rounded-lg border border-amber-300/30 bg-amber-950/20 px-3 py-2 text-xs text-amber-100">
-              우선순위 큐 전체 {orderedAdminRecommendations.length}건을 즉시 순차 실행합니다. 적용 완료 토스트를 확인하세요.
+              우선순위 큐 전체 {orderedAdminRecommendations.length}건을 즉시 순차 실행합니다. 적용
+              완료 토스트를 확인하세요.
             </p>
           ) : null}
           {orderedAdminRecommendations.length === 0 ? (
@@ -409,14 +446,14 @@ export function AdminDashboardView({
           ) : (
             <div className="protolive-reco-stack space-y-3">
               {orderedAdminRecommendations.map((entry, index) => {
-                const areaMeta = getRecommendationAreaMeta(entry.area);
-                const AreaIcon = areaMeta.icon;
+                const areaMeta = getRecommendationAreaMeta(entry.area)
+                const AreaIcon = areaMeta.icon
 
                 return (
                   <div
                     key={`${entry.area}-${index}`}
                     className={`protolive-reco-item animate-panel-slide-in rounded-lg border p-3 text-xs ${getRecommendationTone(
-                      entry.priority,
+                      entry.priority
                     )}`}
                     style={{ animationDelay: `${index * 40}ms` }}
                   >
@@ -438,7 +475,7 @@ export function AdminDashboardView({
                       </p>
                       <span
                         className={`rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] ${getRecommendationPriorityTone(
-                          entry.priority,
+                          entry.priority
                         )}`}
                       >
                         {getRecommendationPriorityLabel(entry.priority)}
@@ -462,7 +499,7 @@ export function AdminDashboardView({
                       {PRIORITY_COPY[entry.priority]} 액션으로 처리 흐름 정리
                     </p>
                   </div>
-                );
+                )
               })}
             </div>
           )}
@@ -501,8 +538,12 @@ export function AdminDashboardView({
             </div>
           </div>
           <div className="mb-3 rounded-lg border border-stone-700 bg-stone-950/55 p-3 text-xs">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-400">운영 데이터 반영</p>
-            <p className="mt-1 text-sm font-black text-stone-100">관측된 전환율로 수익 가정을 빠르게 덮어씌워 시나리오를 조정하세요.</p>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-400">
+              운영 데이터 반영
+            </p>
+            <p className="mt-1 text-sm font-black text-stone-100">
+              관측된 전환율로 수익 가정을 빠르게 덮어씌워 시나리오를 조정하세요.
+            </p>
             <button
               type="button"
               onClick={() => void onApplyObservedConversionRates()}
@@ -526,7 +567,9 @@ export function AdminDashboardView({
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm font-black text-stone-100">{preset.label}</p>
-                  <span className="rounded-full border border-stone-700 px-2 py-1 text-[10px] font-black text-stone-400">{preset.name}</span>
+                  <span className="rounded-full border border-stone-700 px-2 py-1 text-[10px] font-black text-stone-400">
+                    {preset.name}
+                  </span>
                 </div>
                 <p className="mt-2 text-xs leading-5 text-stone-400">{preset.description}</p>
               </button>
@@ -545,7 +588,10 @@ export function AdminDashboardView({
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {adminScenarioMultipliers.map((multiplier, index) => (
-                <label key={index} className="block rounded-lg border border-stone-600 bg-stone-900/40 p-2">
+                <label
+                  key={index}
+                  className="block rounded-lg border border-stone-600 bg-stone-900/40 p-2"
+                >
                   <span className="mb-1 block text-stone-300">x{index + 1}</span>
                   <input
                     type="number"
@@ -556,9 +602,7 @@ export function AdminDashboardView({
                     onChange={(event) => onScenarioMultiplierChange(index, event.target.value)}
                     className="w-full rounded border border-stone-700 bg-stone-900 px-2 py-1 text-xs font-black text-stone-100"
                   />
-                  <p className="mt-1 truncate text-[10px] text-stone-500">
-                    월매출 x {multiplier}
-                  </p>
+                  <p className="mt-1 truncate text-[10px] text-stone-500">월매출 x {multiplier}</p>
                 </label>
               ))}
             </div>
@@ -572,7 +616,9 @@ export function AdminDashboardView({
           </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3 md:col-span-2 xl:col-span-3">
-              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">목표 월매출</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">
+                목표 월매출
+              </p>
               <div className="mt-2 grid gap-3 lg:grid-cols-[280px_minmax(0,1fr)]">
                 <div className="space-y-3">
                   <label className="block text-xs">
@@ -583,7 +629,7 @@ export function AdminDashboardView({
                       step={100000}
                       value={adminRevenueTargetMonthly}
                       onChange={(event) => {
-                        onRevenueTargetChange(event.target.value);
+                        onRevenueTargetChange(event.target.value)
                       }}
                       className="mt-2 w-full rounded bg-stone-900 border border-stone-700 px-3 py-2 text-xs font-black text-stone-100"
                     />
@@ -612,7 +658,9 @@ export function AdminDashboardView({
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">달성 제안 (상위 3)</p>
+                  <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">
+                    달성 제안 (상위 3)
+                  </p>
                   {adminRevenueTargetGap.drivers.length === 0 ? (
                     <p className="rounded-lg border border-dashed border-stone-700 p-2 text-[11px] text-stone-500">
                       현재 수치로 계산 가능한 제안이 없습니다.
@@ -640,7 +688,8 @@ export function AdminDashboardView({
                             달성 목표: {formatDriverValue(driver.requiredValue, driver.unit)}
                           </p>
                           <p className="mt-1 text-stone-400">
-                            획득비용 {formatCurrency(driver.acquisitionCostPerUnit)} / 회수 {formatPaybackValue(driver.estimatedPaybackMonths)}
+                            획득비용 {formatCurrency(driver.acquisitionCostPerUnit)} / 회수{' '}
+                            {formatPaybackValue(driver.estimatedPaybackMonths)}
                           </p>
                         </div>
                       ))}
@@ -650,8 +699,12 @@ export function AdminDashboardView({
               </div>
             </div>
             <div className={`min-w-0 rounded-lg border p-3 text-xs ${adminRevenueHealthTone}`}>
-              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">수익 건강도</p>
-              <p className="mt-1 break-words text-lg font-black text-stone-50">{adminRevenueHealthScore} / 100</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">
+                수익 건강도
+              </p>
+              <p className="mt-1 break-words text-lg font-black text-stone-50">
+                {adminRevenueHealthScore} / 100
+              </p>
               <p className="mt-1">
                 {adminRevenueHealthScore >= 80
                   ? '건전'
@@ -667,31 +720,50 @@ export function AdminDashboardView({
               </div>
             </div>
             <div className="min-w-0 rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
-              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">월 누적 추정</p>
-              <p className="mt-1 break-words text-lg font-black text-stone-50">{formatCurrency(revenueProjection.totalMonthlyRevenue)}</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">
+                월 누적 추정
+              </p>
+              <p className="mt-1 break-words text-lg font-black text-stone-50">
+                {formatCurrency(revenueProjection.totalMonthlyRevenue)}
+              </p>
             </div>
             <div className="min-w-0 rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
-              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">연환산 추정</p>
-              <p className="mt-1 break-words text-lg font-black text-stone-50">{formatCurrency(revenueProjection.annualRevenue)}</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">
+                연환산 추정
+              </p>
+              <p className="mt-1 break-words text-lg font-black text-stone-50">
+                {formatCurrency(revenueProjection.annualRevenue)}
+              </p>
             </div>
             <div className="min-w-0 rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
-              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">확인된 사이트 비중</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">
+                확인된 사이트 비중
+              </p>
               <p className="mt-1 break-words text-lg font-black text-stone-50">
                 {formatRate(revenueProjection.verifiedProjectShare * 100)}
               </p>
               <p className="mt-1 text-[11px] text-stone-500">목표 68%</p>
             </div>
             <div className="min-w-0 rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
-              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">ARPU / ARPPU</p>
-              <p className="mt-1 break-words text-sm font-black leading-5 text-stone-50">{formatCurrency(revenueProjection.arpu)} / {formatCurrency(revenueProjection.arppu)}</p>
+              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">
+                ARPU / ARPPU
+              </p>
+              <p className="mt-1 break-words text-sm font-black leading-5 text-stone-50">
+                {formatCurrency(revenueProjection.arpu)} / {formatCurrency(revenueProjection.arppu)}
+              </p>
               <p className="mt-1 text-[11px] text-stone-500">목표 50,000원 / 500,000원</p>
             </div>
             <div className="min-w-0 rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
-              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">투자자 LTV & Payback</p>
-              <p className="mt-1 break-words text-lg font-black leading-6 text-stone-50">
-                {formatCurrency(revenueProjection.investorLtvEstimate)} · {revenueProjection.investorPaybackMonths}개월
+              <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">
+                투자자 LTV & Payback
               </p>
-              <p className="mt-1 text-[11px] text-stone-500">창업자 {revenueProjection.makerPaybackMonths}개월</p>
+              <p className="mt-1 break-words text-lg font-black leading-6 text-stone-50">
+                {formatCurrency(revenueProjection.investorLtvEstimate)} ·{' '}
+                {revenueProjection.investorPaybackMonths}개월
+              </p>
+              <p className="mt-1 text-[11px] text-stone-500">
+                창업자 {revenueProjection.makerPaybackMonths}개월
+              </p>
             </div>
           </div>
         </div>
@@ -705,29 +777,39 @@ export function AdminDashboardView({
           </div>
           <div className="grid gap-3">
             <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">미리보기→연결</p>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">
+                미리보기→연결
+              </p>
               <p className="mt-1 text-2xl font-black text-stone-50">
                 {formatRate(adminDashboard.conversionFunnel.previewToMatchRate)}
               </p>
               <p className="mt-2 text-xs text-stone-500">
-                연결 수치 {adminDashboard.conversionFunnel.matchCount}건 / 미리보기 {adminDashboard.conversionFunnel.previewCount}건
+                연결 수치 {adminDashboard.conversionFunnel.matchCount}건 / 미리보기{' '}
+                {adminDashboard.conversionFunnel.previewCount}건
               </p>
             </div>
             <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">아웃바운드→연결</p>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">
+                아웃바운드→연결
+              </p>
               <p className="mt-1 text-2xl font-black text-stone-50">
                 {formatRate(adminDashboard.conversionFunnel.outboundToMatchRate)}
               </p>
               <p className="mt-2 text-xs text-stone-500">
-                연결 수치 {adminDashboard.conversionFunnel.matchCount}건 / 외부열람 {adminDashboard.conversionFunnel.outboundCount}건
+                연결 수치 {adminDashboard.conversionFunnel.matchCount}건 / 외부열람{' '}
+                {adminDashboard.conversionFunnel.outboundCount}건
               </p>
             </div>
             <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">사이트당 연결율</p>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">
+                사이트당 연결율
+              </p>
               <p className="mt-1 text-2xl font-black text-stone-50">
                 {formatRate(adminDashboard.conversionFunnel.matchPerProjectRate)}
               </p>
-              <p className="mt-2 text-xs text-stone-500">총 이벤트 {adminDashboard.conversionFunnel.totalEvents}건</p>
+              <p className="mt-2 text-xs text-stone-500">
+                총 이벤트 {adminDashboard.conversionFunnel.totalEvents}건
+              </p>
             </div>
           </div>
         </div>
@@ -744,8 +826,9 @@ export function AdminDashboardView({
           ) : (
             <div className="space-y-2">
               <div className="mb-1 text-sm font-black text-stone-100">
-                최근 {Math.min(adminTrendMetrics.trend.length, ADMIN_DASHBOARD_TREND_KEY_DAYS)}일 추이 ·
-                최근 7일 {adminTrendMetrics.recentTotal}건 | 이전 7일 {adminTrendMetrics.previousTotal}건
+                최근 {Math.min(adminTrendMetrics.trend.length, ADMIN_DASHBOARD_TREND_KEY_DAYS)}일
+                추이 · 최근 7일 {adminTrendMetrics.recentTotal}건 | 이전 7일{' '}
+                {adminTrendMetrics.previousTotal}건
                 <span
                   className={`ml-2 rounded-full border px-2 py-1 text-[10px] font-black ${
                     adminTrendMetrics.trendDelta >= 0
@@ -753,11 +836,12 @@ export function AdminDashboardView({
                       : 'border-red-400/40 text-red-200'
                   }`}
                 >
-                  {adminTrendMetrics.trendDelta >= 0 ? '+' : ''}{adminTrendMetrics.trendDelta}%
+                  {adminTrendMetrics.trendDelta >= 0 ? '+' : ''}
+                  {adminTrendMetrics.trendDelta}%
                 </span>
               </div>
               {adminTrendMetrics.trend.map((point) => {
-                const width = (point.total / adminTrendMetrics.maxDaily) * 100;
+                const width = (point.total / adminTrendMetrics.maxDaily) * 100
                 return (
                   <div key={point.date} className="grid gap-1 text-xs">
                     <div className="flex items-center justify-between text-stone-300">
@@ -771,7 +855,7 @@ export function AdminDashboardView({
                       />
                     </div>
                   </div>
-                );
+                )
               })}
             </div>
           )}
@@ -783,10 +867,17 @@ export function AdminDashboardView({
             <h3 className="font-black text-stone-100">이벤트 타입 구성</h3>
           </div>
           <div className="space-y-2">
-            {[['create', '등록', adminDashboard.eventTotals.create], ['preview', '미리보기', adminDashboard.eventTotals.preview],
-              ['outbound', '외부열람', adminDashboard.eventTotals.outbound], ['match', '연결', adminDashboard.eventTotals.match],
-              ['refresh', '갱신', adminDashboard.eventTotals.refresh]].map(([type, label, count]) => (
-              <div key={type} className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-2">
+            {[
+              ['create', '등록', adminDashboard.eventTotals.create],
+              ['preview', '미리보기', adminDashboard.eventTotals.preview],
+              ['outbound', '외부열람', adminDashboard.eventTotals.outbound],
+              ['match', '연결', adminDashboard.eventTotals.match],
+              ['refresh', '갱신', adminDashboard.eventTotals.refresh],
+            ].map(([type, label, count]) => (
+              <div
+                key={type}
+                className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-2"
+              >
                 <div className="flex items-center justify-between text-xs font-black text-stone-300">
                   <span>{label}</span>
                   <span className="text-stone-50">{count}</span>
@@ -805,7 +896,10 @@ export function AdminDashboardView({
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {REVENUE_MODEL_FIELDS.map((field) => (
-              <label key={field.key} className="block rounded-lg border border-stone-700 bg-stone-950/55 p-3 text-xs">
+              <label
+                key={field.key}
+                className="block rounded-lg border border-stone-700 bg-stone-950/55 p-3 text-xs"
+              >
                 <span className="mb-1 block font-black text-stone-200">{field.label}</span>
                 <input
                   type="number"
@@ -818,11 +912,13 @@ export function AdminDashboardView({
                       : adminRevenueConfig[field.key]
                   }
                   onChange={(event) => {
-                    onRevenueInputChange(field.key, event.target.value);
+                    onRevenueInputChange(field.key, event.target.value)
                   }}
                   className="mt-2 w-full rounded bg-stone-900 border border-stone-700 px-3 py-2 text-xs font-black text-stone-100"
                 />
-                <p className="mt-2 break-words text-[11px] leading-5 text-stone-500">{field.helper}</p>
+                <p className="mt-2 break-words text-[11px] leading-5 text-stone-500">
+                  {field.helper}
+                </p>
               </label>
             ))}
           </div>
@@ -834,20 +930,36 @@ export function AdminDashboardView({
           </div>
           <div className="grid gap-3">
             <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">창업자 플랜 수익</p>
-              <p className="mt-1 text-sm font-black text-stone-50">{formatCurrency(revenueProjection.monthlyMakerPlanRevenue)}</p>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">
+                창업자 플랜 수익
+              </p>
+              <p className="mt-1 text-sm font-black text-stone-50">
+                {formatCurrency(revenueProjection.monthlyMakerPlanRevenue)}
+              </p>
             </div>
             <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">투자자 플랜 수익</p>
-              <p className="mt-1 text-sm font-black text-stone-50">{formatCurrency(revenueProjection.monthlyInvestorPlanRevenue)}</p>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">
+                투자자 플랜 수익
+              </p>
+              <p className="mt-1 text-sm font-black text-stone-50">
+                {formatCurrency(revenueProjection.monthlyInvestorPlanRevenue)}
+              </p>
             </div>
             <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">리드 기반 수익</p>
-              <p className="mt-1 text-sm font-black text-stone-50">{formatCurrency(revenueProjection.monthlyLeadRevenue)}</p>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">
+                리드 기반 수익
+              </p>
+              <p className="mt-1 text-sm font-black text-stone-50">
+                {formatCurrency(revenueProjection.monthlyLeadRevenue)}
+              </p>
             </div>
             <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">성공 수수료 수익</p>
-              <p className="mt-1 text-sm font-black text-stone-50">{formatCurrency(revenueProjection.monthlyTransactionRevenue)}</p>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">
+                성공 수수료 수익
+              </p>
+              <p className="mt-1 text-sm font-black text-stone-50">
+                {formatCurrency(revenueProjection.monthlyTransactionRevenue)}
+              </p>
             </div>
           </div>
         </div>
@@ -870,8 +982,18 @@ export function AdminDashboardView({
                 }`}
               >
                 <p className="font-black">{entry.label}</p>
-                <p className="mt-1">목표: {entry.unit === 'percent' ? formatRate(entry.target) : formatCurrency(entry.target)}</p>
-                <p className="mt-1">실적: {entry.unit === 'percent' ? formatRate(entry.actual) : formatCurrency(entry.actual)}</p>
+                <p className="mt-1">
+                  목표:{' '}
+                  {entry.unit === 'percent'
+                    ? formatRate(entry.target)
+                    : formatCurrency(entry.target)}
+                </p>
+                <p className="mt-1">
+                  실적:{' '}
+                  {entry.unit === 'percent'
+                    ? formatRate(entry.actual)
+                    : formatCurrency(entry.actual)}
+                </p>
                 <p className="mt-1 text-stone-200">{entry.comment}</p>
               </div>
             ))}
@@ -892,7 +1014,10 @@ export function AdminDashboardView({
                 <p className="font-black text-stone-100">
                   {entry.label} ({entry.multiplier}x)
                 </p>
-                <p className="mt-1 text-stone-300">월 {formatCurrency(entry.monthlyRevenue)} / 연 {formatCurrency(entry.annualRevenue)}</p>
+                <p className="mt-1 text-stone-300">
+                  월 {formatCurrency(entry.monthlyRevenue)} / 연{' '}
+                  {formatCurrency(entry.annualRevenue)}
+                </p>
               </div>
             ))}
           </div>
@@ -920,7 +1045,8 @@ export function AdminDashboardView({
                   <div className="min-w-0">
                     <p className="truncate text-sm font-black text-stone-100">{entry.title}</p>
                     <p className="mt-1 text-xs text-stone-500">
-                      연결/투자가입 {entry.matchCount}/{entry.investorCount} · 투자 신호 {entry.signalScore} · {entry.accessMode}
+                      연결/투자가입 {entry.matchCount}/{entry.investorCount} · 투자 신호{' '}
+                      {entry.signalScore} · {entry.accessMode}
                     </p>
                   </div>
                   <p className="text-right text-sm font-black text-lime-200">
@@ -952,7 +1078,8 @@ export function AdminDashboardView({
                   <div className="min-w-0">
                     <p className="truncate text-sm font-black text-stone-100">{entry.title}</p>
                     <p className="mt-1 text-xs text-stone-500">
-                      투자 신호 {entry.signalScore} · 연결/투자가입 {entry.matchCount}/{entry.investorCount}
+                      투자 신호 {entry.signalScore} · 연결/투자가입 {entry.matchCount}/
+                      {entry.investorCount}
                     </p>
                   </div>
                   <p className="text-right text-sm font-black text-cyan-200">
@@ -978,8 +1105,14 @@ export function AdminDashboardView({
           ) : (
             <div className="space-y-3">
               {adminDashboard.categoryPerformance.map((item) => {
-                const denominator = Math.max(1, adminDashboard.categoryPerformance.reduce((sum, target) => sum + target.projects, 0));
-                const ratio = (item.projects / denominator) * 100;
+                const denominator = Math.max(
+                  1,
+                  adminDashboard.categoryPerformance.reduce(
+                    (sum, target) => sum + target.projects,
+                    0
+                  )
+                )
+                const ratio = (item.projects / denominator) * 100
                 return (
                   <div key={item.category} className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
@@ -994,9 +1127,11 @@ export function AdminDashboardView({
                         style={{ width: `${ratio}%` }}
                       />
                     </div>
-                    <p className="text-xs text-stone-500">연결 {item.matchCount}건 · 총 커밋 {formatWon(item.committedAmountMax)}</p>
+                    <p className="text-xs text-stone-500">
+                      연결 {item.matchCount}건 · 총 커밋 {formatWon(item.committedAmountMax)}
+                    </p>
                   </div>
-                );
+                )
               })}
             </div>
           )}
@@ -1018,29 +1153,36 @@ export function AdminDashboardView({
                   1,
                   adminDashboard.proposalRangeDistribution.reduce(
                     (sum, target) => sum + target.proposalCount,
-                    0,
-                  ),
-                );
-                const ratio = (item.proposalCount / denominator) * 100;
+                    0
+                  )
+                )
+                const ratio = (item.proposalCount / denominator) * 100
                 return (
-                  <div key={item.rangeId} className="space-y-2 rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-2">
+                  <div
+                    key={item.rangeId}
+                    className="space-y-2 rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-2"
+                  >
                     <div className="flex items-center justify-between text-xs font-black text-stone-200">
                       <span>{item.label}</span>
                       <span className="text-stone-100">{item.proposalCount}건</span>
                     </div>
                     <div className="h-1.5 overflow-hidden rounded-full bg-stone-800">
-                      <div className="h-full rounded-full bg-lime-300" style={{ width: `${ratio}%` }} />
+                      <div
+                        className="h-full rounded-full bg-lime-300"
+                        style={{ width: `${ratio}%` }}
+                      />
                     </div>
                     <p className="text-[11px] text-stone-500">
-                      평균 예상액 {formatWon(item.averageAmount)} / 총 {formatWon(item.totalMinAmount + item.totalMaxAmount)}
+                      평균 예상액 {formatWon(item.averageAmount)} / 총{' '}
+                      {formatWon(item.totalMinAmount + item.totalMaxAmount)}
                     </p>
                   </div>
-                );
+                )
               })}
             </div>
           )}
         </div>
       </div>
     </section>
-  );
+  )
 }

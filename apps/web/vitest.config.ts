@@ -1,5 +1,5 @@
-import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vitest/config'
+import react from '@vitejs/plugin-react'
 
 // Vitest config kept separate from vite.config.ts so the React Compiler babel
 // plugin (build-only) is not pulled into the test toolchain. We still load
@@ -17,4 +17,4 @@ export default defineConfig({
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     passWithNoTests: true,
   },
-});
+})

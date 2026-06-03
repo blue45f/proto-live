@@ -6,7 +6,7 @@ import type {
   ProjectEvent,
   ProjectReview,
   ValidationSnapshot,
-} from '../api';
+} from '../api'
 
 // ---------------------------------------------------------------------------
 // Deterministic fixtures used by the App.tsx characterization tests. These are
@@ -21,7 +21,7 @@ const okValidation: ValidationSnapshot = {
   responseTimeMs: 180,
   checkedAt: '2026-06-01T00:00:00.000Z',
   finalUrl: 'https://example.com',
-};
+}
 
 export const marketConfig: MarketConfig = {
   categories: ['커머스', '교육', '돌봄'],
@@ -32,13 +32,25 @@ export const marketConfig: MarketConfig = {
   fundingRanges: [
     { id: 'seed', label: '시드', stage: 'seed', minAmount: 10_000_000, maxAmount: 50_000_000 },
     { id: 'pre-a', label: '프리A', stage: 'pre-a', minAmount: 50_000_000, maxAmount: 200_000_000 },
-    { id: 'series-a', label: '시리즈A', stage: 'series-a', minAmount: 200_000_000, maxAmount: 1_000_000_000 },
-    { id: 'series-b', label: '시리즈B', stage: 'series-b', minAmount: 1_000_000_000, maxAmount: 5_000_000_000 },
+    {
+      id: 'series-a',
+      label: '시리즈A',
+      stage: 'series-a',
+      minAmount: 200_000_000,
+      maxAmount: 1_000_000_000,
+    },
+    {
+      id: 'series-b',
+      label: '시리즈B',
+      stage: 'series-b',
+      minAmount: 1_000_000_000,
+      maxAmount: 5_000_000_000,
+    },
   ],
   // Large interval so the App's polling effect does not fire mid-test.
   refreshIntervalMs: 10_000_000,
   benchmarkSignals: ['빠른 응답', '높은 전환'],
-};
+}
 
 export const marketStats: MarketStats = {
   totalProjects: 2,
@@ -53,11 +65,23 @@ export const marketStats: MarketStats = {
   ],
   totalSignals: 2,
   topSignals: [
-    { id: 1, title: '밀맵', category: '커머스', signalScore: 88, latestEventAt: '2026-06-02T00:00:00.000Z' },
-    { id: 2, title: '케어루프', category: '돌봄', signalScore: 72, latestEventAt: '2026-06-01T00:00:00.000Z' },
+    {
+      id: 1,
+      title: '밀맵',
+      category: '커머스',
+      signalScore: 88,
+      latestEventAt: '2026-06-02T00:00:00.000Z',
+    },
+    {
+      id: 2,
+      title: '케어루프',
+      category: '돌봄',
+      signalScore: 72,
+      latestEventAt: '2026-06-01T00:00:00.000Z',
+    },
   ],
   lastUpdatedAt: '2026-06-03T00:00:00.000Z',
-};
+}
 
 export const projectMealmap: Project = {
   id: 1,
@@ -99,7 +123,7 @@ export const projectMealmap: Project = {
       createdAt: '2026-06-02T00:00:00.000Z',
     },
   },
-};
+}
 
 export const projectCareloop: Project = {
   id: 2,
@@ -141,9 +165,9 @@ export const projectCareloop: Project = {
       createdAt: '2026-06-01T00:00:00.000Z',
     },
   },
-};
+}
 
-export const projects: Project[] = [projectMealmap, projectCareloop];
+export const projects: Project[] = [projectMealmap, projectCareloop]
 
 export const projectReviews: ProjectReview[] = [
   {
@@ -159,12 +183,12 @@ export const projectReviews: ProjectReview[] = [
     reportCount: 0,
     createdAt: '2026-06-02T00:00:00.000Z',
   },
-];
+]
 
 export const projectEvents: ProjectEvent[] = [
   { id: 100, projectId: 1, type: 'preview', createdAt: '2026-06-02T00:00:00.000Z' },
   { id: 101, projectId: 1, type: 'match', createdAt: '2026-06-02T01:00:00.000Z' },
-];
+]
 
 // Minimal-but-complete admin dashboard so the admin view renders without
 // throwing. lastUpdatedAt differs from new Date(0) so isAdminDashboardAvailable
@@ -241,4 +265,4 @@ export const adminDashboard: AdminDashboardSnapshot = {
     },
   },
   lastUpdatedAt: '2026-06-03T00:00:00.000Z',
-};
+}

@@ -7,6 +7,7 @@ ProtoLive는 극초기 웹/앱 프로토타입 투자 매칭 플랫폼입니다.
 ## 시작 가이드
 
 ### 0. 루트에서 한 번에 실행
+
 ```bash
 npm run setup
 npm run dev
@@ -22,26 +23,31 @@ BACKEND_PORT=3008 FRONTEND_PORT=4178 VITE_API_BASE_URL=http://localhost:3008/api
 `npm run dev` 실행 시 백엔드에서는 현재 프론트 포트를 포함해 기본 `CORS_ORIGINS`를 자동 보정해 커스텀 포트에서도 API가 동작하도록 처리합니다.
 
 테스트 계정 시드 생성이 필요한 경우:
+
 ```bash
 npm run seed:test-accounts
 ```
 
 프로젝트/제안/이벤트까지 포함한 통합 테스트 데이터 시드가 필요한 경우:
+
 ```bash
 npm run seed:test-data
 ```
 
 원클릭 데모 재설정(테스트 계정+프로젝트+제안+이벤트 동기화)도 가능합니다:
+
 ```bash
 npm run seed:demo-data
 ```
 
 로컬 테스트 중 쌓인 임시 이벤트/프로젝트를 지우고 기준 샘플 상태로 되돌리려면:
+
 ```bash
 npm run seed:test-data -- --reset
 ```
 
 변경 없이 미리 보기만 하려면:
+
 ```bash
 npm run seed:test-accounts -- --dry-run
 ```
@@ -51,6 +57,7 @@ npm run seed:test-accounts -- --dry-run
 백엔드가 `http://localhost:3003/api` 에서 동작하고, 프론트엔드가 `http://localhost:4174`에서 실행됩니다. 해당 포트가 점유 중이면 실행 로그에 자동 전환된 실제 포트가 표시됩니다.
 
 ### 1. 백엔드 기동 (NestJS API)
+
 ```bash
 cd apps/api
 npm install
@@ -61,6 +68,7 @@ npm run start:dev
 `npm run dev`를 사용할 때는 `BACKEND_PORT`로 백엔드 포트를 바로 바꿀 수 있습니다.
 
 주요 API:
+
 - `POST http://localhost:3003/api/projects/validate`: SSRF 방어 규칙으로 URL을 확인한 뒤 HEAD/GET 요청으로 라이브 상태를 검증합니다.
 - `GET / POST http://localhost:3003/api/projects`: 검증된 프로젝트 목록 조회 및 신규 등록을 처리합니다.
 - `GET http://localhost:3003/api/projects/config`: 카테고리, 투자 구간, 갱신 주기, 벤치마크 기반 신호를 제공합니다.
@@ -81,6 +89,7 @@ npm run start:dev
 - `POST http://localhost:3003/api/projects/:id/match`: 투자자 세션으로 투자 의향을 구조화된 데이터로 기록합니다. 투자 권유 아님 고지, 개인정보 연락 동의, 초기 위험 안내 확인이 모두 필요합니다.
 
 환경 변수:
+
 ```bash
 PORT=3003
 CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174
@@ -89,6 +98,7 @@ RATE_LIMIT_WINDOW_MS=60000
 RATE_LIMIT_MAX_REQUESTS=120
 PROTOLIVE_SESSION_SECRET=replace-with-local-random-string
 ```
+
 `apps/api/.env.example` 파일을 기준으로 `.env`를 복사해 사용할 수 있습니다.
 `NODE_ENV=production`에서는 `PROTOLIVE_SESSION_SECRET`을 반드시 명시해야 서버가 부팅됩니다.
 운영 환경의 CORS는 `CORS_ORIGINS`에 명시된 origin만 허용하며, localhost 자동 허용은 개발 모드에서만 적용됩니다.
@@ -104,6 +114,7 @@ PROTOLIVE_SESSION_SECRET=replace-with-local-random-string
 유사 서비스 대비 차별화 기획은 `docs/differentiation-strategy.md`에 정리되어 있습니다.
 
 ### 2. 프론트엔드 기동 (Vite + React + TypeScript + Tailwind v4)
+
 ```bash
 cd apps/web
 npm install
@@ -114,9 +125,11 @@ npm run dev
 `npm run dev`를 사용할 때는 `FRONTEND_PORT`로 프론트엔드 포트를 바꿀 수 있으며, 백엔드 포트 변경 시 같은 값으로 `VITE_API_BASE_URL`을 맞춰주어야 합니다.
 
 프론트엔드 API 주소는 Vite 환경 변수로 조정할 수 있습니다:
+
 ```bash
 VITE_API_BASE_URL=http://localhost:3003/api
 ```
+
 `apps/web/.env.example` 파일을 기준으로 `.env`를 복사해 사용할 수 있습니다.
 
 프론트엔드는 백엔드가 꺼져 있으면 가짜 프로젝트를 보여주지 않습니다. 연결 오류와 복구 명령을 보여주고, API가 연결된 뒤 실제 검증 등록 데이터만 표시합니다.
@@ -136,6 +149,7 @@ psql "$DATABASE_URL" -f db/seeds/sample-data.sql
 `psql` 접속 문자열이 없다면 `DATABASE_URL`은 `.env` 기준으로 적절히 설정하고 실행하세요.
 
 테이블 구성:
+
 - `users`: 메이커/투자자 계정
 - `projects`: 라이브 URL, 검증 결과, 공개 범위, 노출 위험 확인 여부, 매칭 카운터, 누적 의향 금액
 - `project_events`: 프리뷰, 외부 열기, 매칭, 갱신 등 관심 신호 이벤트

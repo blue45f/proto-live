@@ -6,13 +6,13 @@ ProtoLive should not compete as another startup directory, fundraising CRM, or g
 
 ## Similar Site Patterns
 
-| Category | Common center of gravity | Gap ProtoLive can own |
-| --- | --- | --- |
-| Launch communities | Visibility, ranking, community feedback, newsletters | They help products get attention, but do not make live technical verification the first gate. |
-| Early adopter directories | Editorial review, startup listing, traffic attribution | They validate audience fit and novelty, but not ongoing product availability or protected investor access. |
-| Fundraising CRMs | Investor lists, conversations, decks, updates, pipelines | They support fundraising operations after the company is packaged, but do not start from a verified running prototype. |
-| Data rooms | Secure documents, page-level engagement, audit trails | They protect documents well, but the product itself often stays outside the diligence surface. |
-| Private market databases | Company discovery, filters, predictions, firmographic data | They help research the market, but the data is largely profile-first rather than live-demo-first. |
+| Category                  | Common center of gravity                                   | Gap ProtoLive can own                                                                                                  |
+| ------------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Launch communities        | Visibility, ranking, community feedback, newsletters       | They help products get attention, but do not make live technical verification the first gate.                          |
+| Early adopter directories | Editorial review, startup listing, traffic attribution     | They validate audience fit and novelty, but not ongoing product availability or protected investor access.             |
+| Fundraising CRMs          | Investor lists, conversations, decks, updates, pipelines   | They support fundraising operations after the company is packaged, but do not start from a verified running prototype. |
+| Data rooms                | Secure documents, page-level engagement, audit trails      | They protect documents well, but the product itself often stays outside the diligence surface.                         |
+| Private market databases  | Company discovery, filters, predictions, firmographic data | They help research the market, but the data is largely profile-first rather than live-demo-first.                      |
 
 ## Reference Services Checked
 

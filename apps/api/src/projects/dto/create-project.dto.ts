@@ -10,8 +10,13 @@ import {
   MaxLength,
   ArrayMaxSize,
   ArrayUnique,
-} from 'class-validator';
-import { PROJECT_ACCESS_MODES, PROJECT_CATEGORIES, ProjectAccessMode, ProjectCategory } from '../project.constants';
+} from 'class-validator'
+import {
+  PROJECT_ACCESS_MODES,
+  PROJECT_CATEGORIES,
+  ProjectAccessMode,
+  ProjectCategory,
+} from '../project.constants'
 
 /**
  * 프로젝트 생성 요청 DTO
@@ -20,46 +25,45 @@ import { PROJECT_ACCESS_MODES, PROJECT_CATEGORIES, ProjectAccessMode, ProjectCat
 export class CreateProjectDto {
   @IsEmail({}, { message: '유효한 이메일 주소를 입력해주세요.' })
   @IsNotEmpty({ message: '이메일은 필수 항목입니다.' })
-  email: string;
+  email: string
 
   @IsString({ message: '프로젝트 제목은 문자열이어야 합니다.' })
   @IsNotEmpty({ message: '프로젝트 제목은 필수 항목입니다.' })
   @MaxLength(100, { message: '프로젝트 제목은 100자 이하로 입력해주세요.' })
-  title: string;
+  title: string
 
   @IsString({ message: '프로젝트 설명은 문자열이어야 합니다.' })
   @IsNotEmpty({ message: '프로젝트 설명은 필수 항목입니다.' })
   @MaxLength(1000, { message: '프로젝트 설명은 1000자 이하로 입력해주세요.' })
-  description: string;
+  description: string
 
   @IsUrl(
     { protocols: ['http', 'https'], require_protocol: true },
-    { message: 'Live URL은 http:// 또는 https://로 시작하는 유효한 URL이어야 합니다.' },
+    { message: 'Live URL은 http:// 또는 https://로 시작하는 유효한 URL이어야 합니다.' }
   )
   @IsNotEmpty({ message: 'Live URL은 필수 항목입니다.' })
-  liveUrl: string;
+  liveUrl: string
 
   @IsString({ message: '카테고리는 문자열이어야 합니다.' })
   @IsNotEmpty({ message: '카테고리는 필수 항목입니다.' })
   @IsIn(PROJECT_CATEGORIES, { message: '유효한 카테고리를 선택해주세요.' })
-  category: ProjectCategory;
+  category: ProjectCategory
 
   @IsString({ message: '공개 범위는 문자열이어야 합니다.' })
   @IsNotEmpty({ message: '공개 범위를 선택해주세요.' })
-  @IsIn(
-    PROJECT_ACCESS_MODES.map((mode) => mode.id),
-    { message: '유효한 공개 범위를 선택해주세요.' },
-  )
-  accessMode: ProjectAccessMode;
+  @IsIn(PROJECT_ACCESS_MODES.map((mode) => mode.id), {
+    message: '유효한 공개 범위를 선택해주세요.',
+  })
+  accessMode: ProjectAccessMode
 
   @Equals(true, {
     message: '상용화 전 서비스 노출 위험과 제출 권한 안내를 확인해야 등록할 수 있습니다.',
   })
-  protectionNoticeAccepted: boolean;
+  protectionNoticeAccepted: boolean
 
   @IsOptional()
   @IsString({ message: '썸네일은 문자열이어야 합니다.' })
-  thumbnail?: string;
+  thumbnail?: string
 
   @IsOptional()
   @IsArray({ message: '태그는 배열이어야 합니다.' })
@@ -67,5 +71,5 @@ export class CreateProjectDto {
   @ArrayUnique({ message: '중복 태그는 제거해주세요.' })
   @IsString({ each: true, message: '태그는 문자열이어야 합니다.' })
   @MaxLength(24, { each: true, message: '태그는 24자 이하로 입력해주세요.' })
-  tags?: string[];
+  tags?: string[]
 }

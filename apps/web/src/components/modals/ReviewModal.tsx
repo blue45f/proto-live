@@ -1,8 +1,8 @@
-import React from 'react';
-import type { AuthSession } from '../../local-auth';
-import type { Project, ProjectReview, ProjectReviewType } from '../../api';
-import { Modal } from '../Modal';
-import { ProjectReviewWorkspace } from '../ProjectReviewWorkspace';
+import React from 'react'
+import type { AuthSession } from '../../local-auth'
+import type { Project, ProjectReview, ProjectReviewType } from '../../api'
+import { Modal } from '../Modal'
+import { ProjectReviewWorkspace } from '../ProjectReviewWorkspace'
 
 export function ReviewModal({
   project,
@@ -26,26 +26,26 @@ export function ReviewModal({
   onLogin,
   onSubmit,
 }: {
-  project: Project;
-  reviews: ProjectReview[];
-  isLoading: boolean;
-  session: AuthSession | null;
-  reviewType: ProjectReviewType;
-  reviewRating: number;
-  reviewBody: string;
-  replyToReview: ProjectReview | null;
-  isSubmitting: boolean;
-  reportingReviewId: number | null;
-  dialogRef?: React.RefObject<HTMLElement | null>;
-  onClose: () => void;
-  onTypeChange: (type: ProjectReviewType) => void;
-  onRatingChange: (rating: number) => void;
-  onBodyChange: (body: string) => void;
-  onReplyTo: (review: ProjectReview) => void;
-  onCancelReply: () => void;
-  onReportReview: (review: ProjectReview) => void;
-  onLogin: () => void;
-  onSubmit: (event: React.FormEvent) => void;
+  project: Project
+  reviews: ProjectReview[]
+  isLoading: boolean
+  session: AuthSession | null
+  reviewType: ProjectReviewType
+  reviewRating: number
+  reviewBody: string
+  replyToReview: ProjectReview | null
+  isSubmitting: boolean
+  reportingReviewId: number | null
+  dialogRef?: React.RefObject<HTMLElement | null>
+  onClose: () => void
+  onTypeChange: (type: ProjectReviewType) => void
+  onRatingChange: (rating: number) => void
+  onBodyChange: (body: string) => void
+  onReplyTo: (review: ProjectReview) => void
+  onCancelReply: () => void
+  onReportReview: (review: ProjectReview) => void
+  onLogin: () => void
+  onSubmit: (event: React.FormEvent) => void
 }) {
   return (
     <Modal
@@ -75,5 +75,5 @@ export function ReviewModal({
         onSubmit={onSubmit}
       />
     </Modal>
-  );
+  )
 }

@@ -1,0 +1,11 @@
+node_modules
+**/dist
+**/dist-test
+**/build
+**/coverage
+pnpm-lock.yaml
+*.tsbuildinfo
+db
+apps/web/dist
+apps/api/dist
+apps/api/dist-test

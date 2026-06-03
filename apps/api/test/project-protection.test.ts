@@ -1,25 +1,25 @@
-import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { test } from 'node:test';
-import * as assert from 'node:assert/strict';
-import { ProjectsService } from '../src/projects/projects.service';
-import { createEmptyProjectsState } from '../src/projects/project.models';
-import { JsonProjectsStore } from '../src/projects/projects.store';
+import { mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { test } from 'node:test'
+import * as assert from 'node:assert/strict'
+import { ProjectsService } from '../src/projects/projects.service'
+import { createEmptyProjectsState } from '../src/projects/project.models'
+import { JsonProjectsStore } from '../src/projects/projects.store'
 
 async function withProjectsService(run: (service: ProjectsService) => Promise<void> | void) {
-  const dir = mkdtempSync(join(tmpdir(), 'protolive-protection-'));
-  const previousStorePath = process.env.PROJECT_STORE_PATH;
-  const filePath = join(dir, 'store.json');
+  const dir = mkdtempSync(join(tmpdir(), 'protolive-protection-'))
+  const previousStorePath = process.env.PROJECT_STORE_PATH
+  const filePath = join(dir, 'store.json')
 
   try {
-    process.env.PROJECT_STORE_PATH = filePath;
-    const state = createEmptyProjectsState();
+    process.env.PROJECT_STORE_PATH = filePath
+    const state = createEmptyProjectsState()
     state.users.push({
       id: 1,
       email: 'maker@example.com',
       role: 'maker',
-    });
+    })
     state.projects.push({
       id: 1,
       userId: 1,
@@ -43,62 +43,62 @@ async function withProjectsService(run: (service: ProjectsService) => Promise<vo
         responseTimeMs: 140,
       },
       createdAt: new Date('2026-06-01T00:00:00.000Z'),
-    });
-    state.nextUserId = 2;
-    state.nextProjectId = 2;
+    })
+    state.nextUserId = 2
+    state.nextProjectId = 2
 
-    new JsonProjectsStore(filePath).write(state);
-    await run(new ProjectsService());
+    new JsonProjectsStore(filePath).write(state)
+    await run(new ProjectsService())
   } finally {
     if (previousStorePath === undefined) {
-      delete process.env.PROJECT_STORE_PATH;
+      delete process.env.PROJECT_STORE_PATH
     } else {
-      process.env.PROJECT_STORE_PATH = previousStorePath;
+      process.env.PROJECT_STORE_PATH = previousStorePath
     }
-    rmSync(dir, { recursive: true, force: true });
+    rmSync(dir, { recursive: true, force: true })
   }
 }
 
 test('screened projects redact URL details in public project responses', async () => {
   await withProjectsService(async (service) => {
-    const project = await service.getProjectById(1);
+    const project = await service.getProjectById(1)
 
-    assert.equal(project.accessMode, 'screened');
-    assert.equal(project.liveUrl, 'protected-review');
-    assert.equal(project.validation.finalUrl, 'protected-review');
-    assert.ok(!project.liveUrl.includes('secret.example.com'));
-    assert.ok(!String(project.validation.finalUrl).includes('secret.example.com'));
-    assert.ok(!project.liveUrl.includes('internal'));
-    assert.ok(!String(project.validation.finalUrl).includes('internal'));
-  });
-});
+    assert.equal(project.accessMode, 'screened')
+    assert.equal(project.liveUrl, 'protected-review')
+    assert.equal(project.validation.finalUrl, 'protected-review')
+    assert.ok(!project.liveUrl.includes('secret.example.com'))
+    assert.ok(!String(project.validation.finalUrl).includes('secret.example.com'))
+    assert.ok(!project.liveUrl.includes('internal'))
+    assert.ok(!String(project.validation.finalUrl).includes('internal'))
+  })
+})
 
 test('screened project raw URL details are not searchable from public queries', async () => {
   await withProjectsService(async (service) => {
-    const tokenHits = await service.getAllProjects({ q: 'internal' });
-    assert.equal(tokenHits.length, 0);
+    const tokenHits = await service.getAllProjects({ q: 'internal' })
+    assert.equal(tokenHits.length, 0)
 
-    const hostHits = await service.getAllProjects({ q: 'secret.example.com' });
-    assert.equal(hostHits.length, 0);
+    const hostHits = await service.getAllProjects({ q: 'secret.example.com' })
+    assert.equal(hostHits.length, 0)
 
-    const safeTitleHits = await service.getAllProjects({ q: 'Protected MVP' });
-    assert.equal(safeTitleHits.length, 1);
-    assert.equal(safeTitleHits[0].liveUrl, 'protected-review');
-  });
-});
+    const safeTitleHits = await service.getAllProjects({ q: 'Protected MVP' })
+    assert.equal(safeTitleHits.length, 1)
+    assert.equal(safeTitleHits[0].liveUrl, 'protected-review')
+  })
+})
 
 test('screened projects reject direct preview and outbound telemetry', async () => {
   await withProjectsService((service) => {
     assert.throws(
       () => service.recordProjectEvent(1, 'preview'),
-      /선별 공개 프로젝트는 매칭 요청 뒤 URL을 공유할 수 있습니다/,
-    );
+      /선별 공개 프로젝트는 매칭 요청 뒤 URL을 공유할 수 있습니다/
+    )
     assert.throws(
       () => service.recordProjectEvent(1, 'outbound'),
-      /선별 공개 프로젝트는 매칭 요청 뒤 URL을 공유할 수 있습니다/,
-    );
+      /선별 공개 프로젝트는 매칭 요청 뒤 URL을 공유할 수 있습니다/
+    )
 
-    const project = service.recordProjectEvent(1, 'refresh');
-    assert.equal(project.eventSummary?.counts.refresh, 1);
-  });
-});
+    const project = service.recordProjectEvent(1, 'refresh')
+    assert.equal(project.eventSummary?.counts.refresh, 1)
+  })
+})

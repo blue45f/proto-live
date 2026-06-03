@@ -6,24 +6,25 @@ export const PROJECT_CATEGORIES = [
   'DevTools',
   'Social',
   'Other',
-] as const;
+] as const
 
-export type ProjectCategory = (typeof PROJECT_CATEGORIES)[number];
+export type ProjectCategory = (typeof PROJECT_CATEGORIES)[number]
 
 export const PROJECT_ACCESS_MODES = [
   {
     id: 'screened',
     label: '선별 공개',
-    description: '목록에는 검증 상태만 노출하고, URL/프리뷰는 매칭 요청 뒤 공유하는 기본 보호 모드입니다.',
+    description:
+      '목록에는 검증 상태만 노출하고, URL/프리뷰는 매칭 요청 뒤 공유하는 기본 보호 모드입니다.',
   },
   {
     id: 'open',
     label: '공개 프리뷰',
     description: '투자자가 목록에서 바로 라이브 URL과 iframe 프리뷰를 열람할 수 있습니다.',
   },
-] as const;
+] as const
 
-export type ProjectAccessMode = (typeof PROJECT_ACCESS_MODES)[number]['id'];
+export type ProjectAccessMode = (typeof PROJECT_ACCESS_MODES)[number]['id']
 
 export const FUNDING_RANGES = [
   {
@@ -61,6 +62,6 @@ export const FUNDING_RANGES = [
     minAmount: 300000000,
     maxAmount: 300000000,
   },
-] as const;
+] as const
 
-export type FundingRangeId = (typeof FUNDING_RANGES)[number]['id'];
+export type FundingRangeId = (typeof FUNDING_RANGES)[number]['id']

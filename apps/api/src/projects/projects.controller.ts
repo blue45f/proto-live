@@ -1,17 +1,28 @@
-import { BadRequestException, Controller, Get, Post, Body, Param, ParseIntPipe, Query, Req, Res } from '@nestjs/common';
-import type { Request, Response } from 'express';
-import { Project } from './project.models';
-import { ProjectsService, ProjectListPage } from './projects.service';
-import { CreateProjectDto } from './dto/create-project.dto';
-import { ValidateUrlDto } from './dto/validate-url.dto';
-import { CreateMatchProposalDto } from './dto/create-match-proposal.dto';
-import { CreateProjectReviewDto } from './dto/create-project-review.dto';
-import { LoginDto } from './dto/login.dto';
-import { ModerateProjectReviewDto } from './dto/moderate-project-review.dto';
-import { ReportProjectReviewDto } from './dto/report-project-review.dto';
-import { RecordProjectEventDto } from './dto/record-project-event.dto';
-import { GetProjectsQueryDto, ProjectQueryInput } from './dto/get-projects-query.dto';
-import { AdminRevenueProjectionQueryDto } from './dto/admin-revenue-projection-query.dto';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  ParseIntPipe,
+  Query,
+  Req,
+  Res,
+} from '@nestjs/common'
+import type { Request, Response } from 'express'
+import { Project } from './project.models'
+import { ProjectsService, ProjectListPage } from './projects.service'
+import { CreateProjectDto } from './dto/create-project.dto'
+import { ValidateUrlDto } from './dto/validate-url.dto'
+import { CreateMatchProposalDto } from './dto/create-match-proposal.dto'
+import { CreateProjectReviewDto } from './dto/create-project-review.dto'
+import { LoginDto } from './dto/login.dto'
+import { ModerateProjectReviewDto } from './dto/moderate-project-review.dto'
+import { ReportProjectReviewDto } from './dto/report-project-review.dto'
+import { RecordProjectEventDto } from './dto/record-project-event.dto'
+import { GetProjectsQueryDto, ProjectQueryInput } from './dto/get-projects-query.dto'
+import { AdminRevenueProjectionQueryDto } from './dto/admin-revenue-projection-query.dto'
 
 @Controller('api/projects')
 export class ProjectsController {
@@ -23,9 +34,9 @@ export class ProjectsController {
    */
   @Post('auth/login')
   login(@Body() body: LoginDto, @Res({ passthrough: true }) response: Response) {
-    const result = this.projectsService.login(body);
-    response.setHeader('Set-Cookie', result.cookie);
-    return result.session;
+    const result = this.projectsService.login(body)
+    response.setHeader('Set-Cookie', result.cookie)
+    return result.session
   }
 
   /**
@@ -34,7 +45,7 @@ export class ProjectsController {
    */
   @Get('auth/session')
   getSession(@Req() request: Request) {
-    return this.projectsService.getSessionFromCookie(request.headers.cookie) ?? null;
+    return this.projectsService.getSessionFromCookie(request.headers.cookie) ?? null
   }
 
   /**
@@ -43,8 +54,8 @@ export class ProjectsController {
    */
   @Post('auth/logout')
   logout(@Res({ passthrough: true }) response: Response) {
-    response.setHeader('Set-Cookie', this.projectsService.createLogoutCookie());
-    return { success: true };
+    response.setHeader('Set-Cookie', this.projectsService.createLogoutCookie())
+    return { success: true }
   }
 
   /**
@@ -52,16 +63,14 @@ export class ProjectsController {
    * 등록된 전체 프로젝트 목록을 반환합니다.
    */
   @Get()
-  async getProjects(
-    @Query() query: GetProjectsQueryDto,
-  ): Promise<Project[] | ProjectListPage> {
-    const normalized = normalizeProjectQuery(query);
+  async getProjects(@Query() query: GetProjectsQueryDto): Promise<Project[] | ProjectListPage> {
+    const normalized = normalizeProjectQuery(query)
 
     if (normalized.page !== undefined || normalized.limit !== undefined) {
-      return this.projectsService.getProjectList(normalized);
+      return this.projectsService.getProjectList(normalized)
     }
 
-    return this.projectsService.getAllProjects(normalized);
+    return this.projectsService.getAllProjects(normalized)
   }
 
   /**
@@ -70,7 +79,7 @@ export class ProjectsController {
    */
   @Get('config')
   getMarketConfig() {
-    return this.projectsService.getMarketConfig();
+    return this.projectsService.getMarketConfig()
   }
 
   /**
@@ -79,7 +88,7 @@ export class ProjectsController {
    */
   @Get('stats')
   getMarketStats() {
-    return this.projectsService.getMarketStats();
+    return this.projectsService.getMarketStats()
   }
 
   /**
@@ -88,8 +97,8 @@ export class ProjectsController {
    */
   @Get('admin-dashboard')
   getAdminDashboard(@Req() request: Request) {
-    this.projectsService.requireAdminSession(request.headers.cookie);
-    return this.projectsService.getAdminDashboard();
+    this.projectsService.requireAdminSession(request.headers.cookie)
+    return this.projectsService.getAdminDashboard()
   }
 
   /**
@@ -97,9 +106,12 @@ export class ProjectsController {
    * 수익 가정값을 반영한 월간/연간 시뮬레이션과 KPI 시그널을 반환합니다.
    */
   @Get('admin-revenue-projection')
-  getAdminRevenueProjection(@Req() request: Request, @Query() query: AdminRevenueProjectionQueryDto) {
-    this.projectsService.requireAdminSession(request.headers.cookie);
-    return this.projectsService.getAdminRevenueProjection(query);
+  getAdminRevenueProjection(
+    @Req() request: Request,
+    @Query() query: AdminRevenueProjectionQueryDto
+  ) {
+    this.projectsService.requireAdminSession(request.headers.cookie)
+    return this.projectsService.getAdminRevenueProjection(query)
   }
 
   /**
@@ -108,8 +120,8 @@ export class ProjectsController {
    */
   @Get('admin-reported-reviews')
   getAdminReportedReviews(@Req() request: Request) {
-    const admin = this.projectsService.requireAdminSession(request.headers.cookie);
-    return this.projectsService.getReportedProjectReviews(admin);
+    const admin = this.projectsService.requireAdminSession(request.headers.cookie)
+    return this.projectsService.getReportedProjectReviews(admin)
   }
 
   /**
@@ -118,8 +130,8 @@ export class ProjectsController {
    */
   @Get('admin-audit-logs')
   getAdminAuditLogs(@Req() request: Request, @Query('limit') limit?: string) {
-    const admin = this.projectsService.requireAdminSession(request.headers.cookie);
-    return this.projectsService.getAdminAuditLogs(admin, limit ? Number.parseInt(limit, 10) : 30);
+    const admin = this.projectsService.requireAdminSession(request.headers.cookie)
+    return this.projectsService.getAdminAuditLogs(admin, limit ? Number.parseInt(limit, 10) : 30)
   }
 
   /**
@@ -128,8 +140,8 @@ export class ProjectsController {
    */
   @Post('refresh')
   async refreshProjects(@Req() request: Request): Promise<Project[]> {
-    this.projectsService.requireAdminSession(request.headers.cookie);
-    return this.projectsService.refreshAllProjects();
+    this.projectsService.requireAdminSession(request.headers.cookie)
+    return this.projectsService.refreshAllProjects()
   }
 
   /**
@@ -138,7 +150,7 @@ export class ProjectsController {
    */
   @Get(':id')
   async getProjectById(@Param('id', ParseIntPipe) id: number): Promise<Project> {
-    return this.projectsService.getProjectById(id);
+    return this.projectsService.getProjectById(id)
   }
 
   /**
@@ -147,7 +159,7 @@ export class ProjectsController {
    */
   @Get(':id/events')
   getProjectEvents(@Param('id', ParseIntPipe) id: number) {
-    return this.projectsService.getProjectEvents(id);
+    return this.projectsService.getProjectEvents(id)
   }
 
   /**
@@ -156,7 +168,7 @@ export class ProjectsController {
    */
   @Get(':id/reviews')
   getProjectReviews(@Param('id', ParseIntPipe) id: number) {
-    return this.projectsService.getProjectReviews(id);
+    return this.projectsService.getProjectReviews(id)
   }
 
   /**
@@ -165,7 +177,7 @@ export class ProjectsController {
    */
   @Post('validate')
   async validateUrl(@Body() body: ValidateUrlDto) {
-    return this.projectsService.validateUrl(body.url);
+    return this.projectsService.validateUrl(body.url)
   }
 
   /**
@@ -177,9 +189,9 @@ export class ProjectsController {
     const session = this.projectsService.requireRoleSession(
       request.headers.cookie,
       ['maker'],
-      '창업자 계정으로 로그인해야 사이트를 등록할 수 있습니다.',
-    );
-    return this.projectsService.createProject({ ...body, email: session.email });
+      '창업자 계정으로 로그인해야 사이트를 등록할 수 있습니다.'
+    )
+    return this.projectsService.createProject({ ...body, email: session.email })
   }
 
   /**
@@ -187,9 +199,12 @@ export class ProjectsController {
    * 단일 프로젝트의 라이브 상태를 갱신합니다.
    */
   @Post(':id/refresh')
-  async refreshProject(@Param('id', ParseIntPipe) id: number, @Req() request: Request): Promise<Project> {
-    const session = this.projectsService.requireSession(request.headers.cookie);
-    return this.projectsService.refreshProjectForSession(id, session);
+  async refreshProject(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() request: Request
+  ): Promise<Project> {
+    const session = this.projectsService.requireSession(request.headers.cookie)
+    return this.projectsService.refreshProjectForSession(id, session)
   }
 
   /**
@@ -199,9 +214,9 @@ export class ProjectsController {
   @Post(':id/events')
   recordProjectEvent(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: RecordProjectEventDto,
+    @Body() body: RecordProjectEventDto
   ): Project {
-    return this.projectsService.recordProjectEvent(id, body.type);
+    return this.projectsService.recordProjectEvent(id, body.type)
   }
 
   /**
@@ -212,11 +227,11 @@ export class ProjectsController {
   createProjectReview(
     @Param('id', ParseIntPipe) id: number,
     @Req() request: Request,
-    @Body() body: CreateProjectReviewDto,
+    @Body() body: CreateProjectReviewDto
   ) {
-    const session = this.projectsService.requireSession(request.headers.cookie);
-    const role = session.role === 'admin' ? 'member' : session.role;
-    return this.projectsService.createProjectReview(id, { ...body, email: session.email, role });
+    const session = this.projectsService.requireSession(request.headers.cookie)
+    const role = session.role === 'admin' ? 'member' : session.role
+    return this.projectsService.createProjectReview(id, { ...body, email: session.email, role })
   }
 
   /**
@@ -228,10 +243,10 @@ export class ProjectsController {
     @Param('id', ParseIntPipe) id: number,
     @Param('reviewId', ParseIntPipe) reviewId: number,
     @Req() request: Request,
-    @Body() body: ReportProjectReviewDto,
+    @Body() body: ReportProjectReviewDto
   ) {
-    const session = this.projectsService.requireSession(request.headers.cookie);
-    return this.projectsService.reportProjectReview(id, reviewId, { ...body, email: session.email });
+    const session = this.projectsService.requireSession(request.headers.cookie)
+    return this.projectsService.reportProjectReview(id, reviewId, { ...body, email: session.email })
   }
 
   /**
@@ -243,10 +258,10 @@ export class ProjectsController {
     @Param('id', ParseIntPipe) id: number,
     @Param('reviewId', ParseIntPipe) reviewId: number,
     @Req() request: Request,
-    @Body() body: ModerateProjectReviewDto,
+    @Body() body: ModerateProjectReviewDto
   ) {
-    const admin = this.projectsService.requireAdminSession(request.headers.cookie);
-    return this.projectsService.moderateProjectReview(id, reviewId, body, admin);
+    const admin = this.projectsService.requireAdminSession(request.headers.cookie)
+    return this.projectsService.moderateProjectReview(id, reviewId, body, admin)
   }
 
   /**
@@ -257,14 +272,14 @@ export class ProjectsController {
   async createMatchProposal(
     @Param('id', ParseIntPipe) id: number,
     @Req() request: Request,
-    @Body() body: CreateMatchProposalDto,
+    @Body() body: CreateMatchProposalDto
   ): Promise<Project> {
     const session = this.projectsService.requireRoleSession(
       request.headers.cookie,
       ['investor'],
-      '투자자 계정으로 로그인해야 투자 관심을 기록할 수 있습니다.',
-    );
-    return this.projectsService.createMatchProposal(id, { ...body, email: session.email });
+      '투자자 계정으로 로그인해야 투자 관심을 기록할 수 있습니다.'
+    )
+    return this.projectsService.createMatchProposal(id, { ...body, email: session.email })
   }
 
   /**
@@ -273,8 +288,10 @@ export class ProjectsController {
    */
   @Post(':id/invest')
   async investInProject(@Param('id', ParseIntPipe) id: number): Promise<Project> {
-    void id;
-    throw new BadRequestException('투자 관심은 필수 고지와 개인정보 연락 동의를 포함하는 /api/projects/:id/match API로만 기록할 수 있습니다.');
+    void id
+    throw new BadRequestException(
+      '투자 관심은 필수 고지와 개인정보 연락 동의를 포함하는 /api/projects/:id/match API로만 기록할 수 있습니다.'
+    )
   }
 }
 
@@ -291,5 +308,5 @@ function normalizeProjectQuery(query: GetProjectsQueryDto): ProjectQueryInput {
     page: query.page,
     limit: query.limit,
     onlyVerified: query.onlyVerified === 'true',
-  };
+  }
 }

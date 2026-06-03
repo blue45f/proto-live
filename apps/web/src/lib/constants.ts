@@ -1,5 +1,5 @@
-import type { LucideIcon } from 'lucide-react';
-import { ArrowUpRight, Briefcase, Plus, RefreshCw, Sparkles } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react'
+import { ArrowUpRight, Briefcase, Plus, RefreshCw, Sparkles } from 'lucide-react'
 import type {
   AdminDashboardSnapshot,
   MarketConfig,
@@ -7,13 +7,13 @@ import type {
   ProjectEventType,
   ProjectListQuery,
   ProjectReviewType,
-} from '../api';
-import { DEFAULT_REVENUE_CONFIG, DEFAULT_REVENUE_TARGET } from './revenue-config';
+} from '../api'
+import { DEFAULT_REVENUE_CONFIG, DEFAULT_REVENUE_TARGET } from './revenue-config'
 
-export type AppView = 'market' | 'admin';
+export type AppView = 'market' | 'admin'
 
-export const LOGIN_MODAL_KEY = 'protolive:login-form:v1';
-export const ADMIN_PATH_SEGMENT = 'admin';
+export const LOGIN_MODAL_KEY = 'protolive:login-form:v1'
+export const ADMIN_PATH_SEGMENT = 'admin'
 
 export const EMPTY_STATS: MarketStats = {
   totalProjects: 0,
@@ -26,7 +26,7 @@ export const EMPTY_STATS: MarketStats = {
   totalSignals: 0,
   topSignals: [],
   lastUpdatedAt: new Date(0).toISOString(),
-};
+}
 
 export const EMPTY_ADMIN_DASHBOARD: AdminDashboardSnapshot = {
   conversionFunnel: {
@@ -175,7 +175,7 @@ export const EMPTY_ADMIN_DASHBOARD: AdminDashboardSnapshot = {
     },
   },
   lastUpdatedAt: new Date(0).toISOString(),
-};
+}
 
 export const EMPTY_CONFIG: MarketConfig = {
   categories: [],
@@ -183,40 +183,45 @@ export const EMPTY_CONFIG: MarketConfig = {
   fundingRanges: [],
   refreshIntervalMs: 30000,
   benchmarkSignals: [],
-};
+}
 
-export const FILTER_PRESET_STORAGE_KEY = 'protolive:filters:v1';
-export const FILTER_UI_STORAGE_KEY = 'protolive:filters-ui:v1';
-export const LIST_VIEW_STORAGE_KEY = 'protolive:list-view:v1';
+export const FILTER_PRESET_STORAGE_KEY = 'protolive:filters:v1'
+export const FILTER_UI_STORAGE_KEY = 'protolive:filters-ui:v1'
+export const LIST_VIEW_STORAGE_KEY = 'protolive:list-view:v1'
 
-export type ProjectListViewMode = 'compact' | 'cards' | 'reviews';
+export type ProjectListViewMode = 'compact' | 'cards' | 'reviews'
 
 export const PROJECT_LIST_VIEW_OPTIONS: Array<{
-  id: ProjectListViewMode;
-  label: string;
-  helper: string;
+  id: ProjectListViewMode
+  label: string
+  helper: string
 }> = [
   { id: 'compact', label: '간단 목록', helper: '빠르게 훑어보기' },
   { id: 'cards', label: '큰 카드', helper: '스크린샷 중심' },
   { id: 'reviews', label: '리뷰 중심', helper: '회원 반응 먼저' },
-];
+]
 
-export const FUNDING_SORT_OPTIONS: ProjectListQuery['sort'][] = ['signal', 'recent', 'created', 'funding'];
+export const FUNDING_SORT_OPTIONS: ProjectListQuery['sort'][] = [
+  'signal',
+  'recent',
+  'created',
+  'funding',
+]
 
 export type RawFilterSnapshot = {
-  q?: string;
-  category?: string;
-  tag?: string;
-  accessMode?: string;
-  sort?: string;
-  page?: number;
-  limit?: number;
-  minSignal?: number;
-  minFundingAmount?: number;
-  maxFundingAmount?: number;
-  onlyVerified?: boolean;
-  favorites?: boolean;
-};
+  q?: string
+  category?: string
+  tag?: string
+  accessMode?: string
+  sort?: string
+  page?: number
+  limit?: number
+  minSignal?: number
+  minFundingAmount?: number
+  maxFundingAmount?: number
+  onlyVerified?: boolean
+  favorites?: boolean
+}
 
 export const benchmarkCopy: Record<string, { title: string; body: string }> = {
   live_demo_required: {
@@ -235,12 +240,12 @@ export const benchmarkCopy: Record<string, { title: string; body: string }> = {
     title: '관심 점수',
     body: '검색, 보기, 리뷰 요청을 모아 어떤 사이트가 주목받는지 보여줍니다.',
   },
-};
+}
 
 export const differentiationRows: Array<{
-  label: string;
-  usual: string;
-  protolive: string;
+  label: string
+  usual: string
+  protolive: string
 }> = [
   {
     label: '일반 소개 페이지',
@@ -262,9 +267,12 @@ export const differentiationRows: Array<{
     usual: '정적 프로필과 외부 데이터 검색 중심',
     protolive: '최신 확인 시간, 응답 속도, 연결 이벤트가 화면을 갱신합니다.',
   },
-];
+]
 
-export const eventCopy: Record<ProjectEventType, { icon: LucideIcon; label: string; tone: string }> = {
+export const eventCopy: Record<
+  ProjectEventType,
+  { icon: LucideIcon; label: string; tone: string }
+> = {
   create: {
     icon: Plus,
     label: '등록',
@@ -290,9 +298,12 @@ export const eventCopy: Record<ProjectEventType, { icon: LucideIcon; label: stri
     label: '갱신',
     tone: 'border-stone-500/30 bg-stone-800/50 text-stone-200',
   },
-};
+}
 
-export const reviewTypeCopy: Record<ProjectReviewType, { label: string; helper: string; tone: string }> = {
+export const reviewTypeCopy: Record<
+  ProjectReviewType,
+  { label: string; helper: string; tone: string }
+> = {
   review: {
     label: '평가 리뷰',
     helper: '좋았던 점, 불편했던 점, 별점을 남겨주세요.',
@@ -308,4 +319,4 @@ export const reviewTypeCopy: Record<ProjectReviewType, { label: string; helper: 
     helper: '다음 기능, 더 쉬운 사용법, 새로운 고객군 아이디어를 남겨주세요.',
     tone: 'border-cyan-300/35 bg-cyan-300/10 text-cyan-100',
   },
-};
+}
