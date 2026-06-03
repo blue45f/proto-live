@@ -8,7 +8,7 @@ NestJS 백엔드가 공인망 HTTP/HTTPS 응답을 검증해야 등록됩니다.
 
 pnpm workspace(`pnpm-workspace.yaml` → `apps/*`).
 
-```
+```text
 proto-live/
   apps/
     web/      # Vite 8 + React 19 + TypeScript + Tailwind v4 (Diligence Cockpit UI)
@@ -18,7 +18,7 @@ proto-live/
   scripts/    # dev.sh(포트 자동 전환 동시 기동) · validate-architecture · smoke_ui.py
 ```
 
-> 포트폴리오 공통 표준은 루트 [DEVELOPMENT.md](../../DEVELOPMENT.md)·[CONTRIBUTING.md](../../CONTRIBUTING.md) 참고.
+> 포트폴리오 공통 표준은 상위 워크스페이스 루트의 `DEVELOPMENT.md`·`CONTRIBUTING.md` 참고.
 > `apps/web` + `apps/api` 표준 풀스택 레이아웃을 따릅니다.
 
 ## 프론트엔드 (`apps/web`)

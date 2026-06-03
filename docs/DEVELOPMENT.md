@@ -1,7 +1,7 @@
 # ProtoLive — 개발 가이드
 
-포트폴리오 공통 컨벤션(툴링·스크립트·CI 게이트·배포)은 루트
-[DEVELOPMENT.md](../../DEVELOPMENT.md)·[CONTRIBUTING.md](../../CONTRIBUTING.md)를 따릅니다.
+포트폴리오 공통 컨벤션(툴링·스크립트·CI 게이트·배포)은 상위 워크스페이스 루트의
+`DEVELOPMENT.md`·`CONTRIBUTING.md`를 따릅니다.
 이 문서는 ProtoLive 제품별 상세입니다. 구조/도메인은 [ARCHITECTURE.md](./ARCHITECTURE.md) 참고.
 
 ## 스택
@@ -81,7 +81,7 @@ pnpm smoke               # web+api 구동 상태에서 UI 스모크 (scripts/smo
 
 ## 디렉터리 핵심
 
-```
+```text
 apps/web/src/
   App.tsx           # 자체 history/popstate 라우팅 진입점
   api.ts            # API 클라이언트(VITE_API_BASE_URL)

@@ -48,9 +48,9 @@ for (const script of requiredScripts) {
   if (!scripts[script]) issues.push(`missing script: ${script}`)
 }
 
-// verify must run validate:architecture before the rest (sibling convention).
-if (scripts.verify && !scripts.verify.includes('validate:architecture')) {
-  issues.push('script "verify" must run validate:architecture')
+// verify must run validate:architecture FIRST, before the rest (sibling convention).
+if (scripts.verify && !/^pnpm run validate:architecture\b/.test(scripts.verify.trim())) {
+  issues.push('script "verify" must run validate:architecture first')
 }
 
 // Engines + packageManager are the single source of the toolchain version.
