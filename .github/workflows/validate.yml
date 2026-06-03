@@ -20,18 +20,14 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: |
-            apps/api/package-lock.json
-            apps/web/package-lock.json
+          cache: pnpm
       - name: Install dependencies
-        run: npm ci --prefix apps/api && npm ci --prefix apps/web
-      - name: Lint (frontend)
-        run: npm --prefix apps/web run lint
-      - name: Test (backend)
-        run: npm --prefix apps/api run test
-      - name: Build (frontend + backend)
-        run: npm run build
+        run: pnpm install --frozen-lockfile
+      - name: Verify (lint / typecheck / test / build)
+        run: pnpm run verify

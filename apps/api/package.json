@@ -8,6 +8,8 @@
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\"",
+    "lint": "tsc -p tsconfig.json --pretty false --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "tsc -p tsconfig.test.json && node --test \"dist-test/test/**/*.test.js\"",
     "start": "nest start",
     "start:dev": "nest start --watch",

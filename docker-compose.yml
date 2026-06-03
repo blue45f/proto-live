@@ -9,8 +9,9 @@
 services:
   api:
     build:
-      context: ./apps/api
-      dockerfile: Dockerfile
+      # pnpm 워크스페이스: 빌드 컨텍스트는 리포 ROOT여야 lockfile/workspace가 보인다.
+      context: .
+      dockerfile: apps/api/Dockerfile
     environment:
       NODE_ENV: production
       PORT: "3003"
@@ -30,8 +31,9 @@ services:
 
   web:
     build:
-      context: ./apps/web
-      dockerfile: Dockerfile
+      # pnpm 워크스페이스: 빌드 컨텍스트는 리포 ROOT여야 lockfile/workspace가 보인다.
+      context: .
+      dockerfile: apps/web/Dockerfile
       args:
         # 브라우저 번들에 박히는 빌드 타임 API 주소(호스트에서 본 API 포트).
         VITE_API_BASE_URL: http://localhost:3003/api
