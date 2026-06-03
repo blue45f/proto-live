@@ -1,0 +1,79 @@
+import React from 'react';
+import type { AuthSession } from '../../local-auth';
+import type { Project, ProjectReview, ProjectReviewType } from '../../api';
+import { Modal } from '../Modal';
+import { ProjectReviewWorkspace } from '../ProjectReviewWorkspace';
+
+export function ReviewModal({
+  project,
+  reviews,
+  isLoading,
+  session,
+  reviewType,
+  reviewRating,
+  reviewBody,
+  replyToReview,
+  isSubmitting,
+  reportingReviewId,
+  dialogRef,
+  onClose,
+  onTypeChange,
+  onRatingChange,
+  onBodyChange,
+  onReplyTo,
+  onCancelReply,
+  onReportReview,
+  onLogin,
+  onSubmit,
+}: {
+  project: Project;
+  reviews: ProjectReview[];
+  isLoading: boolean;
+  session: AuthSession | null;
+  reviewType: ProjectReviewType;
+  reviewRating: number;
+  reviewBody: string;
+  replyToReview: ProjectReview | null;
+  isSubmitting: boolean;
+  reportingReviewId: number | null;
+  dialogRef?: React.RefObject<HTMLElement | null>;
+  onClose: () => void;
+  onTypeChange: (type: ProjectReviewType) => void;
+  onRatingChange: (rating: number) => void;
+  onBodyChange: (body: string) => void;
+  onReplyTo: (review: ProjectReview) => void;
+  onCancelReply: () => void;
+  onReportReview: (review: ProjectReview) => void;
+  onLogin: () => void;
+  onSubmit: (event: React.FormEvent) => void;
+}) {
+  return (
+    <Modal
+      title="회원 리뷰와 성장 의견"
+      subtitle={project.title}
+      onClose={onClose}
+      dialogRef={dialogRef}
+    >
+      <ProjectReviewWorkspace
+        project={project}
+        reviews={reviews}
+        isLoading={isLoading}
+        session={session}
+        reviewType={reviewType}
+        reviewRating={reviewRating}
+        reviewBody={reviewBody}
+        replyToReview={replyToReview}
+        isSubmitting={isSubmitting}
+        onTypeChange={onTypeChange}
+        onRatingChange={onRatingChange}
+        onBodyChange={onBodyChange}
+        onReplyTo={onReplyTo}
+        onCancelReply={onCancelReply}
+        onReportReview={onReportReview}
+        reportingReviewId={reportingReviewId}
+        onLogin={onLogin}
+        onSubmit={onSubmit}
+      />
+    </Modal>
+  );
+}
