@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { Plus, RefreshCw, Zap, Users } from 'lucide-react'
 import { resolveRoleLabel } from './local-auth'
 import ToastContainer from './components/ToastContainer'
@@ -199,8 +200,31 @@ export default function App() {
     visibleProjects,
   } = useProtoLiveApp()
 
+  // 뷰별 문서 타이틀 + 뷰 전환 시 보조기술 안내(aria-live). 첫 진입은 announce 를 건너뛴다.
+  const [viewAnnouncement, setViewAnnouncement] = useState('')
+  const hasAnnouncedRef = useRef(false)
+  useEffect(() => {
+    const label = isAdminView ? '운영 콘솔' : '프로토타입 마켓'
+    document.title = `${label} · ProtoLive`
+    if (!hasAnnouncedRef.current) {
+      hasAnnouncedRef.current = true
+      return
+    }
+    setViewAnnouncement(`${label} 화면으로 전환했습니다`)
+  }, [isAdminView])
+
   return (
     <div className="protolive-shell min-h-screen bg-[oklch(14%_0.018_205)] text-stone-100">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-cyan-300 focus:px-4 focus:py-2 focus:font-bold focus:text-slate-950"
+      >
+        메인 콘텐츠로 건너뛰기
+      </a>
+      <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {viewAnnouncement}
+      </p>
+
       <ToastContainer />
 
       <header className="protolive-header sticky top-0 z-40 border-b border-cyan-900/40 bg-[oklch(14%_0.018_205)/0.92] backdrop-blur">
@@ -324,7 +348,11 @@ export default function App() {
         </div>
       </header>
 
-      <main className="protolive-main mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="protolive-main mx-auto grid max-w-7xl gap-6 px-4 py-6 outline-none sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8"
+      >
         {isAdminView ? (
           <AdminDashboardView
             adminDashboard={adminDashboard}
