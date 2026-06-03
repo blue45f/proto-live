@@ -1,7 +1,7 @@
-import { lookup } from 'node:dns/promises';
-import { isIP } from 'node:net';
+import { lookup } from 'node:dns/promises'
+import { isIP } from 'node:net'
 
-const LOCAL_HOSTNAMES = new Set(['localhost', 'localhost.localdomain']);
+const LOCAL_HOSTNAMES = new Set(['localhost', 'localhost.localdomain'])
 
 export function isPrivateAddress(address: string): boolean {
   const normalized = address
@@ -9,20 +9,20 @@ export function isPrivateAddress(address: string): boolean {
     .replace(/^\[/, '')
     .replace(/\]$/, '')
     .split('%')[0]
-    .toLowerCase();
+    .toLowerCase()
 
   if (normalized.startsWith('::ffff:')) {
-    return isPrivateAddress(normalized.slice(7));
+    return isPrivateAddress(normalized.slice(7))
   }
 
-  const version = isIP(normalized);
+  const version = isIP(normalized)
   if (version === 4) {
-    const octets = normalized.split('.').map((part) => Number(part));
+    const octets = normalized.split('.').map((part) => Number(part))
     if (octets.length !== 4 || octets.some((part) => Number.isNaN(part))) {
-      return true;
+      return true
     }
 
-    const [a, b] = octets;
+    const [a, b] = octets
     return (
       a === 0 ||
       a === 10 ||
@@ -34,7 +34,7 @@ export function isPrivateAddress(address: string): boolean {
       (a === 192 && b === 0) ||
       (a === 198 && (b === 18 || b === 19)) ||
       a >= 224
-    );
+    )
   }
 
   if (version === 6) {
@@ -47,74 +47,73 @@ export function isPrivateAddress(address: string): boolean {
       normalized.startsWith('fe9') ||
       normalized.startsWith('fea') ||
       normalized.startsWith('feb')
-    );
+    )
   }
 
-  return true;
+  return true
 }
 
 function normalizeHostname(hostname: string): string {
-  return hostname.trim().replace(/\.$/, '').toLowerCase();
+  return hostname.trim().replace(/\.$/, '').toLowerCase()
 }
 
 export function normalizePublicHttpUrl(rawUrl: string): URL {
-  let parsed: URL;
+  let parsed: URL
   try {
-    parsed = new URL(rawUrl.trim());
+    parsed = new URL(rawUrl.trim())
   } catch {
-    throw new Error('URL must be a valid absolute URL.');
+    throw new Error('URL must be a valid absolute URL.')
   }
 
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    throw new Error('URL must use http or https.');
+    throw new Error('URL must use http or https.')
   }
 
   if (parsed.username || parsed.password) {
-    throw new Error('URL credentials are not allowed.');
+    throw new Error('URL credentials are not allowed.')
   }
 
-  const hostname = normalizeHostname(parsed.hostname);
+  const hostname = normalizeHostname(parsed.hostname)
   if (!hostname || LOCAL_HOSTNAMES.has(hostname) || hostname.endsWith('.localhost')) {
-    throw new Error('URL must target a public internet host.');
+    throw new Error('URL must target a public internet host.')
   }
 
   if (hostname.endsWith('.local') || hostname.endsWith('.internal')) {
-    throw new Error('URL must target a public internet host.');
+    throw new Error('URL must target a public internet host.')
   }
 
   if (isIP(hostname) && isPrivateAddress(hostname)) {
-    throw new Error('URL must target a public internet host.');
+    throw new Error('URL must target a public internet host.')
   }
 
-  return parsed;
+  return parsed
 }
 
 export function resolveRedirectUrl(baseUrl: URL, locationHeader?: string): URL {
   if (!locationHeader) {
-    throw new Error('Redirect response did not include a Location header.');
+    throw new Error('Redirect response did not include a Location header.')
   }
 
-  return normalizePublicHttpUrl(new URL(locationHeader, baseUrl).href);
+  return normalizePublicHttpUrl(new URL(locationHeader, baseUrl).href)
 }
 
 export async function assertResolvesToPublicInternet(url: URL): Promise<void> {
-  const hostname = normalizeHostname(url.hostname);
+  const hostname = normalizeHostname(url.hostname)
 
   if (isIP(hostname)) {
     if (isPrivateAddress(hostname)) {
-      throw new Error('URL resolves to a private network address.');
+      throw new Error('URL resolves to a private network address.')
     }
-    return;
+    return
   }
 
-  const records = await lookup(hostname, { all: true, verbatim: false });
+  const records = await lookup(hostname, { all: true, verbatim: false })
   if (records.length === 0) {
-    throw new Error('URL host did not resolve.');
+    throw new Error('URL host did not resolve.')
   }
 
-  const blocked = records.find((record) => isPrivateAddress(record.address));
+  const blocked = records.find((record) => isPrivateAddress(record.address))
   if (blocked) {
-    throw new Error('URL resolves to a private network address.');
+    throw new Error('URL resolves to a private network address.')
   }
 }
-

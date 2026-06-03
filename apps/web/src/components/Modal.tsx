@@ -1,5 +1,5 @@
-import React, { useId } from 'react';
-import { X } from 'lucide-react';
+import React, { useId } from 'react'
+import { X } from 'lucide-react'
 
 export function Modal({
   title,
@@ -8,18 +8,23 @@ export function Modal({
   onClose,
   dialogRef,
 }: {
-  title: string;
-  subtitle: string;
-  children: React.ReactNode;
-  onClose: () => void;
-  dialogRef?: React.RefObject<HTMLElement | null>;
+  title: string
+  subtitle: string
+  children: React.ReactNode
+  onClose: () => void
+  dialogRef?: React.RefObject<HTMLElement | null>
 }) {
-  const titleId = useId();
-  const descriptionId = useId();
+  const titleId = useId()
+  const descriptionId = useId()
 
   return (
     <div className="protolive-modal-backdrop fixed inset-0 z-50 grid place-items-center bg-slate-950/80 p-4 backdrop-blur-sm">
-      <button type="button" className="absolute inset-0 cursor-default" onClick={onClose} aria-label="닫기" />
+      <button
+        type="button"
+        className="absolute inset-0 cursor-default"
+        onClick={onClose}
+        aria-label="닫기"
+      />
       <section
         ref={dialogRef}
         role="dialog"
@@ -50,5 +55,5 @@ export function Modal({
         {children}
       </section>
     </div>
-  );
+  )
 }

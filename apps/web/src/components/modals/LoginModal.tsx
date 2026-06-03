@@ -1,14 +1,14 @@
-import React from 'react';
-import { Users } from 'lucide-react';
-import type { TestAccount } from '../../local-auth';
-import { Modal } from '../Modal';
+import React from 'react'
+import { Users } from 'lucide-react'
+import type { TestAccount } from '../../local-auth'
+import { Modal } from '../Modal'
 
 type TestAccountsByRole = {
-  maker: TestAccount[];
-  investor: TestAccount[];
-  member: TestAccount[];
-  admin: TestAccount[];
-};
+  maker: TestAccount[]
+  investor: TestAccount[]
+  member: TestAccount[]
+  admin: TestAccount[]
+}
 
 export function LoginModal({
   loginEmail,
@@ -21,18 +21,23 @@ export function LoginModal({
   onQuickFill,
   onSubmit,
 }: {
-  loginEmail: string;
-  loginPassword: string;
-  testAccountsByRole: TestAccountsByRole;
-  dialogRef?: React.RefObject<HTMLElement | null>;
-  onClose: () => void;
-  onEmailChange: (value: string) => void;
-  onPasswordChange: (value: string) => void;
-  onQuickFill: (account: TestAccount) => void;
-  onSubmit: (event: React.FormEvent) => void;
+  loginEmail: string
+  loginPassword: string
+  testAccountsByRole: TestAccountsByRole
+  dialogRef?: React.RefObject<HTMLElement | null>
+  onClose: () => void
+  onEmailChange: (value: string) => void
+  onPasswordChange: (value: string) => void
+  onQuickFill: (account: TestAccount) => void
+  onSubmit: (event: React.FormEvent) => void
 }) {
   return (
-    <Modal title="로그인" subtitle="테스트 계정으로 계정 역할을 전환해 실시간 플로우를 확인합니다." onClose={onClose} dialogRef={dialogRef}>
+    <Modal
+      title="로그인"
+      subtitle="테스트 계정으로 계정 역할을 전환해 실시간 플로우를 확인합니다."
+      onClose={onClose}
+      dialogRef={dialogRef}
+    >
       <form onSubmit={onSubmit} className="space-y-4">
         <label className="block">
           <span className="mb-2 block text-xs font-black text-stone-300">이메일</span>
@@ -137,5 +142,5 @@ export function LoginModal({
         </div>
       </form>
     </Modal>
-  );
+  )
 }

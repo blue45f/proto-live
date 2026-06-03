@@ -1,4 +1,4 @@
-import React, { useId } from 'react';
+import React, { useId } from 'react'
 import {
   Briefcase,
   Gauge,
@@ -12,16 +12,16 @@ import {
   Sparkles,
   TimerReset,
   X,
-} from 'lucide-react';
-import type { Project, ProjectEvent, ProjectEventType } from '../api';
-import { eventCopy } from '../lib/constants';
+} from 'lucide-react'
+import type { Project, ProjectEvent, ProjectEventType } from '../api'
+import { eventCopy } from '../lib/constants'
 import {
   formatRelativeTime,
   formatWon,
   getResponseTimeTone,
   getSignalQuality,
   getValidationTone,
-} from '../lib/format';
+} from '../lib/format'
 
 export function ProjectDiligencePanel({
   project,
@@ -35,51 +35,62 @@ export function ProjectDiligencePanel({
   onRefresh,
   canRefresh,
 }: {
-  project: Project;
-  events: ProjectEvent[];
-  isLoadingEvents: boolean;
-  signalRank: number | null;
-  dialogRef?: React.RefObject<HTMLElement | null>;
-  onClose: () => void;
-  onPreview: () => void;
-  onMatch: () => void;
-  onRefresh: () => void;
-  canRefresh: boolean;
+  project: Project
+  events: ProjectEvent[]
+  isLoadingEvents: boolean
+  signalRank: number | null
+  dialogRef?: React.RefObject<HTMLElement | null>
+  onClose: () => void
+  onPreview: () => void
+  onMatch: () => void
+  onRefresh: () => void
+  canRefresh: boolean
 }) {
-  const titleId = useId();
-  const descriptionId = useId();
-  const isProtected = project.accessMode === 'screened';
-  const responseTone = getResponseTimeTone(project.validation.responseTimeMs);
-  const signalQuality = getSignalQuality(project.signalScore);
-  const summaryCounts = project.eventSummary?.counts ?? { create: 0, preview: 0, outbound: 0, match: 0, refresh: 0 };
-  const eventCounts = events.length > 0
-    ? events.reduce<Record<ProjectEventType, number>>(
-      (counts, event) => {
-        counts[event.type] += 1;
-        return counts;
-      },
-      { create: 0, preview: 0, outbound: 0, match: 0, refresh: 0 },
-    )
-    : summaryCounts;
-  const totalEvents = events.length > 0 ? events.length : project.eventSummary?.total ?? 0;
-  const latestEventAt = events[0]?.createdAt ?? project.eventSummary?.latestAt ?? null;
-  const highestIntent = formatWon(project.committedAmountMax);
+  const titleId = useId()
+  const descriptionId = useId()
+  const isProtected = project.accessMode === 'screened'
+  const responseTone = getResponseTimeTone(project.validation.responseTimeMs)
+  const signalQuality = getSignalQuality(project.signalScore)
+  const summaryCounts = project.eventSummary?.counts ?? {
+    create: 0,
+    preview: 0,
+    outbound: 0,
+    match: 0,
+    refresh: 0,
+  }
+  const eventCounts =
+    events.length > 0
+      ? events.reduce<Record<ProjectEventType, number>>(
+          (counts, event) => {
+            counts[event.type] += 1
+            return counts
+          },
+          { create: 0, preview: 0, outbound: 0, match: 0, refresh: 0 }
+        )
+      : summaryCounts
+  const totalEvents = events.length > 0 ? events.length : (project.eventSummary?.total ?? 0)
+  const latestEventAt = events[0]?.createdAt ?? project.eventSummary?.latestAt ?? null
+  const highestIntent = formatWon(project.committedAmountMax)
   const committedRange =
     project.committedAmountMax > 0
       ? `${formatWon(project.committedAmountMin)} ~ ${formatWon(project.committedAmountMax)}`
-      : '아직 구조화된 의향 없음';
-  const exposureLabel = isProtected ? '요청 후 공개, URL 마스킹' : '바로 보기 가능, 새 탭 열람 가능';
+      : '아직 구조화된 의향 없음'
+  const exposureLabel = isProtected ? '요청 후 공개, URL 마스킹' : '바로 보기 가능, 새 탭 열람 가능'
   const proofRows = [
     {
       icon: Globe2,
       label: '라이브 링크 확인',
       value: project.validation.success ? `HTTP ${project.validation.status ?? 'OK'}` : '확인 필요',
-      detail: isProtected ? '공개 목록에서는 원본 URL을 숨기고 접근 요청으로 전환합니다.' : project.validation.finalUrl ?? project.liveUrl,
+      detail: isProtected
+        ? '공개 목록에서는 원본 URL을 숨기고 접근 요청으로 전환합니다.'
+        : (project.validation.finalUrl ?? project.liveUrl),
     },
     {
       icon: TimerReset,
       label: '응답 속도',
-      value: project.validation.responseTimeMs ? `${project.validation.responseTimeMs}ms` : responseTone.label,
+      value: project.validation.responseTimeMs
+        ? `${project.validation.responseTimeMs}ms`
+        : responseTone.label,
       detail: `최근 확인 ${formatRelativeTime(project.validation.checkedAt)}`,
     },
     {
@@ -93,10 +104,13 @@ export function ProjectDiligencePanel({
     {
       icon: Signal,
       label: '연결 순위',
-      value: signalRank === null ? `${project.signalScore ?? 0}점` : `#${signalRank} · ${project.signalScore ?? 0}점`,
+      value:
+        signalRank === null
+          ? `${project.signalScore ?? 0}점`
+          : `#${signalRank} · ${project.signalScore ?? 0}점`,
       detail: `${signalQuality.label} 상태, 최근 활동 ${formatRelativeTime(latestEventAt ?? undefined)}`,
     },
-  ];
+  ]
   const decisionNotes = [
     project.validation.success
       ? '확인 통과: 투자자가 작동 여부보다 제품 흐름과 시장 반응을 바로 검토할 수 있습니다.'
@@ -110,7 +124,7 @@ export function ProjectDiligencePanel({
     totalEvents > 0
       ? `행동 신호: 총 ${totalEvents}건, 미리보기 ${eventCounts.preview}건, 연결 ${eventCounts.match}건입니다.`
       : '행동 신호: 아직 활동이 없어 첫 미리보기와 외부 열람을 만드는 운영 액션이 필요합니다.',
-  ];
+  ]
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm">
@@ -157,10 +171,14 @@ export function ProjectDiligencePanel({
               <Layers3 className="h-3.5 w-3.5 text-cyan-200" />
               {project.category}
             </span>
-            <span className={`inline-flex min-h-7 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-black ${getValidationTone(project.validation)}`}>
+            <span
+              className={`inline-flex min-h-7 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-black ${getValidationTone(project.validation)}`}
+            >
               {project.validation.success ? '확인 통과' : '확인 확인 필요'}
             </span>
-            <span className={`inline-flex min-h-7 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-black ${signalQuality.tone}`}>
+            <span
+              className={`inline-flex min-h-7 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-black ${signalQuality.tone}`}
+            >
               {signalQuality.label}
             </span>
             <span className="inline-flex min-h-7 items-center gap-1 rounded-full border border-amber-300/30 bg-amber-300/10 px-2 py-1 text-[11px] font-black text-amber-100">
@@ -179,19 +197,24 @@ export function ProjectDiligencePanel({
                 </div>
                 <div className="grid gap-2">
                   {proofRows.map((row) => {
-                    const Icon = row.icon;
+                    const Icon = row.icon
                     return (
-                      <div key={row.label} className="grid gap-3 rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3 sm:grid-cols-[150px_minmax(0,1fr)]">
+                      <div
+                        key={row.label}
+                        className="grid gap-3 rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3 sm:grid-cols-[150px_minmax(0,1fr)]"
+                      >
                         <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-stone-500">
                           <Icon className="h-3.5 w-3.5 text-cyan-200" />
                           {row.label}
                         </div>
                         <div className="min-w-0">
                           <p className="font-black text-stone-100">{row.value}</p>
-                          <p className="mt-1 overflow-wrap-anywhere text-xs leading-5 text-stone-400">{row.detail}</p>
+                          <p className="mt-1 overflow-wrap-anywhere text-xs leading-5 text-stone-400">
+                            {row.detail}
+                          </p>
                         </div>
                       </div>
-                    );
+                    )
                   })}
                 </div>
               </section>
@@ -203,7 +226,10 @@ export function ProjectDiligencePanel({
                 </div>
                 <div className="space-y-2">
                   {decisionNotes.map((note) => (
-                    <p key={note} className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3 text-sm leading-6 text-stone-300">
+                    <p
+                      key={note}
+                      className="rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-3 text-sm leading-6 text-stone-300"
+                    >
                       {note}
                     </p>
                   ))}
@@ -224,19 +250,24 @@ export function ProjectDiligencePanel({
                   </p>
                 ) : (
                   <div className="space-y-2">
-                    {(['preview', 'outbound', 'match', 'refresh'] as ProjectEventType[]).map((type) => {
-                      const meta = eventCopy[type];
-                      const Icon = meta.icon;
-                      return (
-                        <div key={type} className="flex items-center justify-between gap-2 rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-2 text-xs">
-                          <span className="inline-flex items-center gap-2 font-black text-stone-300">
-                            <Icon className="h-3.5 w-3.5 text-cyan-200" />
-                            {meta.label}
-                          </span>
-                          <span className="font-black text-stone-50">{eventCounts[type]}</span>
-                        </div>
-                      );
-                    })}
+                    {(['preview', 'outbound', 'match', 'refresh'] as ProjectEventType[]).map(
+                      (type) => {
+                        const meta = eventCopy[type]
+                        const Icon = meta.icon
+                        return (
+                          <div
+                            key={type}
+                            className="flex items-center justify-between gap-2 rounded-lg border border-stone-800 bg-[oklch(15%_0.016_205)] p-2 text-xs"
+                          >
+                            <span className="inline-flex items-center gap-2 font-black text-stone-300">
+                              <Icon className="h-3.5 w-3.5 text-cyan-200" />
+                              {meta.label}
+                            </span>
+                            <span className="font-black text-stone-50">{eventCounts[type]}</span>
+                          </div>
+                        )
+                      }
+                    )}
                   </div>
                 )}
               </section>
@@ -260,7 +291,11 @@ export function ProjectDiligencePanel({
                     onClick={onPreview}
                     className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-cyan-300/35 px-3 text-xs font-black text-cyan-100 hover:bg-cyan-300/10"
                   >
-                    {isProtected ? <ShieldCheck className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+                    {isProtected ? (
+                      <ShieldCheck className="h-4 w-4" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
                     {isProtected ? '리뷰 요청' : '사이트 보기'}
                   </button>
                   <button
@@ -280,5 +315,5 @@ export function ProjectDiligencePanel({
         </div>
       </section>
     </div>
-  );
+  )
 }

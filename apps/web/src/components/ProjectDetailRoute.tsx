@@ -1,10 +1,15 @@
-import React from 'react';
-import { Briefcase, ExternalLink, Globe2, RefreshCw, Sparkles } from 'lucide-react';
-import type { AuthSession } from '../local-auth';
-import type { Project, ProjectEvent, ProjectReview, ProjectReviewType } from '../api';
-import { eventCopy, reviewTypeCopy } from '../lib/constants';
-import { formatRelativeTime, getResponseTimeTone, getValidationTone, maskEmail } from '../lib/format';
-import { ProjectReviewWorkspace } from './ProjectReviewWorkspace';
+import React from 'react'
+import { Briefcase, ExternalLink, Globe2, RefreshCw, Sparkles } from 'lucide-react'
+import type { AuthSession } from '../local-auth'
+import type { Project, ProjectEvent, ProjectReview, ProjectReviewType } from '../api'
+import { eventCopy, reviewTypeCopy } from '../lib/constants'
+import {
+  formatRelativeTime,
+  getResponseTimeTone,
+  getValidationTone,
+  maskEmail,
+} from '../lib/format'
+import { ProjectReviewWorkspace } from './ProjectReviewWorkspace'
 
 export function ProjectDetailRoute({
   project,
@@ -34,38 +39,38 @@ export function ProjectDetailRoute({
   reportingReviewId,
   onLogin,
 }: {
-  project: Project;
-  events: ProjectEvent[];
-  reviews: ProjectReview[];
-  session: AuthSession | null;
-  isEventsLoading: boolean;
-  isReviewsLoading: boolean;
-  reviewType: ProjectReviewType;
-  reviewRating: number;
-  reviewBody: string;
-  replyToReview: ProjectReview | null;
-  isSendingReview: boolean;
-  canRefresh: boolean;
-  onBack: () => void;
-  onPreview: () => void;
-  onMatch: () => void;
-  onRefresh: () => void;
-  onOutbound: () => void;
-  onSubmitReview: (event: React.FormEvent) => void;
-  onReviewTypeChange: (type: ProjectReviewType) => void;
-  onReviewRatingChange: (rating: number) => void;
-  onReviewBodyChange: (body: string) => void;
-  onReplyTo: (review: ProjectReview) => void;
-  onCancelReply: () => void;
-  onReportReview: (review: ProjectReview) => void;
-  reportingReviewId: number | null;
-  onLogin: () => void;
+  project: Project
+  events: ProjectEvent[]
+  reviews: ProjectReview[]
+  session: AuthSession | null
+  isEventsLoading: boolean
+  isReviewsLoading: boolean
+  reviewType: ProjectReviewType
+  reviewRating: number
+  reviewBody: string
+  replyToReview: ProjectReview | null
+  isSendingReview: boolean
+  canRefresh: boolean
+  onBack: () => void
+  onPreview: () => void
+  onMatch: () => void
+  onRefresh: () => void
+  onOutbound: () => void
+  onSubmitReview: (event: React.FormEvent) => void
+  onReviewTypeChange: (type: ProjectReviewType) => void
+  onReviewRatingChange: (rating: number) => void
+  onReviewBodyChange: (body: string) => void
+  onReplyTo: (review: ProjectReview) => void
+  onCancelReply: () => void
+  onReportReview: (review: ProjectReview) => void
+  reportingReviewId: number | null
+  onLogin: () => void
 }) {
-  const isProtected = project.accessMode === 'screened';
-  const responseTone = getResponseTimeTone(project.validation.responseTimeMs);
-  const reviewSummary = project.reviewSummary;
-  const latestReview = reviewSummary?.latest;
-  const tags = project.tags ?? [];
+  const isProtected = project.accessMode === 'screened'
+  const responseTone = getResponseTimeTone(project.validation.responseTimeMs)
+  const reviewSummary = project.reviewSummary
+  const latestReview = reviewSummary?.latest
+  const tags = project.tags ?? []
 
   return (
     <div className="space-y-5 rounded-2xl border border-lime-300/20 bg-stone-950/55 p-4 sm:p-5">
@@ -81,11 +86,17 @@ export function ProjectDetailRoute({
           <span className="rounded-full border border-stone-700 bg-stone-900/70 px-3 py-1 font-black text-stone-300">
             {project.category}
           </span>
-          <span className={'rounded-full border px-3 py-1 font-black ' + getValidationTone(project.validation)}>
+          <span
+            className={
+              'rounded-full border px-3 py-1 font-black ' + getValidationTone(project.validation)
+            }
+          >
             {project.validation.success ? '사이트 확인 완료' : '확인 필요'}
           </span>
           <span className={'rounded-full border px-3 py-1 font-black ' + responseTone.tone}>
-            {project.validation.responseTimeMs ? project.validation.responseTimeMs + 'ms' : responseTone.label}
+            {project.validation.responseTimeMs
+              ? project.validation.responseTimeMs + 'ms'
+              : responseTone.label}
           </span>
         </div>
       </div>
@@ -106,7 +117,9 @@ export function ProjectDetailRoute({
             )}
           </div>
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-lime-200">사이트 상세</p>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-lime-200">
+              사이트 상세
+            </p>
             <h2 className="mt-2 overflow-wrap-anywhere text-3xl font-black tracking-tight text-stone-50">
               {project.title}
             </h2>
@@ -127,23 +140,31 @@ export function ProjectDetailRoute({
             )}
             <div className="mt-4 flex min-w-0 items-center gap-2 rounded-lg border border-stone-800 bg-stone-950/60 px-3 py-2 text-xs text-stone-400">
               <Globe2 className="h-4 w-4 flex-shrink-0 text-stone-500" />
-              <span className="truncate font-mono">{project.validation.finalUrl ?? project.liveUrl}</span>
+              <span className="truncate font-mono">
+                {project.validation.finalUrl ?? project.liveUrl}
+              </span>
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-4">
             <div className="rounded-xl border border-lime-300/20 bg-lime-300/10 p-3">
               <p className="text-xs text-lime-100/75">회원 리뷰</p>
-              <p className="mt-1 text-xl font-black text-lime-100">{reviewSummary?.rootCount ?? 0}</p>
+              <p className="mt-1 text-xl font-black text-lime-100">
+                {reviewSummary?.rootCount ?? 0}
+              </p>
             </div>
             <div className="rounded-xl border border-amber-300/20 bg-amber-300/10 p-3">
               <p className="text-xs text-amber-100/75">평균 별점</p>
               <p className="mt-1 text-xl font-black text-amber-100">
-                {reviewSummary?.averageRating ? reviewSummary.averageRating.toFixed(1) + '점' : '없음'}
+                {reviewSummary?.averageRating
+                  ? reviewSummary.averageRating.toFixed(1) + '점'
+                  : '없음'}
               </p>
             </div>
             <div className="rounded-xl border border-cyan-300/20 bg-cyan-300/10 p-3">
               <p className="text-xs text-cyan-100/75">대댓글</p>
-              <p className="mt-1 text-xl font-black text-cyan-100">{reviewSummary?.replyCount ?? 0}</p>
+              <p className="mt-1 text-xl font-black text-cyan-100">
+                {reviewSummary?.replyCount ?? 0}
+              </p>
             </div>
             <div className="rounded-xl border border-stone-800 bg-stone-950/60 p-3">
               <p className="text-xs text-stone-500">투자 관심</p>
@@ -157,7 +178,8 @@ export function ProjectDetailRoute({
                 {reviewTypeCopy[latestReview.type].label}이 새로 등록되었습니다.
               </p>
               <p className="mt-2 text-xs text-stone-500">
-                {reviewTypeCopy[latestReview.type].label} · {maskEmail(latestReview.authorEmail)} · {formatRelativeTime(latestReview.createdAt)}
+                {reviewTypeCopy[latestReview.type].label} · {maskEmail(latestReview.authorEmail)} ·{' '}
+                {formatRelativeTime(latestReview.createdAt)}
               </p>
               <p className="mt-2 text-xs leading-5 text-stone-500">
                 전체 내용과 대댓글은 아래 커뮤니티 영역에서 확인하세요.
@@ -170,7 +192,8 @@ export function ProjectDetailRoute({
           <div className="rounded-2xl border border-stone-800 bg-stone-950/55 p-4">
             <h3 className="text-lg font-black text-stone-50">다음에 할 일</h3>
             <p className="mt-1 text-sm leading-6 text-stone-400">
-              사이트를 직접 보고, 회원 의견을 남기고, 필요하면 창업자에게 투자 관심이나 성장 도움을 제안하세요.
+              사이트를 직접 보고, 회원 의견을 남기고, 필요하면 창업자에게 투자 관심이나 성장 도움을
+              제안하세요.
             </p>
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
               <button
@@ -198,8 +221,7 @@ export function ProjectDetailRoute({
                   onClick={onOutbound}
                   className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-stone-700 px-3 text-sm font-black text-stone-200 transition hover:border-cyan-300/50 hover:text-cyan-100"
                 >
-                  <ExternalLink className="h-4 w-4" />
-                  새 탭으로 열기
+                  <ExternalLink className="h-4 w-4" />새 탭으로 열기
                 </a>
               )}
               <button
@@ -218,7 +240,9 @@ export function ProjectDetailRoute({
           <div className="rounded-2xl border border-stone-800 bg-stone-950/55 p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <h3 className="text-sm font-black text-stone-100">사이트 활동</h3>
-              <span className="text-xs text-stone-500">{isEventsLoading ? '불러오는 중' : events.length + '개'}</span>
+              <span className="text-xs text-stone-500">
+                {isEventsLoading ? '불러오는 중' : events.length + '개'}
+              </span>
             </div>
             {events.length === 0 ? (
               <p className="rounded-lg border border-dashed border-stone-700 p-3 text-sm text-stone-500">
@@ -227,17 +251,20 @@ export function ProjectDetailRoute({
             ) : (
               <div className="space-y-2">
                 {events.slice(0, 5).map((event) => {
-                  const meta = eventCopy[event.type];
-                  const Icon = meta.icon;
+                  const meta = eventCopy[event.type]
+                  const Icon = meta.icon
                   return (
-                    <div key={event.id} className="flex items-center justify-between gap-3 rounded-lg border border-stone-800 bg-stone-950/45 p-3 text-xs">
+                    <div
+                      key={event.id}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-stone-800 bg-stone-950/45 p-3 text-xs"
+                    >
                       <span className="inline-flex items-center gap-2 font-black text-stone-200">
                         <Icon className="h-3.5 w-3.5 text-cyan-200" />
                         {meta.label}
                       </span>
                       <span className="text-stone-500">{formatRelativeTime(event.createdAt)}</span>
                     </div>
-                  );
+                  )
                 })}
               </div>
             )}
@@ -266,5 +293,5 @@ export function ProjectDetailRoute({
         onSubmit={onSubmitReview}
       />
     </div>
-  );
+  )
 }

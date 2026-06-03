@@ -18,10 +18,10 @@ ProtoLive는 두 개의 컨테이너로 구성됩니다.
 docker compose up --build
 ```
 
-| 서비스 | 컨테이너 포트 | 호스트 URL |
-| --- | --- | --- |
-| web | 8080 (nginx) | http://localhost:4174 |
-| api | 3003 | http://localhost:3003/api |
+| 서비스 | 컨테이너 포트 | 호스트 URL                |
+| ------ | ------------- | ------------------------- |
+| web    | 8080 (nginx)  | http://localhost:4174     |
+| api    | 3003          | http://localhost:3003/api |
 
 중지/정리:
 
@@ -35,14 +35,14 @@ docker compose down -v       # 데이터 볼륨까지 삭제
 
 ## 환경 변수
 
-| 변수 | 대상 | 기본값(compose) | 설명 |
-| --- | --- | --- | --- |
-| `PORT` | api | `3003` | API 리슨 포트 |
-| `PROJECT_STORE_PATH` | api | `/data/protolive-store.json` | JSON 스토어 파일 경로. named volume 디렉터리 하위 |
-| `CORS_ORIGINS` | api | `http://localhost:4174,http://127.0.0.1:4174` | 쉼표 구분 허용 origin. 운영에서는 실제 웹 도메인으로 교체 |
-| `PROTOLIVE_SESSION_SECRET` | api | `local-dev-only-change-me` | 세션 쿠키 서명 키. **`NODE_ENV=production`에서 필수**, 운영에서 반드시 교체 |
-| `RATE_LIMIT_WINDOW_MS` / `RATE_LIMIT_MAX_REQUESTS` | api | `60000` / `120` | 레이트 리밋 |
-| `VITE_API_BASE_URL` | web (빌드 타임) | `http://localhost:3003/api` | 브라우저 번들에 박히는 API 주소. `--build-arg`로 주입 |
+| 변수                                               | 대상            | 기본값(compose)                               | 설명                                                                        |
+| -------------------------------------------------- | --------------- | --------------------------------------------- | --------------------------------------------------------------------------- |
+| `PORT`                                             | api             | `3003`                                        | API 리슨 포트                                                               |
+| `PROJECT_STORE_PATH`                               | api             | `/data/protolive-store.json`                  | JSON 스토어 파일 경로. named volume 디렉터리 하위                           |
+| `CORS_ORIGINS`                                     | api             | `http://localhost:4174,http://127.0.0.1:4174` | 쉼표 구분 허용 origin. 운영에서는 실제 웹 도메인으로 교체                   |
+| `PROTOLIVE_SESSION_SECRET`                         | api             | `local-dev-only-change-me`                    | 세션 쿠키 서명 키. **`NODE_ENV=production`에서 필수**, 운영에서 반드시 교체 |
+| `RATE_LIMIT_WINDOW_MS` / `RATE_LIMIT_MAX_REQUESTS` | api             | `60000` / `120`                               | 레이트 리밋                                                                 |
+| `VITE_API_BASE_URL`                                | web (빌드 타임) | `http://localhost:3003/api`                   | 브라우저 번들에 박히는 API 주소. `--build-arg`로 주입                       |
 
 `VITE_API_BASE_URL`은 **빌드 타임** 변수입니다. 값이 바뀌면 web 이미지를 다시 빌드해야 합니다.
 미지정 시 브라우저는 현재 origin의 `:3003/api`를 추정합니다(`apps/web/src/api.ts`).

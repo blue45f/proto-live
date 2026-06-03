@@ -1,46 +1,46 @@
-import { Injectable, NestMiddleware } from '@nestjs/common';
-import { NextFunction, Request, Response } from 'express';
+import { Injectable, NestMiddleware } from '@nestjs/common'
+import { NextFunction, Request, Response } from 'express'
 
 interface RateLimiterOptions {
-  windowMs: number;
-  maxRequests: number;
+  windowMs: number
+  maxRequests: number
 }
 
 interface Bucket {
-  count: number;
-  resetAt: number;
+  count: number
+  resetAt: number
 }
 
 export class TokenBucketRateLimiter {
-  private readonly buckets = new Map<string, Bucket>();
+  private readonly buckets = new Map<string, Bucket>()
 
   constructor(private readonly options: RateLimiterOptions) {}
 
   consume(key: string, now = Date.now()) {
-    const existing = this.buckets.get(key);
+    const existing = this.buckets.get(key)
     const bucket =
       !existing || existing.resetAt <= now
         ? {
             count: 0,
             resetAt: now + this.options.windowMs,
           }
-        : existing;
+        : existing
 
-    bucket.count += 1;
-    this.buckets.set(key, bucket);
+    bucket.count += 1
+    this.buckets.set(key, bucket)
 
     return {
       allowed: bucket.count <= this.options.maxRequests,
       remaining: Math.max(0, this.options.maxRequests - bucket.count),
       retryAfterMs: Math.max(0, bucket.resetAt - now),
       resetAt: bucket.resetAt,
-    };
+    }
   }
 
   cleanup(now = Date.now()) {
     for (const [clientKey, bucket] of this.buckets) {
       if (bucket.resetAt <= now) {
-        this.buckets.delete(clientKey);
+        this.buckets.delete(clientKey)
       }
     }
   }
@@ -51,37 +51,40 @@ export class RateLimitMiddleware implements NestMiddleware {
   private readonly limiter = new TokenBucketRateLimiter({
     windowMs: Math.max(1, Number(process.env.RATE_LIMIT_WINDOW_MS ?? 60_000) || 60_000),
     maxRequests: Math.max(1, Number(process.env.RATE_LIMIT_MAX_REQUESTS ?? 120) || 120),
-  });
+  })
 
-  private lastCleanupAt = 0;
-  private readonly cleanupIntervalMs = 30_000;
+  private lastCleanupAt = 0
+  private readonly cleanupIntervalMs = 30_000
 
   use(request: Request, response: Response, next: NextFunction) {
-    const now = Date.now();
+    const now = Date.now()
 
-    const forwardedFor = request.headers['x-forwarded-for'];
+    const forwardedFor = request.headers['x-forwarded-for']
     const clientKey = Array.isArray(forwardedFor)
       ? forwardedFor[0]
-      : forwardedFor?.split(',')[0]?.trim() || request.ip || request.socket.remoteAddress || 'unknown';
+      : forwardedFor?.split(',')[0]?.trim() ||
+        request.ip ||
+        request.socket.remoteAddress ||
+        'unknown'
 
-    const result = this.limiter.consume(clientKey, now);
-    response.setHeader('X-RateLimit-Remaining', String(result.remaining));
-    response.setHeader('X-RateLimit-Reset', new Date(result.resetAt).toISOString());
+    const result = this.limiter.consume(clientKey, now)
+    response.setHeader('X-RateLimit-Remaining', String(result.remaining))
+    response.setHeader('X-RateLimit-Reset', new Date(result.resetAt).toISOString())
 
     if (!result.allowed) {
-      response.setHeader('Retry-After', String(Math.ceil(result.retryAfterMs / 1000)));
+      response.setHeader('Retry-After', String(Math.ceil(result.retryAfterMs / 1000)))
       response.status(429).json({
         statusCode: 429,
         message: 'Too many requests. Please retry after the rate limit window resets.',
-      });
-      return;
+      })
+      return
     }
 
     if (now >= this.lastCleanupAt + this.cleanupIntervalMs) {
-      this.lastCleanupAt = now;
-      this.limiter.cleanup(now);
+      this.lastCleanupAt = now
+      this.limiter.cleanup(now)
     }
 
-    next();
+    next()
   }
 }
