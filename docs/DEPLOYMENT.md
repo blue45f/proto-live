@@ -5,10 +5,10 @@ ProtoLive는 두 개의 컨테이너로 구성됩니다.
 - **web** — Vite + React 정적 빌드를 비루트 nginx(`nginx-unprivileged`)로 서빙
 - **api** — NestJS 서버. 외부 DB 없이 원자적 JSON 파일 스토어를 사용
 
-각 앱은 **독립 npm 프로젝트**(자체 `package-lock.json`)이며, Dockerfile은 각 앱 디렉터리에 있습니다.
+두 앱은 하나의 **pnpm 워크스페이스**(루트 `pnpm-workspace.yaml` + `pnpm-lock.yaml`, `packageManager: pnpm@11.4.0`)로 묶여 있으며, Dockerfile은 각 앱 디렉터리에 있지만 **빌드 컨텍스트는 리포지토리 ROOT**입니다(워크스페이스 매니페스트 + 잠금 파일 + 모든 apps가 컨텍스트에 있어야 `pnpm install --frozen-lockfile`이 재현 가능하게 동작).
 
-- `apps/api/Dockerfile` — `node:22-alpine` 멀티스테이지(빌드 → prod-deps → 비루트 runtime), `node dist/src/main.js`
-- `apps/web/Dockerfile` — `node:22-alpine`로 정적 빌드 후 `nginx-unprivileged`(8080)로 서빙
+- `apps/api/Dockerfile` — `node:22-alpine` 멀티스테이지(deps → build → 비루트 runtime), corepack `pnpm@11.4.0` + `pnpm install --frozen-lockfile` + `pnpm --filter protolive-backend --prod --legacy deploy`, `node dist/src/main.js`
+- `apps/web/Dockerfile` — `node:22-alpine`로 pnpm 정적 빌드 후 `nginx-unprivileged`(8080)로 서빙
 - `apps/web/nginx.conf` — SPA 폴백(`try_files ... /index.html`) + 캐시 정책 + `/healthz`
 - `docker-compose.yml` — web + api를 로컬 풀스택으로 빌드/실행
 
@@ -60,17 +60,21 @@ API는 외부 데이터베이스를 쓰지 않고 `PROJECT_STORE_PATH`가 가리
 
 ## 개별 이미지 빌드
 
-```bash
-# API 이미지 (빌드 컨텍스트 = apps/api)
-docker build -t protolive-api apps/api
+빌드 컨텍스트는 **리포지토리 ROOT**(`.`)이며 Dockerfile 경로는 `-f`로 지정합니다.
 
-# Web 이미지 (빌드 컨텍스트 = apps/web, 공개 API 주소 주입)
-docker build -t protolive-web \
+```bash
+# API 이미지 (빌드 컨텍스트 = 리포 ROOT)
+docker build -f apps/api/Dockerfile -t protolive-api .
+
+# Web 이미지 (빌드 컨텍스트 = 리포 ROOT, 공개 API 주소 주입)
+docker build -f apps/web/Dockerfile \
   --build-arg VITE_API_BASE_URL=https://api.your-domain.com/api \
-  apps/web
+  -t protolive-web .
 ```
 
-각 이미지의 빌드 컨텍스트는 **해당 앱 디렉터리**입니다(루트 전체가 아님).
+각 이미지의 빌드 컨텍스트는 **리포지토리 ROOT**입니다(pnpm 워크스페이스 잠금 파일과
+워크스페이스 매니페스트가 컨텍스트에 있어야 하므로). 호스트의 `node_modules`/`dist`는
+루트 `.dockerignore`로 제외되어 이미지 내부에서 재설치·재빌드됩니다.
 
 ## 컨테이너 호스트 배포 (Render / Cloud Run / Fly.io 등)
 

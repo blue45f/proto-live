@@ -1,0 +1,8 @@
+packages:
+  - 'apps/*'
+
+# pnpm 11 build-script approvals (CI on pnpm 11.4.0 fails with
+# ERR_PNPM_IGNORED_BUILDS otherwise). Mirrors the sibling repos' convention.
+allowBuilds:
+  '@nestjs/core': true
+  esbuild: true
