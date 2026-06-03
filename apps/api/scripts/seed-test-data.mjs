@@ -501,8 +501,13 @@ function upsertById(target, incoming) {
     }
 
     const previous = map.get(item.id)
-    map.set(item.id, { ...previous, ...item })
-    changed += previous ? 1 : 0
+    const next = { ...previous, ...item }
+    map.set(item.id, next)
+    // Only count rows that actually changed, so the "no changes, skip" path
+    // is not bypassed by re-runs over identical fixtures.
+    if (JSON.stringify(previous) !== JSON.stringify(next)) {
+      changed += 1
+    }
   }
 
   return {

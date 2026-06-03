@@ -46,6 +46,33 @@ export class TokenBucketRateLimiter {
   }
 }
 
+interface ClientKeySource {
+  headers: Request['headers']
+  ip?: string
+  socket?: { remoteAddress?: string }
+}
+
+// Trust the X-Forwarded-For header only when explicitly enabled. Behind a real
+// proxy (Render/Fly), set RATE_LIMIT_TRUST_PROXY=1 so rate limiting keys on the
+// real client IP. Off by default so a direct caller cannot spoof XFF to mint a
+// fresh bucket per request and bypass the limit.
+export function isProxyTrusted(env: NodeJS.ProcessEnv = process.env): boolean {
+  return /^(1|true|yes)$/i.test((env.RATE_LIMIT_TRUST_PROXY ?? '').trim())
+}
+
+export function resolveClientKey(request: ClientKeySource, trustProxy: boolean): string {
+  if (trustProxy) {
+    const forwardedFor = request.headers['x-forwarded-for']
+    const fromHeader = Array.isArray(forwardedFor)
+      ? forwardedFor[0]?.trim()
+      : forwardedFor?.split(',')[0]?.trim()
+    if (fromHeader) {
+      return fromHeader
+    }
+  }
+  return request.ip || request.socket?.remoteAddress || 'unknown'
+}
+
 @Injectable()
 export class RateLimitMiddleware implements NestMiddleware {
   private readonly limiter = new TokenBucketRateLimiter({
@@ -53,19 +80,14 @@ export class RateLimitMiddleware implements NestMiddleware {
     maxRequests: Math.max(1, Number(process.env.RATE_LIMIT_MAX_REQUESTS ?? 120) || 120),
   })
 
+  private readonly trustProxy = isProxyTrusted()
   private lastCleanupAt = 0
   private readonly cleanupIntervalMs = 30_000
 
   use(request: Request, response: Response, next: NextFunction) {
     const now = Date.now()
 
-    const forwardedFor = request.headers['x-forwarded-for']
-    const clientKey = Array.isArray(forwardedFor)
-      ? forwardedFor[0]
-      : forwardedFor?.split(',')[0]?.trim() ||
-        request.ip ||
-        request.socket.remoteAddress ||
-        'unknown'
+    const clientKey = resolveClientKey(request, this.trustProxy)
 
     const result = this.limiter.consume(clientKey, now)
     response.setHeader('X-RateLimit-Remaining', String(result.remaining))

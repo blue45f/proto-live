@@ -158,9 +158,10 @@ function seedAccounts(state, fixtureAccounts) {
 function main() {
   const fixtureAccounts = loadFixtureAccounts()
   const beforeState = loadStoreState()
+  // Capture the count before seedAccounts mutates beforeState in place.
+  const beforeCount = beforeState.users.length
   const { state: nextState, seeded } = seedAccounts(beforeState, fixtureAccounts)
 
-  const beforeCount = beforeState.users.length
   const afterCount = nextState.users.length
 
   if (seeded.length === 0) {
