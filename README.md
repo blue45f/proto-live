@@ -9,47 +9,47 @@ ProtoLive는 극초기 웹/앱 프로토타입 투자 매칭 플랫폼입니다.
 ### 0. 루트에서 한 번에 실행
 
 ```bash
-npm run setup
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 포트 충돌이 나면 루트 실행 시 아래처럼 환경 변수를 오버라이드해서 띄울 수 있습니다.
 
 ```bash
-BACKEND_PORT=3008 FRONTEND_PORT=4178 VITE_API_BASE_URL=http://localhost:3008/api npm run dev
+BACKEND_PORT=3008 FRONTEND_PORT=4178 VITE_API_BASE_URL=http://localhost:3008/api pnpm dev
 ```
 
-`npm run dev`는 기본적으로 백엔드 `3003`, 프론트 `4174`를 사용하며, 포트가 이미 사용 중이면 다음 사용 가능한 포트로 자동 전환합니다.
-`npm run dev` 실행 시 백엔드에서는 현재 프론트 포트를 포함해 기본 `CORS_ORIGINS`를 자동 보정해 커스텀 포트에서도 API가 동작하도록 처리합니다.
+`pnpm dev`는 기본적으로 백엔드 `3003`, 프론트 `4174`를 사용하며, 포트가 이미 사용 중이면 다음 사용 가능한 포트로 자동 전환합니다.
+`pnpm dev` 실행 시 백엔드에서는 현재 프론트 포트를 포함해 기본 `CORS_ORIGINS`를 자동 보정해 커스텀 포트에서도 API가 동작하도록 처리합니다.
 
 테스트 계정 시드 생성이 필요한 경우:
 
 ```bash
-npm run seed:test-accounts
+pnpm seed:test-accounts
 ```
 
 프로젝트/제안/이벤트까지 포함한 통합 테스트 데이터 시드가 필요한 경우:
 
 ```bash
-npm run seed:test-data
+pnpm seed:test-data
 ```
 
 원클릭 데모 재설정(테스트 계정+프로젝트+제안+이벤트 동기화)도 가능합니다:
 
 ```bash
-npm run seed:demo-data
+pnpm seed:demo-data
 ```
 
 로컬 테스트 중 쌓인 임시 이벤트/프로젝트를 지우고 기준 샘플 상태로 되돌리려면:
 
 ```bash
-npm run seed:test-data -- --reset
+pnpm seed:test-data -- --reset
 ```
 
 변경 없이 미리 보기만 하려면:
 
 ```bash
-npm run seed:test-accounts -- --dry-run
+pnpm seed:test-accounts -- --dry-run
 ```
 
 `seed:test-accounts`는 `apps/api/fixtures/test-accounts.json`의 계정을, `seed:test-data`는 `apps/api/fixtures/test-data.json`의 계정+프로젝트+제안+이벤트를 기준으로 로컬 스토어 사용자(`PROJECT_STORE_PATH`)를 반영합니다. `seed:test-data -- --reset`은 기존 로컬 스토어를 기준 샘플 데이터만 남도록 재생성합니다.
@@ -60,12 +60,12 @@ npm run seed:test-accounts -- --dry-run
 
 ```bash
 cd apps/api
-npm install
-npm run start:dev
+pnpm install
+pnpm start:dev
 ```
 
 기본 포트는 `3003`입니다.
-`npm run dev`를 사용할 때는 `BACKEND_PORT`로 백엔드 포트를 바로 바꿀 수 있습니다.
+`pnpm dev`를 사용할 때는 `BACKEND_PORT`로 백엔드 포트를 바로 바꿀 수 있습니다.
 
 주요 API:
 
@@ -117,12 +117,12 @@ PROTOLIVE_SESSION_SECRET=replace-with-local-random-string
 
 ```bash
 cd apps/web
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
-`npm run dev` 기본 포트는 `4174`입니다.
-`npm run dev`를 사용할 때는 `FRONTEND_PORT`로 프론트엔드 포트를 바꿀 수 있으며, 백엔드 포트 변경 시 같은 값으로 `VITE_API_BASE_URL`을 맞춰주어야 합니다.
+`pnpm dev` 기본 포트는 `4174`입니다.
+`pnpm dev`를 사용할 때는 `FRONTEND_PORT`로 프론트엔드 포트를 바꿀 수 있으며, 백엔드 포트 변경 시 같은 값으로 `VITE_API_BASE_URL`을 맞춰주어야 합니다.
 
 프론트엔드 API 주소는 Vite 환경 변수로 조정할 수 있습니다:
 
@@ -188,12 +188,12 @@ psql "$DATABASE_URL" -f db/seeds/sample-data.sql
 ## 검증 명령
 
 ```bash
-cd apps/api && npm test
-cd apps/api && npm run build
-cd apps/web && npm run build
-cd apps/web && npm run lint
+cd apps/api && pnpm test
+cd apps/api && pnpm build
+cd apps/web && pnpm build
+cd apps/web && pnpm lint
 ```
 
-또는 루트에서 `npm run check`를 실행하면 `build/lint/test`를 한 번에 점검할 수 있습니다.
+또는 루트에서 `pnpm verify`를 실행하면 architecture · format · lint · typecheck · test · build를 한 번에 점검할 수 있습니다(로컬·CI 동일 게이트).
 
-로컬에서 UI 동작 확인은 백엔드와 프론트엔드가 둘 다 구동 중인 상태에서 `npm run smoke`로 수행합니다.
+로컬에서 UI 동작 확인은 백엔드와 프론트엔드가 둘 다 구동 중인 상태에서 `pnpm smoke`로 수행합니다.
