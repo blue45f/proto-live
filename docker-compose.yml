@@ -1,0 +1,46 @@
+# ProtoLive 로컬 풀스택 실행용 Compose.
+#   docker compose up --build
+#   웹: http://localhost:4174   API: http://localhost:3003/api
+#
+# 외부 DB 없음: 현재 API는 원자적 JSON 파일 스토어(PROJECT_STORE_PATH)를 사용한다.
+# (db/ 디렉터리의 PostgreSQL 스키마는 "향후 전환용" 리소스이며 런타임에서 쓰이지 않음.)
+# 따라서 postgres 서비스를 추가하지 않고, 데이터는 named volume(api-data)에 영속한다.
+
+services:
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: "3003"
+      # 컨테이너 내부 JSON 스토어 파일 경로(아래 named volume 디렉터리 하위)
+      PROJECT_STORE_PATH: /data/protolive-store.json
+      # 브라우저는 호스트의 localhost:4174에서 로드되므로 그 origin을 허용해야 한다.
+      CORS_ORIGINS: http://localhost:4174,http://127.0.0.1:4174
+      # NODE_ENV=production에서는 필수. 로컬 데모용 기본값이며 실제 배포 시 반드시 교체.
+      PROTOLIVE_SESSION_SECRET: ${PROTOLIVE_SESSION_SECRET:-local-dev-only-change-me}
+      RATE_LIMIT_WINDOW_MS: "60000"
+      RATE_LIMIT_MAX_REQUESTS: "120"
+    ports:
+      - "3003:3003"
+    volumes:
+      - api-data:/data
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+      args:
+        # 브라우저 번들에 박히는 빌드 타임 API 주소(호스트에서 본 API 포트).
+        VITE_API_BASE_URL: http://localhost:3003/api
+    ports:
+      # 호스트 4174 → 컨테이너 8080(nginx-unprivileged)
+      - "4174:8080"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  api-data:
