@@ -58,9 +58,12 @@ proto-live/
 
 ## 헬스 체크
 
-- 라이브니스: `GET /api/health`.
-- 리드니스: JSON 스토어 기반이라 DB readiness 프로브가 없음 — 컨테이너 운영 시 스토어 쓰기 가능성을
-  확인하는 `/ready`(503 on fail)를 추가하는 것이 후속 과제(루트 표준의 readiness 패턴).
+루트 표준(liveness + readiness) 패턴을 따릅니다.
+
+- 라이브니스: `GET /api/health` — status/timestamp/uptime.
+- 리드니스: `GET /api/health/ready` — JSON 스토어 사용 가능성(디렉터리 쓰기 가능 + 기존 파일 파싱)을
+  `JsonProjectsStore.checkReadiness()`로 확인. 준비됨이면 `{ status: 'ready', store: 'ok' }`,
+  실패면 **503**(`{ status: 'unavailable', store: 'unwritable' | 'unreadable' }`)로 트래픽 차단.
 
 ## 검증·배포
 

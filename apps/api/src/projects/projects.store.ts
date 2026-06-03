@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
+import {
+  accessSync,
+  constants as fsConstants,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from 'node:fs'
 import { dirname, join } from 'node:path'
 import {
   createEmptyProjectsState,
@@ -181,5 +189,27 @@ export class JsonProjectsStore {
     const temporaryPath = `${this.filePath}.${process.pid}.${Date.now()}.tmp`
     writeFileSync(temporaryPath, `${JSON.stringify(serializeState(state), null, 2)}\n`, 'utf8')
     renameSync(temporaryPath, this.filePath)
+  }
+
+  /**
+   * Readiness probe for the JSON persistence layer (no DB here): the store
+   * directory must be writable and any existing store file must parse. Used by
+   * the /api/health/ready endpoint so orchestrators can gate traffic.
+   */
+  checkReadiness(): { ready: boolean; store: 'ok' | 'unwritable' | 'unreadable' } {
+    try {
+      mkdirSync(dirname(this.filePath), { recursive: true })
+      accessSync(dirname(this.filePath), fsConstants.W_OK)
+    } catch {
+      return { ready: false, store: 'unwritable' }
+    }
+
+    try {
+      this.read()
+    } catch {
+      return { ready: false, store: 'unreadable' }
+    }
+
+    return { ready: true, store: 'ok' }
   }
 }
