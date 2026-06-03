@@ -8,8 +8,8 @@ dist-test/
 coverage/
 *.tsbuildinfo
 data/
-backend/data/
+apps/api/data/
 # Frontend static demo accounts (non-secret mock data) must be tracked so the
 # build is reproducible — the broad data/ rule above is for runtime stores only.
-!frontend/src/data/
+!apps/web/src/data/
 .idea/

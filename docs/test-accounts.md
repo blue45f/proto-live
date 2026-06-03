@@ -21,12 +21,12 @@ npm run seed:test-accounts -- --dry-run
 npm run seed:test-data -- --dry-run
 ```
 
-`frontend/src/data/test-accounts.json`은 로컬 로그인 모달이 읽는 계정 파일입니다.
-`backend/fixtures/test-data.json`은 계정 + 프로젝트 + 제안 + 이벤트 + 리뷰 + 감사 로그(총괄 테스트 데이터)를 제공합니다.
-두 파일 모두 `backend/data/protolive-store.json`(혹은 `PROJECT_STORE_PATH`)에 반영됩니다.
+`apps/web/src/data/test-accounts.json`은 로컬 로그인 모달이 읽는 계정 파일입니다.
+`apps/api/fixtures/test-data.json`은 계정 + 프로젝트 + 제안 + 이벤트 + 리뷰 + 감사 로그(총괄 테스트 데이터)를 제공합니다.
+두 파일 모두 `apps/api/data/protolive-store.json`(혹은 `PROJECT_STORE_PATH`)에 반영됩니다.
 
 ## 파일 위치
-- `backend/fixtures/test-accounts.json`
+- `apps/api/fixtures/test-accounts.json`
 
 ## 기본 규칙
 - 실제 운영용 계정/비밀번호로 사용하지 마세요.

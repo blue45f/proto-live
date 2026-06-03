@@ -46,13 +46,13 @@ npm run seed:test-data -- --reset
 npm run seed:test-accounts -- --dry-run
 ```
 
-`seed:test-accounts`는 `backend/fixtures/test-accounts.json`의 계정을, `seed:test-data`는 `backend/fixtures/test-data.json`의 계정+프로젝트+제안+이벤트를 기준으로 로컬 스토어 사용자(`PROJECT_STORE_PATH`)를 반영합니다. `seed:test-data -- --reset`은 기존 로컬 스토어를 기준 샘플 데이터만 남도록 재생성합니다.
+`seed:test-accounts`는 `apps/api/fixtures/test-accounts.json`의 계정을, `seed:test-data`는 `apps/api/fixtures/test-data.json`의 계정+프로젝트+제안+이벤트를 기준으로 로컬 스토어 사용자(`PROJECT_STORE_PATH`)를 반영합니다. `seed:test-data -- --reset`은 기존 로컬 스토어를 기준 샘플 데이터만 남도록 재생성합니다.
 
 백엔드가 `http://localhost:3003/api` 에서 동작하고, 프론트엔드가 `http://localhost:4174`에서 실행됩니다. 해당 포트가 점유 중이면 실행 로그에 자동 전환된 실제 포트가 표시됩니다.
 
 ### 1. 백엔드 기동 (NestJS API)
 ```bash
-cd backend
+cd apps/api
 npm install
 npm run start:dev
 ```
@@ -89,13 +89,13 @@ RATE_LIMIT_WINDOW_MS=60000
 RATE_LIMIT_MAX_REQUESTS=120
 PROTOLIVE_SESSION_SECRET=replace-with-local-random-string
 ```
-`backend/.env.example` 파일을 기준으로 `.env`를 복사해 사용할 수 있습니다.
+`apps/api/.env.example` 파일을 기준으로 `.env`를 복사해 사용할 수 있습니다.
 `NODE_ENV=production`에서는 `PROTOLIVE_SESSION_SECRET`을 반드시 명시해야 서버가 부팅됩니다.
 운영 환경의 CORS는 `CORS_ORIGINS`에 명시된 origin만 허용하며, localhost 자동 허용은 개발 모드에서만 적용됩니다.
 
 ### 로컬 테스트 계정
 
-로컬 개발/QA 테스트 계정은 `backend/fixtures/test-data.json`과 `frontend/src/data/test-accounts.json`에 맞춰 두었습니다.  
+로컬 개발/QA 테스트 계정은 `apps/api/fixtures/test-data.json`과 `apps/web/src/data/test-accounts.json`에 맞춰 두었습니다.  
 현재 앱은 서버 로그인 API가 발급하는 httpOnly 세션 쿠키로 역할(메이커/투자자/일반 회원/운영자)을 식별합니다.
 운영자 샘플 계정은 `admin-ops@protolive.local` / `pass-admin-01`입니다.
 
@@ -105,7 +105,7 @@ PROTOLIVE_SESSION_SECRET=replace-with-local-random-string
 
 ### 2. 프론트엔드 기동 (Vite + React + TypeScript + Tailwind v4)
 ```bash
-cd frontend
+cd apps/web
 npm install
 npm run dev
 ```
@@ -117,7 +117,7 @@ npm run dev
 ```bash
 VITE_API_BASE_URL=http://localhost:3003/api
 ```
-`frontend/.env.example` 파일을 기준으로 `.env`를 복사해 사용할 수 있습니다.
+`apps/web/.env.example` 파일을 기준으로 `.env`를 복사해 사용할 수 있습니다.
 
 프론트엔드는 백엔드가 꺼져 있으면 가짜 프로젝트를 보여주지 않습니다. 연결 오류와 복구 명령을 보여주고, API가 연결된 뒤 실제 검증 등록 데이터만 표시합니다.
 
@@ -174,10 +174,10 @@ psql "$DATABASE_URL" -f db/seeds/sample-data.sql
 ## 검증 명령
 
 ```bash
-cd backend && npm test
-cd backend && npm run build
-cd frontend && npm run build
-cd frontend && npm run lint
+cd apps/api && npm test
+cd apps/api && npm run build
+cd apps/web && npm run build
+cd apps/web && npm run lint
 ```
 
 또는 루트에서 `npm run check`를 실행하면 `build/lint/test`를 한 번에 점검할 수 있습니다.

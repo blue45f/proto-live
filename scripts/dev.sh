@@ -61,10 +61,10 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-PORT="$backend_port" CORS_ORIGINS="$backend_cors_origins" npm --prefix backend run start:dev &
+PORT="$backend_port" CORS_ORIGINS="$backend_cors_origins" npm --prefix apps/api run start:dev &
 backend_pid=$!
 
-VITE_API_BASE_URL="$frontend_api_base" npm --prefix frontend run dev -- --port "$frontend_port" &
+VITE_API_BASE_URL="$frontend_api_base" npm --prefix apps/web run dev -- --port "$frontend_port" &
 frontend_pid=$!
 
 set +e
