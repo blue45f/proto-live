@@ -32,7 +32,7 @@ export function ProofKpiRail({
         icon={Zap}
         label="가장 빠른 응답"
         value={
-          fastestResponseProject?.validation.responseTimeMs
+          fastestResponseProject?.validation.responseTimeMs != null
             ? `${fastestResponseProject.validation.responseTimeMs}ms`
             : 'N/A'
         }

@@ -420,3 +420,39 @@ test('test-data seed script errors when fixture is malformed', () => {
     rmSync(dir, { recursive: true, force: true })
   }
 })
+
+test('test-data seed is idempotent — re-running the same fixture reports no changes', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'protolive-seed-data-idempotent-'))
+  const fixturePath = createFixture(dir, 'fixture.json', {
+    accounts: [
+      {
+        id: 1,
+        email: 'idem.user@protolive.local',
+        role: 'maker',
+        name: 'Idem User',
+      },
+    ],
+    projects: [],
+    proposals: [],
+    events: [],
+    nextUserId: 2,
+    nextProjectId: 1,
+    nextProposalId: 1,
+    nextEventId: 1,
+  })
+  const storePath = join(dir, 'store.json')
+
+  try {
+    const first = runSeedDataScript({ fixturePath, storePath })
+    assert.equal(first.status, 0)
+    assert.match(first.stdout, /테스트 데이터 시드 완료/)
+
+    // The second run over an identical fixture must not over-count unchanged
+    // rows — it should hit the "no changes, skip" path.
+    const second = runSeedDataScript({ fixturePath, storePath })
+    assert.equal(second.status, 0)
+    assert.match(second.stdout, /변경 항목이 없어 시드를 건너뜁니다/)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})

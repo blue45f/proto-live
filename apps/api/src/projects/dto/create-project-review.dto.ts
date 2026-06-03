@@ -17,8 +17,15 @@ function parseOptionalInteger(value: unknown): unknown {
     return value
   }
 
-  const parsed = Number.parseInt(value, 10)
-  return Number.isFinite(parsed) ? parsed : value
+  // Strict integer match — reject prefixed values like "2foo" (Number.parseInt
+  // would coerce them to 2 and slip past @IsInt). Non-integer strings are
+  // returned untouched so class-validator surfaces the proper error.
+  const normalized = value.trim()
+  if (!/^-?\d+$/.test(normalized)) {
+    return value
+  }
+  const parsed = Number(normalized)
+  return Number.isSafeInteger(parsed) ? parsed : value
 }
 
 export class CreateProjectReviewDto {
