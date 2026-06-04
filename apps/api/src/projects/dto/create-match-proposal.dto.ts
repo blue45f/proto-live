@@ -1,4 +1,4 @@
-import { Equals, IsIn, IsNotEmpty, IsString, MaxLength } from 'class-validator'
+import { Equals, IsIn, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator'
 import { FUNDING_RANGES, FundingRangeId } from '../project.constants'
 
 const FUNDING_RANGE_IDS = FUNDING_RANGES.map((range) => range.id)
@@ -22,4 +22,15 @@ export class CreateMatchProposalDto {
 
   @Equals(true, { message: '초기 프로토타입 투자 검토의 위험 안내를 확인해야 합니다.' })
   riskNoticeAccepted: boolean
+
+  // 동의 당시 본 정본 약관의 버전/해시(선택). 보내면 서버가 현재 약관과 일치하는지 검증(재동의 게이트).
+  @IsOptional()
+  @IsString({ message: '동의 약관 버전은 문자열이어야 합니다.' })
+  @MaxLength(40)
+  consentVersion?: string
+
+  @IsOptional()
+  @IsString({ message: '동의 약관 해시는 문자열이어야 합니다.' })
+  @MaxLength(128)
+  consentHash?: string
 }

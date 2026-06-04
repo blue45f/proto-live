@@ -166,6 +166,19 @@ export interface MarketConfig {
   refreshIntervalMs: number
   benchmarkSignals: string[]
   challenge?: SeasonChallenge | null
+  consentTerms?: ConsentTerms
+}
+
+export interface ConsentSection {
+  key: 'legal' | 'privacy' | 'risk'
+  title: string
+  body: string
+}
+
+export interface ConsentTerms {
+  version: string
+  hash: string
+  sections: ConsentSection[]
 }
 
 export interface MarketStats {
@@ -383,6 +396,8 @@ export interface CreateMatchPayload {
   legalNoticeAccepted: boolean
   privacyConsentAccepted: boolean
   riskNoticeAccepted: boolean
+  consentVersion?: string
+  consentHash?: string
 }
 
 export interface CreateProjectReviewPayload {

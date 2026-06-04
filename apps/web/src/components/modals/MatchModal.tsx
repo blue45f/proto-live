@@ -75,6 +75,21 @@ export function MatchModal({
             className="w-full resize-none rounded-lg border border-stone-700 bg-stone-950 px-3 py-3 text-sm leading-6 text-stone-100 outline-none placeholder:text-stone-500 focus:border-lime-300/60"
           />
         </label>
+        {config.consentTerms ? (
+          <div className="space-y-2 rounded-xl border border-stone-700 bg-stone-950/45 p-3 text-xs leading-5 text-stone-300">
+            <div className="flex items-center justify-between gap-2">
+              <p className="font-black text-stone-100">동의 약관 전문</p>
+              <span className="rounded-full border border-stone-700 px-2 py-0.5 text-[10px] font-bold text-stone-400">
+                v{config.consentTerms.version} · 무결성 검증
+              </span>
+            </div>
+            {config.consentTerms.sections.map((section) => (
+              <p key={section.key}>
+                <span className="font-black text-stone-200">{section.title}.</span> {section.body}
+              </p>
+            ))}
+          </div>
+        ) : null}
         <div className="protolive-compliance-box space-y-2 rounded-xl border border-amber-300/35 bg-amber-300/10 p-3 text-xs leading-5 text-amber-50">
           <p className="font-black text-amber-100">기록 전 필수 확인</p>
           <label className="flex gap-2">
