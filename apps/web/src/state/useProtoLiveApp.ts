@@ -2388,6 +2388,7 @@ export function useProtoLiveApp() {
     applyRevenueModelPreset,
     averageSignalDensity,
     canAccessAdmin,
+    canSubmitProject,
     canRefreshProject,
     category,
     categoryOptions,
