@@ -58,6 +58,15 @@ function buildApiMock() {
     reportProjectReview: vi.fn(async () => ({ review: projectReviews[0], project: projects[0] })),
     moderateProjectReview: vi.fn(async () => ({ review: projectReviews[0], project: projects[0] })),
     recordProjectEvent: vi.fn(async () => projects[0]),
+    toggleProjectUpvote: vi.fn(async () => ({ project: projects[0], viewerUpvoted: true })),
+    setProjectFeatured: vi.fn(async () => projects[0]),
+    fetchProjectLog: vi.fn(async () => []),
+    addProjectLogEntry: vi.fn(async () => []),
+    fetchMakerProfile: vi.fn(async () => ({
+      id: projects[0].userId,
+      name: '밀맵 팀',
+      projects,
+    })),
     validateLiveUrl: vi.fn(async () => projects[0].validation),
   }
 }
