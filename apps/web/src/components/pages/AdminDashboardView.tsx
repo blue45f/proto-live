@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   AlertTriangle,
   BarChart3,
@@ -17,6 +18,7 @@ import type {
   AdminDashboardSnapshot,
   AdminReportedReview,
   AuditLog,
+  SeasonChallenge,
 } from '../../api'
 import {
   ADMIN_DASHBOARD_TREND_KEY_DAYS,
@@ -92,6 +94,8 @@ export function AdminDashboardView({
   onScenarioMultiplierChange,
   onRevenueTargetChange,
   onRevenueInputChange,
+  challenge,
+  onSetChallenge,
 }: {
   adminDashboard: AdminDashboardSnapshot
   adminDashboardError: string
@@ -123,9 +127,56 @@ export function AdminDashboardView({
   onScenarioMultiplierChange: (index: number, rawValue: string) => void
   onRevenueTargetChange: (rawValue: string) => void
   onRevenueInputChange: (key: keyof RevenueModelConfig, rawValue: string) => void
+  challenge: SeasonChallenge | null
+  onSetChallenge: (title: string, description: string) => void
 }) {
+  const [challengeTitle, setChallengeTitle] = useState(challenge?.title ?? '')
+  const [challengeDescription, setChallengeDescription] = useState(challenge?.description ?? '')
+
   return (
     <section className="col-span-full space-y-6">
+      <div className="protolive-panel rounded-xl border border-stone-800 p-4 sm:p-5">
+        <p className="text-xs font-black uppercase tracking-[0.14em] text-lime-200">시즌 챌린지</p>
+        <h3 className="mt-1 text-lg font-black text-stone-50">피드 배너에 노출할 테마</h3>
+        <div className="mt-3 grid gap-2">
+          <input
+            type="text"
+            value={challengeTitle}
+            maxLength={100}
+            onChange={(event) => setChallengeTitle(event.target.value)}
+            placeholder="제목 (예: 이번 주 — AI 생산성 도구)"
+            className="min-h-11 w-full rounded-lg border border-stone-700 bg-stone-950 px-3 text-sm text-stone-100 outline-none placeholder:text-stone-500 focus:border-lime-300/60"
+          />
+          <textarea
+            value={challengeDescription}
+            maxLength={280}
+            rows={2}
+            onChange={(event) => setChallengeDescription(event.target.value)}
+            placeholder="설명 (제목·설명을 모두 비우고 해제하면 배너가 사라집니다)"
+            className="w-full resize-none rounded-lg border border-stone-700 bg-stone-950 px-3 py-2 text-sm leading-6 text-stone-100 outline-none placeholder:text-stone-500 focus:border-lime-300/60"
+          />
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setChallengeTitle('')
+                setChallengeDescription('')
+                onSetChallenge('', '')
+              }}
+              className="min-h-10 rounded-lg border border-stone-700 px-4 text-sm font-black text-stone-300 transition hover:text-stone-100"
+            >
+              해제
+            </button>
+            <button
+              type="button"
+              onClick={() => onSetChallenge(challengeTitle, challengeDescription)}
+              className="min-h-10 rounded-lg bg-lime-300 px-4 text-sm font-black text-slate-950"
+            >
+              게시
+            </button>
+          </div>
+        </div>
+      </div>
       <div className="protolive-hero rounded-xl border border-cyan-900/50 bg-[oklch(99.2%_0.004_95)] p-5 shadow-[0_24px_80px_oklch(8%_0.02_205/0.45)]">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>

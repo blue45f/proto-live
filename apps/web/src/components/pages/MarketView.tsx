@@ -268,6 +268,17 @@ export function MarketView(props: {
   return (
     <>
       <section className="min-w-0 space-y-6">
+        {!detailProjectId && config.challenge && (
+          <section className="rounded-xl border border-lime-300/30 bg-lime-300/10 p-4">
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-lime-200">
+              이번 시즌 챌린지
+            </p>
+            <h3 className="mt-1 text-lg font-black text-stone-50">{config.challenge.title}</h3>
+            <p className="mt-1 max-w-3xl text-sm leading-6 text-stone-300">
+              {config.challenge.description}
+            </p>
+          </section>
+        )}
         <div className="grid gap-4">
           <section className="protolive-hero overflow-hidden rounded-xl border border-cyan-900/50 bg-[linear-gradient(135deg,oklch(19%_0.024_205),oklch(15%_0.02_170)_52%,oklch(17%_0.022_88))] p-4 shadow-[0_24px_80px_oklch(8%_0.02_205/0.45)] sm:p-5">
             <div className="grid min-w-0 gap-5">

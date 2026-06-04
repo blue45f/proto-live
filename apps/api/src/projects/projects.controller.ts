@@ -23,6 +23,7 @@ import { ReportProjectReviewDto } from './dto/report-project-review.dto'
 import { RecordProjectEventDto } from './dto/record-project-event.dto'
 import { SetProjectFeaturedDto } from './dto/set-project-featured.dto'
 import { CreateProjectLogDto } from './dto/create-project-log.dto'
+import { SetSeasonChallengeDto } from './dto/set-season-challenge.dto'
 import { GetProjectsQueryDto, ProjectQueryInput } from './dto/get-projects-query.dto'
 import { AdminRevenueProjectionQueryDto } from './dto/admin-revenue-projection-query.dto'
 
@@ -272,6 +273,15 @@ export class ProjectsController {
   ): Project {
     this.projectsService.requireAdminSession(request.headers.cookie)
     return this.projectsService.setProjectFeatured(id, body.featured)
+  }
+
+  /**
+   * POST /api/projects/challenge — 운영자가 시즌 챌린지를 설정/해제합니다.
+   */
+  @Post('challenge')
+  setChallenge(@Req() request: Request, @Body() body: SetSeasonChallengeDto) {
+    this.projectsService.requireAdminSession(request.headers.cookie)
+    return this.projectsService.setChallenge(body.title ?? '', body.description ?? '')
   }
 
   /**

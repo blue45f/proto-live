@@ -60,6 +60,7 @@ function buildApiMock() {
     recordProjectEvent: vi.fn(async () => projects[0]),
     toggleProjectUpvote: vi.fn(async () => ({ project: projects[0], viewerUpvoted: true })),
     setProjectFeatured: vi.fn(async () => projects[0]),
+    setSeasonChallenge: vi.fn(async () => null),
     fetchProjectLog: vi.fn(async () => []),
     addProjectLogEntry: vi.fn(async () => []),
     fetchMakerProfile: vi.fn(async () => ({
