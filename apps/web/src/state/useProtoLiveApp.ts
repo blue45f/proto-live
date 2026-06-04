@@ -359,11 +359,31 @@ export function useProtoLiveApp() {
       setMakerProfileId(route.makerId)
       setDetailProjectId(route.projectId)
       setView(route.view)
+      setIsSubmitOpen(route.intent === 'submit')
     }
 
     window.addEventListener('popstate', onPopState)
     return () => window.removeEventListener('popstate', onPopState)
   }, [])
+
+  // 등록 모달 상태 ↔ /submit URL 동기화. 최초 마운트는 건너뛰어 딥링크(/submit) URL을
+  // 보존하고, 이후엔 모달을 열고 닫을 때 history를 한 방향으로만 갱신한다(상세/메이커와 동일 패턴).
+  const submitUrlSyncedRef = useRef(false)
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    if (!submitUrlSyncedRef.current) {
+      submitUrlSyncedRef.current = true
+      return
+    }
+    const onSubmitPath = matchRoute().intent === 'submit'
+    if (isSubmitOpen && !onSubmitPath) {
+      navigate(routePath.submit(), { intent: 'submit' })
+    } else if (!isSubmitOpen && onSubmitPath) {
+      navigate(routePath.market())
+    }
+  }, [isSubmitOpen])
 
   useEffect(() => {
     if (!detailProjectId) {
@@ -1196,6 +1216,19 @@ export function useProtoLiveApp() {
     config.categories,
     session,
   ])
+
+  // /submit 딥링크로 진입하면 세션·설정이 준비된 뒤 등록 모달을 한 번 연다(권한 게이트는 openSubmitDialog가 처리).
+  const submitDeepLinkPendingRef = useRef(matchRoute().intent === 'submit')
+  useEffect(() => {
+    if (!submitDeepLinkPendingRef.current || isSessionHydrating) {
+      return
+    }
+    if (!apiOnline || config.categories.length === 0) {
+      return
+    }
+    submitDeepLinkPendingRef.current = false
+    openSubmitDialog()
+  }, [isSessionHydrating, apiOnline, config.categories.length, openSubmitDialog])
 
   const handleLogin = useCallback(
     async (event: React.FormEvent) => {

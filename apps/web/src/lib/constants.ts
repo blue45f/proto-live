@@ -16,6 +16,7 @@ export type AppView = 'market' | 'admin'
 
 export const LOGIN_MODAL_KEY = 'protolive:login-form:v1'
 export const ADMIN_PATH_SEGMENT = 'admin'
+export const SUBMIT_PATH_SEGMENT = 'submit'
 
 export const EMPTY_STATS: MarketStats = {
   totalProjects: 0,
