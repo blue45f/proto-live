@@ -38,18 +38,29 @@ export class PostgresProjectsStore implements ProjectsStore {
 
   async load(): Promise<ProjectsState> {
     await this.ensureSchema()
-    const [users, projects, proposals, events, reviews, upvotes, logEntries, auditLogs, meta] =
-      await Promise.all([
-        this.db.select().from(schema.usersTable).orderBy(asc(schema.usersTable.id)),
-        this.db.select().from(schema.projectsTable).orderBy(asc(schema.projectsTable.id)),
-        this.db.select().from(schema.proposalsTable).orderBy(asc(schema.proposalsTable.id)),
-        this.db.select().from(schema.eventsTable).orderBy(asc(schema.eventsTable.id)),
-        this.db.select().from(schema.reviewsTable).orderBy(asc(schema.reviewsTable.id)),
-        this.db.select().from(schema.upvotesTable).orderBy(asc(schema.upvotesTable.id)),
-        this.db.select().from(schema.logEntriesTable).orderBy(asc(schema.logEntriesTable.id)),
-        this.db.select().from(schema.auditLogsTable).orderBy(asc(schema.auditLogsTable.id)),
-        this.db.select().from(schema.appMetaTable),
-      ])
+    const [
+      users,
+      projects,
+      proposals,
+      events,
+      reviews,
+      upvotes,
+      logEntries,
+      notifications,
+      auditLogs,
+      meta,
+    ] = await Promise.all([
+      this.db.select().from(schema.usersTable).orderBy(asc(schema.usersTable.id)),
+      this.db.select().from(schema.projectsTable).orderBy(asc(schema.projectsTable.id)),
+      this.db.select().from(schema.proposalsTable).orderBy(asc(schema.proposalsTable.id)),
+      this.db.select().from(schema.eventsTable).orderBy(asc(schema.eventsTable.id)),
+      this.db.select().from(schema.reviewsTable).orderBy(asc(schema.reviewsTable.id)),
+      this.db.select().from(schema.upvotesTable).orderBy(asc(schema.upvotesTable.id)),
+      this.db.select().from(schema.logEntriesTable).orderBy(asc(schema.logEntriesTable.id)),
+      this.db.select().from(schema.notificationsTable).orderBy(asc(schema.notificationsTable.id)),
+      this.db.select().from(schema.auditLogsTable).orderBy(asc(schema.auditLogsTable.id)),
+      this.db.select().from(schema.appMetaTable),
+    ])
 
     const metaData = (meta[0]?.data as Record<string, unknown> | undefined) ?? {}
     const serialized = {
@@ -60,6 +71,7 @@ export class PostgresProjectsStore implements ProjectsStore {
       reviews: reviews.map((row) => row.data),
       upvotes: upvotes.map((row) => row.data),
       logEntries: logEntries.map((row) => row.data),
+      notifications: notifications.map((row) => row.data),
       auditLogs: auditLogs.map((row) => row.data),
       challenge: metaData.challenge ?? null,
       nextUserId: metaData.nextUserId,
@@ -68,6 +80,7 @@ export class PostgresProjectsStore implements ProjectsStore {
       nextEventId: metaData.nextEventId,
       nextUpvoteId: metaData.nextUpvoteId,
       nextLogEntryId: metaData.nextLogEntryId,
+      nextNotificationId: metaData.nextNotificationId,
       nextReviewId: metaData.nextReviewId,
       nextAuditLogId: metaData.nextAuditLogId,
     } as unknown as SerializedProjectsState
@@ -206,6 +219,19 @@ export class PostgresProjectsStore implements ProjectsStore {
         )
       }
 
+      await tx.delete(schema.notificationsTable)
+      if (s.notifications.length) {
+        await tx.insert(schema.notificationsTable).values(
+          s.notifications.map((notification) => ({
+            id: notification.id,
+            userEmail: notification.userEmail,
+            projectId: notification.projectId,
+            createdAt: new Date(notification.createdAt),
+            data: notification,
+          }))
+        )
+      }
+
       await tx.delete(schema.auditLogsTable)
       if (s.auditLogs.length) {
         await tx.insert(schema.auditLogsTable).values(
@@ -229,6 +255,7 @@ export class PostgresProjectsStore implements ProjectsStore {
             nextEventId: s.nextEventId,
             nextUpvoteId: s.nextUpvoteId,
             nextLogEntryId: s.nextLogEntryId,
+            nextNotificationId: s.nextNotificationId,
             nextReviewId: s.nextReviewId,
             nextAuditLogId: s.nextAuditLogId,
           },
@@ -267,6 +294,9 @@ export class PostgresProjectsStore implements ProjectsStore {
       `CREATE INDEX IF NOT EXISTS upvotes_project_id_idx ON project_upvotes (project_id)`,
       `CREATE TABLE IF NOT EXISTS project_log_entries (id integer PRIMARY KEY, project_id integer NOT NULL, created_at timestamptz NOT NULL, data jsonb NOT NULL)`,
       `CREATE INDEX IF NOT EXISTS log_entries_project_id_idx ON project_log_entries (project_id)`,
+      `CREATE TABLE IF NOT EXISTS notifications (id integer PRIMARY KEY, user_email text NOT NULL, project_id integer NOT NULL, created_at timestamptz NOT NULL, data jsonb NOT NULL)`,
+      `CREATE INDEX IF NOT EXISTS notifications_user_email_idx ON notifications (user_email)`,
+      `CREATE INDEX IF NOT EXISTS notifications_created_at_idx ON notifications (created_at)`,
       `CREATE TABLE IF NOT EXISTS audit_logs (id integer PRIMARY KEY, created_at timestamptz NOT NULL, data jsonb NOT NULL)`,
       `CREATE INDEX IF NOT EXISTS audit_logs_created_at_idx ON audit_logs (created_at)`,
       `CREATE TABLE IF NOT EXISTS app_meta (id integer PRIMARY KEY, data jsonb NOT NULL)`,

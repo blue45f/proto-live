@@ -6,6 +6,7 @@ import { ProjectDiligencePanel } from './components/ProjectDiligencePanel'
 import { AdminDashboardView } from './components/pages/AdminDashboardView'
 import { MarketView } from './components/pages/MarketView'
 import { MakerProfileView } from './components/pages/MakerProfileView'
+import { NotificationBell } from './components/NotificationBell'
 import { AboutView } from './components/pages/AboutView'
 import { LoginModal } from './components/modals/LoginModal'
 import { MatchModal } from './components/modals/MatchModal'
@@ -87,6 +88,10 @@ export default function App() {
     isAboutView,
     openAbout,
     goHome,
+    notifications,
+    unreadNotificationCount,
+    markAllNotificationsRead,
+    openNotification,
     isApplyingAllAdminRecommendations,
     isAuthenticated,
     isDiligenceEventsLoading,
@@ -339,6 +344,14 @@ export default function App() {
               />
               {apiOnline ? '서버 연결됨' : 'API Offline'}
             </div>
+            {isAuthenticated ? (
+              <NotificationBell
+                notifications={notifications}
+                unreadCount={unreadNotificationCount}
+                onMarkAllRead={markAllNotificationsRead}
+                onOpen={openNotification}
+              />
+            ) : null}
             {isAuthenticated ? (
               <div className="protolive-user-chip inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg border border-stone-700/80 bg-stone-900/70 px-3 py-2 text-xs font-black sm:rounded-full">
                 <span className="hidden max-w-28 truncate xl:inline">{session?.name}</span>

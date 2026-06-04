@@ -175,6 +175,20 @@ export interface ProjectLogEntry {
   createdAt: Date
 }
 
+export type NotificationType = 'review' | 'upvote' | 'featured' | 'match'
+
+/** 인앱 알림. 메이커가 자기 프로젝트에 활동(리뷰·업보트·featured·투자관심)을 받을 때 생성된다. */
+export interface AppNotification {
+  id: number
+  userEmail: string
+  type: NotificationType
+  projectId: number
+  projectTitle: string
+  body: string
+  read: boolean
+  createdAt: Date
+}
+
 export interface AdminEventTrendPoint {
   date: string
   total: number
@@ -383,6 +397,7 @@ export interface ProjectsState {
   reviews: ProjectReview[]
   upvotes: ProjectUpvote[]
   logEntries: ProjectLogEntry[]
+  notifications: AppNotification[]
   auditLogs: AuditLog[]
   challenge: SeasonChallenge | null
   nextUserId: number
@@ -392,6 +407,7 @@ export interface ProjectsState {
   nextReviewId: number
   nextUpvoteId: number
   nextLogEntryId: number
+  nextNotificationId: number
   nextAuditLogId: number
 }
 
@@ -404,6 +420,7 @@ export function createEmptyProjectsState(): ProjectsState {
     reviews: [],
     upvotes: [],
     logEntries: [],
+    notifications: [],
     auditLogs: [],
     challenge: null,
     nextUserId: 1,
@@ -413,6 +430,7 @@ export function createEmptyProjectsState(): ProjectsState {
     nextReviewId: 1,
     nextUpvoteId: 1,
     nextLogEntryId: 1,
+    nextNotificationId: 1,
     nextAuditLogId: 1,
   }
 }

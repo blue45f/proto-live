@@ -19,6 +19,7 @@ import {
   ProjectsState,
   ProjectUpvote,
   ProjectLogEntry,
+  AppNotification,
 } from './project.models'
 
 interface SerializedProject extends Omit<Project, 'createdAt'> {
@@ -45,6 +46,10 @@ interface SerializedProjectLogEntry extends Omit<ProjectLogEntry, 'createdAt'> {
   createdAt: string
 }
 
+interface SerializedAppNotification extends Omit<AppNotification, 'createdAt'> {
+  createdAt: string
+}
+
 interface SerializedProjectReviewReport extends Omit<ProjectReviewReport, 'createdAt'> {
   createdAt: string
 }
@@ -65,7 +70,14 @@ interface SerializedAuditLog extends Omit<AuditLog, 'createdAt'> {
 
 export interface SerializedProjectsState extends Omit<
   ProjectsState,
-  'projects' | 'proposals' | 'events' | 'reviews' | 'upvotes' | 'logEntries' | 'auditLogs'
+  | 'projects'
+  | 'proposals'
+  | 'events'
+  | 'reviews'
+  | 'upvotes'
+  | 'logEntries'
+  | 'notifications'
+  | 'auditLogs'
 > {
   projects: SerializedProject[]
   proposals: SerializedMatchProposal[]
@@ -73,6 +85,7 @@ export interface SerializedProjectsState extends Omit<
   reviews: SerializedProjectReview[]
   upvotes: SerializedProjectUpvote[]
   logEntries: SerializedProjectLogEntry[]
+  notifications: SerializedAppNotification[]
   auditLogs: SerializedAuditLog[]
 }
 
@@ -103,6 +116,10 @@ export function serializeState(state: ProjectsState): SerializedProjectsState {
     logEntries: state.logEntries.map((entry) => ({
       ...entry,
       createdAt: entry.createdAt.toISOString(),
+    })),
+    notifications: state.notifications.map((notification) => ({
+      ...notification,
+      createdAt: notification.createdAt.toISOString(),
     })),
     reviews: state.reviews.map((review) => ({
       ...review,
@@ -166,6 +183,13 @@ export function deserializeState(state: SerializedProjectsState): ProjectsState 
           createdAt: new Date(entry.createdAt),
         }))
       : [],
+    notifications: Array.isArray(state.notifications)
+      ? state.notifications.map((notification) => ({
+          ...notification,
+          read: notification.read === true,
+          createdAt: new Date(notification.createdAt),
+        }))
+      : [],
     reviews: Array.isArray(state.reviews)
       ? state.reviews.map((review) => ({
           ...review,
@@ -199,6 +223,7 @@ export function deserializeState(state: SerializedProjectsState): ProjectsState 
     nextEventId: Number.isInteger(state.nextEventId) ? state.nextEventId : 1,
     nextUpvoteId: Number.isInteger(state.nextUpvoteId) ? state.nextUpvoteId : 1,
     nextLogEntryId: Number.isInteger(state.nextLogEntryId) ? state.nextLogEntryId : 1,
+    nextNotificationId: Number.isInteger(state.nextNotificationId) ? state.nextNotificationId : 1,
     nextReviewId: Number.isInteger(state.nextReviewId) ? state.nextReviewId : 1,
     nextAuditLogId: Number.isInteger(state.nextAuditLogId) ? state.nextAuditLogId : 1,
   }
