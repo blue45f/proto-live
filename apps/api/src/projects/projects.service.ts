@@ -51,6 +51,7 @@ import { ModerateProjectReviewDto } from './dto/moderate-project-review.dto'
 import { ReportProjectReviewDto } from './dto/report-project-review.dto'
 import { LoginDto } from './dto/login.dto'
 import { calculateProjectSignalScore, summarizeProjectEvents } from './project-signals'
+import { maskEmail } from './pii'
 import { JsonProjectsStore } from './projects.store'
 import {
   assertResolvesToPublicInternet,
@@ -2324,7 +2325,7 @@ export class ProjectsService {
         ? {
             id: latest.id,
             type: latest.type,
-            authorEmail: latest.authorEmail,
+            authorEmail: maskEmail(latest.authorEmail),
             body: latest.body,
             createdAt: latest.createdAt.toISOString(),
           }
