@@ -63,6 +63,7 @@ import { calculateProjectSignalScore, summarizeProjectEvents } from './project-s
 import { maskEmail } from './pii'
 import { PROJECTS_STORE, type ProjectsStore } from './store/projects-store'
 import { FileProjectsStore } from './store/file-projects-store'
+import { getCurrentConsentTerms, type ConsentTerms } from './consent-terms'
 import {
   assertResolvesToPublicInternet,
   normalizePublicHttpUrl,
@@ -106,6 +107,14 @@ type AuthenticatedReportInput = ReportProjectReviewDto & {
 
 type AuthenticatedMatchInput = CreateMatchProposalDto & {
   email: string
+}
+
+/** 동의 전/후 콜백 체인에 전달되는 컨텍스트. */
+interface ConsentContext {
+  projectId: number
+  investorEmail: string
+  fundingRangeLabel: string
+  terms: ConsentTerms
 }
 
 export interface ProjectListPage {
@@ -485,6 +494,8 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
         'real_attention_scoring',
       ],
       challenge: this.challenge,
+      // 투자 관심 동의의 정본 약관(version+hash+sections) — 프론트가 그대로 보여주고 제출 시 되돌려보낸다.
+      consentTerms: getCurrentConsentTerms(),
     }
   }
 
@@ -1169,19 +1180,21 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
     if (!fundingRange) {
       throw new BadRequestException('유효한 투자 구간을 선택해주세요.')
     }
-    if (
-      data.legalNoticeAccepted !== true ||
-      data.privacyConsentAccepted !== true ||
-      data.riskNoticeAccepted !== true
-    ) {
-      throw new BadRequestException(
-        '투자 관심 기록 전 필수 안내와 개인정보 연락 동의를 모두 확인해야 합니다.'
-      )
+    const terms = getCurrentConsentTerms()
+    const investorEmail = data.email.trim().toLowerCase()
+    const context: ConsentContext = {
+      projectId: id,
+      investorEmail,
+      fundingRangeLabel: fundingRange.label,
+      terms,
     }
 
-    const investorEmail = data.email.trim().toLowerCase()
-    const complianceAcceptedAt = new Date()
+    // === 동의 전(before) 콜백 체인: 필수 동의 + 약관 무결성(재동의 게이트) ===
+    for (const guard of this.beforeConsentGuards) {
+      guard(data, context)
+    }
 
+    const complianceAcceptedAt = new Date()
     this.proposals.push({
       id: this.nextProposalId++,
       projectId: id,
@@ -1192,6 +1205,8 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
       privacyConsentAccepted: true,
       riskNoticeAccepted: true,
       complianceAcceptedAt,
+      consentVersion: terms.version,
+      consentHash: terms.hash,
       status: 'submitted',
       createdAt: new Date(),
     })
@@ -1201,19 +1216,56 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
     project.committedAmountMin += fundingRange.minAmount
     project.committedAmountMax += fundingRange.maxAmount
 
-    this.addProjectEvent(id, 'match')
-    this.addAuditLog({
-      action: 'match_compliance_accepted',
-      actorEmail: investorEmail,
-      targetType: 'project',
-      targetId: id,
-      projectId: id,
-      message: `${fundingRange.label} 투자 관심 제출 전 필수 고지와 연락 동의를 확인했습니다.`,
-    })
+    // === 동의 후(after) 콜백 체인: 부수효과(이벤트·감사로그·…확장 지점) ===
+    for (const hook of this.afterConsentHooks) {
+      hook(context)
+    }
+
     this.persist()
-    this.logger.log(`Match proposal recorded for project ${id}`)
+    this.logger.log(`Match proposal recorded for project ${id} (consent ${terms.version})`)
     return this.hydrateProject(project)
   }
+
+  /** 동의 전 가드(콜백) 체인. 통과해야 동의가 기록된다. 추가 정책은 이 배열에 등록한다. */
+  private readonly beforeConsentGuards: Array<
+    (data: AuthenticatedMatchInput, context: ConsentContext) => void
+  > = [
+    (data) => {
+      if (
+        data.legalNoticeAccepted !== true ||
+        data.privacyConsentAccepted !== true ||
+        data.riskNoticeAccepted !== true
+      ) {
+        throw new BadRequestException(
+          '투자 관심 기록 전 필수 안내와 개인정보 연락 동의를 모두 확인해야 합니다.'
+        )
+      }
+    },
+    (data, context) => {
+      // 클라가 본 약관 버전/해시가 현재 정본과 다르면 약관이 갱신된 것 → 재동의 요구(stale 차단).
+      const staleHash = data.consentHash && data.consentHash !== context.terms.hash
+      const staleVersion = data.consentVersion && data.consentVersion !== context.terms.version
+      if (staleHash || staleVersion) {
+        throw new BadRequestException(
+          '동의 약관이 갱신되었습니다. 변경된 내용을 다시 확인하고 동의해 주세요.'
+        )
+      }
+    },
+  ]
+
+  /** 동의 후 콜백(부수효과) 체인. 알림 등 신규 부수효과는 이 배열에 추가한다. */
+  private readonly afterConsentHooks: Array<(context: ConsentContext) => void> = [
+    (context) => this.addProjectEvent(context.projectId, 'match'),
+    (context) =>
+      this.addAuditLog({
+        action: 'match_compliance_accepted',
+        actorEmail: context.investorEmail,
+        targetType: 'project',
+        targetId: context.projectId,
+        projectId: context.projectId,
+        message: `${context.fundingRangeLabel} 투자 관심 제출 전 고지·연락 동의 확인(약관 v${context.terms.version}, hash ${context.terms.hash.slice(0, 12)}…).`,
+      }),
+  ]
 
   createProjectReview(
     id: number,

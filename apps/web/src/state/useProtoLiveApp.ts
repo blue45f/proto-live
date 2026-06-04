@@ -2314,6 +2314,9 @@ export function useProtoLiveApp() {
         legalNoticeAccepted: matchLegalNoticeAccepted,
         privacyConsentAccepted: matchPrivacyConsentAccepted,
         riskNoticeAccepted: matchRiskNoticeAccepted,
+        // 동의 전/후 콜백 무결성: 사용자가 본 정본 약관의 버전/해시를 함께 보낸다.
+        consentVersion: config.consentTerms?.version,
+        consentHash: config.consentTerms?.hash,
       })
       setProjects((current) => upsertProject(current, updated))
       await loadSnapshot()
@@ -2328,7 +2331,21 @@ export function useProtoLiveApp() {
       setMatchPrivacyConsentAccepted(false)
       setMatchRiskNoticeAccepted(false)
     } catch (error) {
-      toast('error', '연결 실패', getApiErrorMessage(error, '투자 관심 기록에 실패했습니다.'))
+      const message = getApiErrorMessage(error, '투자 관심 기록에 실패했습니다.')
+      // 약관이 갱신돼 재동의가 필요한 경우: 최신 약관을 다시 받아 사용자에게 재확인을 유도한다.
+      if (message.includes('약관이 갱신')) {
+        await loadSnapshot()
+        setMatchLegalNoticeAccepted(false)
+        setMatchPrivacyConsentAccepted(false)
+        setMatchRiskNoticeAccepted(false)
+        toast(
+          'error',
+          '약관 갱신됨',
+          '동의 약관이 업데이트되었습니다. 변경된 내용을 다시 확인하고 동의해 주세요.'
+        )
+      } else {
+        toast('error', '연결 실패', message)
+      }
     } finally {
       setIsSendingMatch(false)
     }

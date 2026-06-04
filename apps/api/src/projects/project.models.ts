@@ -83,6 +83,9 @@ export interface MatchProposal {
   privacyConsentAccepted?: boolean
   riskNoticeAccepted?: boolean
   complianceAcceptedAt?: Date
+  /** 동의 당시 정본 약관 버전/해시 — "정확히 이 문구에 동의했음" 무결성 증명. */
+  consentVersion?: string
+  consentHash?: string
   status?: MatchProposalStatus
   createdAt: Date
 }
