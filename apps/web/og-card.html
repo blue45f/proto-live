@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css');
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1200px;
+        height: 630px;
+      }
+      .card {
+        width: 1200px;
+        height: 630px;
+        position: relative;
+        overflow: hidden;
+        background: radial-gradient(120% 140% at 88% -10%, #e9f3ea 0%, #f9f7f1 46%);
+        font-family: 'Pretendard Variable', Pretendard, -apple-system, sans-serif;
+        color: #232b3a;
+        padding: 72px 80px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      /* soft sap-green accent orb */
+      .orb {
+        position: absolute;
+        right: -120px;
+        bottom: -160px;
+        width: 520px;
+        height: 520px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 40% 35%, rgba(82, 168, 108, 0.22), rgba(82, 168, 108, 0) 68%);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        position: relative;
+      }
+      .bolt {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #52a86c, #3c8a54);
+        display: grid;
+        place-items: center;
+        box-shadow: 0 10px 28px rgba(60, 138, 84, 0.28);
+      }
+      .bolt svg {
+        width: 34px;
+        height: 34px;
+      }
+      .wordmark {
+        font-size: 40px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .live {
+        margin-left: 6px;
+        font-size: 16px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #2f7a47;
+        border: 1.5px solid rgba(60, 138, 84, 0.35);
+        background: rgba(82, 168, 108, 0.12);
+        border-radius: 999px;
+        padding: 8px 16px;
+      }
+      .body {
+        position: relative;
+      }
+      h1 {
+        font-size: 70px;
+        line-height: 1.12;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        max-width: 1000px;
+      }
+      h1 .accent {
+        color: #3c8a54;
+      }
+      p.sub {
+        margin-top: 26px;
+        font-size: 27px;
+        line-height: 1.5;
+        font-weight: 460;
+        color: #55606f;
+        max-width: 860px;
+      }
+      .chips {
+        display: flex;
+        gap: 12px;
+        position: relative;
+      }
+      .chip {
+        font-size: 21px;
+        font-weight: 600;
+        color: #3a4453;
+        background: rgba(255, 255, 255, 0.72);
+        border: 1.5px solid #e4e0d6;
+        border-radius: 12px;
+        padding: 12px 20px;
+      }
+      .chip.lead {
+        color: #2f7a47;
+        border-color: rgba(60, 138, 84, 0.3);
+        background: rgba(82, 168, 108, 0.1);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="orb"></div>
+      <div class="brand">
+        <div class="bolt">
+          <svg viewBox="0 0 64 64">
+            <path d="M36.5 9 L17 37.5 h11.2 l-3.7 17.5 L47 25.5 H34.6 z" fill="#faf8f2" />
+          </svg>
+        </div>
+        <div class="wordmark">ProtoLive</div>
+        <div class="live">Verified Live</div>
+      </div>
+
+      <div class="body">
+        <h1>바이브코딩으로 만든 웹앱,<br /><span class="accent">살아있는 채로</span> 피드백받다</h1>
+        <p class="sub">
+          AI로 만든 데모·프로토타입·초기 빌드를 그대로 올리고, 커뮤니티 피드백을 받습니다. 검증된 상위 빌드는
+          투자자에게 연결됩니다.
+        </p>
+      </div>
+
+      <div class="chips">
+        <div class="chip lead">⚡ 라이브 검증</div>
+        <div class="chip">Cursor</div>
+        <div class="chip">Claude Code</div>
+        <div class="chip">v0</div>
+        <div class="chip">Lovable</div>
+        <div class="chip">+ 커뮤니티 피드백</div>
+      </div>
+    </div>
+  </body>
+</html>
