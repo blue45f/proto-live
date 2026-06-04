@@ -16,6 +16,12 @@
 > **도커 자체 호스팅 대안** — 클라우드 대신 직접 호스팅하려면 `docs/DEPLOYMENT.md`(web nginx + api 컨테이너 +
 > `docker-compose.yml`)를 따른다. 아래는 Vercel + Render 매니지드 경로다.
 
+> **권장: OCI Always-Free 백엔드(API + Postgres + Caddy)** — webtoon-index(툰스펙트럼)와 동일하게
+> OCI ARM VM 한 대에 NestJS API + Postgres + Caddy(자동 HTTPS)를 올리는 경로를 추가했다. API는 이제
+> `DATABASE_URL`이 있으면 **Postgres**로, 없으면 JSON 파일로 영속한다(드라이버 자동 선택).
+> 절차는 [`deploy/oci/README.md`](./deploy/oci/README.md) 참고. 프로비저닝 후 §2의 `vercel.json`
+> `/api` rewrite 대상을 OCI 도메인(`https://{DOMAIN}/api/:path*`)으로 바꾸면 된다.
+
 ---
 
 ## 0. 준비물
