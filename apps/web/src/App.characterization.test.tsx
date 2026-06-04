@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { makeApiMock, adminSession } from './test/api-mock'
+import { makeApiMock, adminSession, makerSession } from './test/api-mock'
 import { projectCareloop, projectMealmap } from './test/fixtures'
 
 // Pure helpers (extractProjects/hasPagination/etc.) stay real via importActual
@@ -227,5 +227,16 @@ describe('App characterization: admin route guard', () => {
     expect(screen.getByRole('button', { name: '운영 현황' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '프로토타입 둘러보기' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '전체 사이트 상태 새로고침' })).toBeInTheDocument()
+  })
+})
+
+describe('App characterization: submit deep link', () => {
+  it('opens the submit composer when a maker lands on /submit', async () => {
+    vi.mocked(api.fetchAuthSession).mockResolvedValueOnce(makerSession)
+    setPath('/submit')
+    render(<App />)
+
+    // 딥링크 진입 시 세션·설정이 준비된 뒤 등록 모달이 자동으로 열린다.
+    expect(await screen.findByText('라이브 프로토타입 등록')).toBeInTheDocument()
   })
 })
