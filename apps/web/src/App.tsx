@@ -120,6 +120,14 @@ export default function App() {
     projects,
     protectedProjectCount,
     protectionNoticeAccepted,
+    maturity,
+    setMaturity,
+    builtWith,
+    toggleBuildTool,
+    customToolsInput,
+    setCustomToolsInput,
+    vibeCoded,
+    setVibeCoded,
     publicProjectCount,
     recommendationSummary,
     replyToReview,
@@ -658,6 +666,10 @@ export default function App() {
           session={session}
           title={title}
           category={category}
+          maturity={maturity}
+          builtWith={builtWith}
+          customToolsInput={customToolsInput}
+          vibeCoded={vibeCoded}
           config={config}
           accessMode={accessMode}
           protectionNoticeAccepted={protectionNoticeAccepted}
@@ -671,6 +683,10 @@ export default function App() {
           onClose={() => setIsSubmitOpen(false)}
           onTitleChange={setTitle}
           onCategoryChange={setCategory}
+          onMaturityChange={setMaturity}
+          onToggleBuildTool={toggleBuildTool}
+          onCustomToolsInputChange={setCustomToolsInput}
+          onVibeCodedChange={setVibeCoded}
           onAccessModeChange={setAccessMode}
           onProtectionNoticeChange={setProtectionNoticeAccepted}
           onDescriptionChange={setDescription}

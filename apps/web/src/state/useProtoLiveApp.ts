@@ -12,6 +12,7 @@ import {
   AdminDashboardSnapshot,
   Project,
   ProjectAccessMode,
+  ProjectMaturity,
   ProjectEvent,
   ProjectReview,
   ProjectReviewType,
@@ -68,6 +69,7 @@ import {
   FILTER_PRESET_STORAGE_KEY,
   FILTER_UI_STORAGE_KEY,
   LIST_VIEW_STORAGE_KEY,
+  MAX_BUILD_TOOLS,
 } from '../lib/constants'
 import {
   formatCurrency,
@@ -262,6 +264,10 @@ export function useProtoLiveApp() {
   const [tagInput, setTagInput] = useState('')
   const [accessMode, setAccessMode] = useState<ProjectAccessMode>('screened')
   const [protectionNoticeAccepted, setProtectionNoticeAccepted] = useState(false)
+  const [maturity, setMaturity] = useState<ProjectMaturity>('building')
+  const [builtWith, setBuiltWith] = useState<string[]>([])
+  const [customToolsInput, setCustomToolsInput] = useState('')
+  const [vibeCoded, setVibeCoded] = useState(false)
   const [urlCheckStatus, setUrlCheckStatus] = useState<'idle' | 'checking' | 'success' | 'error'>(
     'idle'
   )
@@ -1835,6 +1841,16 @@ export function useProtoLiveApp() {
     }
   }
 
+  function toggleBuildTool(id: string) {
+    setBuiltWith((current) =>
+      current.includes(id)
+        ? current.filter((tool) => tool !== id)
+        : current.length >= MAX_BUILD_TOOLS
+          ? current
+          : [...current, id]
+    )
+  }
+
   async function handleSubmitProject(event: React.FormEvent) {
     event.preventDefault()
     if (!handleRequireMakerOnly()) {
@@ -1863,6 +1879,10 @@ export function useProtoLiveApp() {
         description,
         liveUrl,
         category,
+        maturity,
+        builtWith: builtWith.length > 0 ? builtWith : undefined,
+        customTools: parseTagInput(customToolsInput),
+        vibeCoded,
         tags: parseTagInput(tagInput),
         accessMode,
         protectionNoticeAccepted,
@@ -1875,6 +1895,10 @@ export function useProtoLiveApp() {
       setLiveUrl('')
       setTagInput('')
       setAccessMode('screened')
+      setMaturity('building')
+      setBuiltWith([])
+      setCustomToolsInput('')
+      setVibeCoded(false)
       setProtectionNoticeAccepted(false)
       setUrlCheckStatus('idle')
       setUrlCheckMessage('')
@@ -2329,6 +2353,14 @@ export function useProtoLiveApp() {
     projects,
     protectedProjectCount,
     protectionNoticeAccepted,
+    maturity,
+    setMaturity,
+    builtWith,
+    toggleBuildTool,
+    customToolsInput,
+    setCustomToolsInput,
+    vibeCoded,
+    setVibeCoded,
     publicProjectCount,
     recommendationSummary,
     replyToReview,
