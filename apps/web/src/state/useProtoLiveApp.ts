@@ -222,8 +222,8 @@ export function useProtoLiveApp() {
       ? filterPreset.accessMode
       : 'All'
   )
-  const [sortMode, setSortMode] = useState<'signal' | 'recent' | 'created' | 'funding'>(
-    filterPreset.sort as 'signal' | 'recent' | 'created' | 'funding'
+  const [sortMode, setSortMode] = useState<'signal' | 'recent' | 'created' | 'funding' | 'upvotes'>(
+    filterPreset.sort as 'signal' | 'recent' | 'created' | 'funding' | 'upvotes'
   )
   const [page, setPage] = useState(filterPreset.page ?? 1)
   const [pageSize, setPageSize] = useState(clampPageSize(filterPreset.limit ?? 12))

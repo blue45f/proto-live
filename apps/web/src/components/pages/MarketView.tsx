@@ -90,7 +90,7 @@ export function MarketView(props: {
   selectedTag: string
   selectedAccessMode: 'All' | ProjectAccessMode
   searchQuery: string
-  sortMode: 'signal' | 'recent' | 'created' | 'funding'
+  sortMode: 'signal' | 'recent' | 'created' | 'funding' | 'upvotes'
   projectListView: ProjectListViewMode
   onlyVerified: boolean
   minSignal: number
@@ -130,6 +130,7 @@ export function MarketView(props: {
   onToggleAdvancedFilters: () => void
   onProjectListViewChange: (view: ProjectListViewMode) => void
   onSortSignal: () => void
+  onSortUpvotes: () => void
   onSortRecentClean: () => void
   onSortFunding: () => void
   onToggleOnlyVerified: () => void
@@ -222,6 +223,7 @@ export function MarketView(props: {
     onToggleAdvancedFilters,
     onProjectListViewChange,
     onSortSignal,
+    onSortUpvotes,
     onSortRecentClean,
     onSortFunding,
     onToggleOnlyVerified,
@@ -495,6 +497,18 @@ export function MarketView(props: {
                     }`}
                   >
                     관심 많은 사이트
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={sortMode === 'upvotes'}
+                    onClick={onSortUpvotes}
+                    className={`inline-flex min-h-8 items-center gap-2 rounded-lg border px-3 text-xs font-black transition ${
+                      sortMode === 'upvotes'
+                        ? 'border-cyan-300/70 bg-cyan-300/20 text-cyan-100'
+                        : 'border-stone-700 bg-stone-950/55 text-stone-300 hover:border-cyan-300/50 hover:text-cyan-100'
+                    }`}
+                  >
+                    추천순
                   </button>
                   <button
                     type="button"

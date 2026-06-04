@@ -493,6 +493,10 @@ export default function App() {
               setSortMode('signal')
               setPage(1)
             }}
+            onSortUpvotes={() => {
+              setSortMode('upvotes')
+              setPage(1)
+            }}
             onSortRecentClean={() => {
               setSortMode('recent')
               setOnlyVerified(false)

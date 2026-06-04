@@ -18,7 +18,7 @@ import {
   PROJECT_MATURITIES,
 } from '../project.constants'
 
-export type ProjectSortKey = 'signal' | 'recent' | 'created' | 'funding'
+export type ProjectSortKey = 'signal' | 'recent' | 'created' | 'funding' | 'upvotes'
 
 export interface ProjectQueryInput {
   category?: string
@@ -83,7 +83,9 @@ export class GetProjectsQueryDto {
   tag?: string
 
   @Transform(({ value }) => trimOrUndefined(value))
-  @IsIn(['signal', 'recent', 'created', 'funding'], { message: '정렬 옵션이 유효하지 않습니다.' })
+  @IsIn(['signal', 'recent', 'created', 'funding', 'upvotes'], {
+    message: '정렬 옵션이 유효하지 않습니다.',
+  })
   @IsOptional()
   sort?: ProjectSortKey
 

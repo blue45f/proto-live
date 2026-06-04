@@ -204,6 +204,7 @@ export const PROJECT_LIST_VIEW_OPTIONS: Array<{
 
 export const FUNDING_SORT_OPTIONS: ProjectListQuery['sort'][] = [
   'signal',
+  'upvotes',
   'recent',
   'created',
   'funding',

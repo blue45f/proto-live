@@ -401,7 +401,7 @@ export interface ProjectListQuery {
   category?: string
   tag?: string
   accessMode?: ProjectAccessMode
-  sort?: 'signal' | 'recent' | 'created' | 'funding'
+  sort?: 'signal' | 'recent' | 'created' | 'funding' | 'upvotes'
   minSignal?: number
   minFundingAmount?: number
   maxFundingAmount?: number

@@ -928,6 +928,11 @@ export class ProjectsService {
         if (diff !== 0) return diff
       }
 
+      if (sortBy === 'upvotes') {
+        const diff = (b.upvoteCount ?? 0) - (a.upvoteCount ?? 0)
+        if (diff !== 0) return diff
+      }
+
       const scoreDiff = (b.signalScore ?? 0) - (a.signalScore ?? 0)
       if (scoreDiff !== 0) return scoreDiff
 
