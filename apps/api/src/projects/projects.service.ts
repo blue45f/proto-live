@@ -9,6 +9,7 @@ import {
 import axios, { AxiosResponse } from 'axios'
 import {
   FUNDING_RANGES,
+  LADDER_THRESHOLD,
   PROJECT_ACCESS_MODES,
   ProjectAccessMode,
   PROJECT_CATEGORIES,
@@ -2446,6 +2447,13 @@ export class ProjectsService {
     const upvoteCount =
       precomputed?.upvoteCount ??
       this.upvotes.filter((upvote) => upvote.projectId === project.id).length
+    const distinctReviewers = new Set(
+      reviews.filter((review) => !review.parentId).map((review) => review.authorEmail)
+    ).size
+    const ladderEligible =
+      project.validation.success &&
+      upvoteCount >= LADDER_THRESHOLD.minUpvotes &&
+      distinctReviewers >= LADDER_THRESHOLD.minReviewers
     const accessMode = project.accessMode ?? 'open'
     const displayUrl = accessMode === 'screened' ? this.redactUrl(project.liveUrl) : project.liveUrl
     const displayFinalUrl =
@@ -2467,6 +2475,7 @@ export class ProjectsService {
       eventSummary: summarizeProjectEvents(events),
       reviewSummary: this.summarizeProjectReviews(reviews),
       upvoteCount,
+      ladderEligible,
     }
   }
 
