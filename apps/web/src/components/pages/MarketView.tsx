@@ -280,49 +280,51 @@ export function MarketView(props: {
           </section>
         )}
         <div className="grid gap-4">
-          <section className="protolive-hero overflow-hidden rounded-xl border border-cyan-900/50 bg-[linear-gradient(135deg,oklch(19%_0.024_205),oklch(15%_0.02_170)_52%,oklch(17%_0.022_88))] p-4 shadow-[0_24px_80px_oklch(8%_0.02_205/0.45)] sm:p-5">
+          <section className="protolive-hero overflow-hidden rounded-2xl p-5 sm:p-7">
             <div className="grid min-w-0 gap-5">
               <div className="min-w-0 max-w-3xl">
-                <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-300/10 px-3 py-1 text-xs font-bold text-cyan-100">
+                <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-lime-300/30 bg-lime-300/10 px-3 py-1 text-xs font-bold text-lime-200">
                   <Radar className="h-3.5 w-3.5" />
-                  프로토타입 프로토타입 둘러보기
+                  메이커 라운지 · 라이브 검증
                 </p>
-                <h2 className="overflow-wrap-anywhere text-2xl font-black tracking-tight text-stone-50 sm:text-3xl">
-                  사이트 주소만 등록하면 평가와 투자 검토가 시작됩니다
+                <h2 className="overflow-wrap-anywhere text-2xl font-black leading-tight tracking-tight text-stone-50 sm:text-3xl">
+                  바이브코딩으로 만든 웹앱,
+                  <br className="hidden sm:block" />
+                  <span className="text-lime-300">살아있는 채로</span> 공유하고 피드백받으세요
                 </h2>
-                <p className="mt-3 max-w-[72ch] overflow-wrap-anywhere text-sm leading-6 text-stone-300">
-                  창업자는 만든 사이트를 올리고, 투자자는 실제 화면을 보고 리뷰한 뒤 투자 관심을
-                  남길 수 있습니다.
+                <p className="mt-3 max-w-[68ch] overflow-wrap-anywhere text-sm leading-6 text-stone-300">
+                  데모·프로토타입·갓 시작한 초기 빌드도 환영합니다. 진짜 떠 있는 빌드만 올라오고,
+                  검증된 상위 빌드는 투자자에게 연결됩니다.
                 </p>
-                <div className="mt-5 grid gap-2 sm:grid-cols-3">
-                  <div className="protolive-flow-step min-w-0 rounded-lg border border-cyan-300/30 bg-cyan-300/10 px-3 py-3">
+                <div className="mt-6 grid gap-2.5 sm:grid-cols-3">
+                  <div className="protolive-flow-step min-w-0 rounded-xl border border-stone-800 bg-stone-950/40 px-4 py-3.5">
                     <div className="mb-3 flex items-center justify-between gap-2">
-                      <span className="text-xs font-black text-cyan-100">01</span>
-                      <Globe2 className="h-4 w-4 text-cyan-100" />
+                      <span className="text-xs font-black text-lime-200">01</span>
+                      <Globe2 className="h-4 w-4 text-lime-200" />
                     </div>
-                    <p className="text-sm font-black text-stone-50">사이트 확인</p>
+                    <p className="text-sm font-black text-stone-50">공유</p>
                     <p className="mt-1 text-xs leading-5 text-stone-400">
-                      입력한 주소가 열리는지 먼저 확인합니다.
+                      주소가 실제로 열리는지 서버가 먼저 자동 확인합니다.
                     </p>
                   </div>
-                  <div className="protolive-flow-step min-w-0 rounded-lg border border-lime-300/35 bg-lime-300/10 px-3 py-3">
+                  <div className="protolive-flow-step min-w-0 rounded-xl border border-stone-800 bg-stone-950/40 px-4 py-3.5">
                     <div className="mb-3 flex items-center justify-between gap-2">
-                      <span className="text-xs font-black text-lime-100">02</span>
-                      <Activity className="h-4 w-4 text-lime-100" />
+                      <span className="text-xs font-black text-lime-200">02</span>
+                      <Activity className="h-4 w-4 text-lime-200" />
                     </div>
-                    <p className="text-sm font-black text-stone-50">화면 리뷰</p>
+                    <p className="text-sm font-black text-stone-50">피드백</p>
                     <p className="mt-1 text-xs leading-5 text-stone-400">
-                      투자자가 직접 보고 의견과 관심을 남깁니다.
+                      커뮤니티가 단계에 맞춰 리뷰·업보트를 남깁니다.
                     </p>
                   </div>
-                  <div className="protolive-flow-step min-w-0 rounded-lg border border-amber-300/35 bg-amber-300/10 px-3 py-3">
+                  <div className="protolive-flow-step min-w-0 rounded-xl border border-stone-800 bg-stone-950/40 px-4 py-3.5">
                     <div className="mb-3 flex items-center justify-between gap-2">
-                      <span className="text-xs font-black text-amber-100">03</span>
-                      <Briefcase className="h-4 w-4 text-amber-100" />
+                      <span className="text-xs font-black text-amber-200">03</span>
+                      <Briefcase className="h-4 w-4 text-amber-200" />
                     </div>
-                    <p className="text-sm font-black text-stone-50">투자 관심</p>
+                    <p className="text-sm font-black text-stone-50">투자 연결</p>
                     <p className="mt-1 text-xs leading-5 text-stone-400">
-                      관심 금액과 메시지를 남겨 다음 대화로 이어집니다.
+                      검증된 상위 빌드는 투자자에게 관심으로 이어집니다.
                     </p>
                   </div>
                 </div>
