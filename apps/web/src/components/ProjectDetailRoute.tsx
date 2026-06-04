@@ -16,6 +16,7 @@ import {
   maskEmail,
 } from '../lib/format'
 import { ProjectReviewWorkspace } from './ProjectReviewWorkspace'
+import { ShareButton } from './ShareButton'
 
 export function ProjectDetailRoute({
   project,
@@ -92,17 +93,24 @@ export function ProjectDetailRoute({
   const reviewSummary = project.reviewSummary
   const latestReview = reviewSummary?.latest
   const tags = project.tags ?? []
+  const shareUrl =
+    typeof window !== 'undefined'
+      ? `${window.location.origin}/projects/${project.id}`
+      : `/projects/${project.id}`
 
   return (
     <div className="space-y-5 rounded-2xl border border-lime-300/20 bg-stone-950/55 p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={onBack}
-          className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-stone-700 px-3 text-xs font-black text-stone-300 transition hover:border-lime-300/50 hover:text-lime-100"
-        >
-          목록으로 돌아가기
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-stone-700 px-3 text-xs font-black text-stone-300 transition hover:border-lime-300/50 hover:text-lime-100"
+          >
+            목록으로 돌아가기
+          </button>
+          <ShareButton url={shareUrl} title={`${project.title} · ProtoLive`} />
+        </div>
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="rounded-full border border-stone-700 bg-stone-900/70 px-3 py-1 font-black text-stone-300">
             {project.category}
