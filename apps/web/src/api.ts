@@ -20,6 +20,7 @@ export interface Project {
   builtWith?: string[]
   customTools?: string[]
   vibeCoded?: boolean
+  upvoteCount?: number
   tags?: string[]
   accessMode: ProjectAccessMode
   protectionNoticeAccepted?: boolean
@@ -573,6 +574,14 @@ export async function createMatchProposal(id: number, payload: CreateMatchPayloa
 
 export async function recordProjectEvent(id: number, type: 'preview' | 'outbound' | 'refresh') {
   const response = await client.post<Project>(`/projects/${id}/events`, { type })
+  return response.data
+}
+
+export async function toggleProjectUpvote(id: number) {
+  const response = await client.post<{ project: Project; viewerUpvoted: boolean }>(
+    `/projects/${id}/upvote`,
+    {}
+  )
   return response.data
 }
 

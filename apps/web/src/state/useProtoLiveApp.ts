@@ -35,6 +35,7 @@ import {
   loginUser,
   logoutUser,
   recordProjectEvent,
+  toggleProjectUpvote,
   refreshAllProjects,
   refreshProject,
   moderateProjectReview,
@@ -269,6 +270,7 @@ export function useProtoLiveApp() {
   const [builtWith, setBuiltWith] = useState<string[]>([])
   const [customToolsInput, setCustomToolsInput] = useState('')
   const [vibeCoded, setVibeCoded] = useState(false)
+  const [upvotedProjectIds, setUpvotedProjectIds] = useState<Set<number>>(new Set())
   const [urlCheckStatus, setUrlCheckStatus] = useState<'idle' | 'checking' | 'success' | 'error'>(
     'idle'
   )
@@ -1843,6 +1845,29 @@ export function useProtoLiveApp() {
     }
   }
 
+  async function handleToggleUpvote(project: Project) {
+    if (!session) {
+      setIsLoginOpen(true)
+      return
+    }
+
+    try {
+      const { project: updated, viewerUpvoted } = await toggleProjectUpvote(project.id)
+      setProjects((current) => upsertProject(current, updated))
+      setUpvotedProjectIds((current) => {
+        const next = new Set(current)
+        if (viewerUpvoted) {
+          next.add(project.id)
+        } else {
+          next.delete(project.id)
+        }
+        return next
+      })
+    } catch (error) {
+      toast('error', '추천 실패', getApiErrorMessage(error, '추천을 처리하지 못했습니다.'))
+    }
+  }
+
   function toggleBuildTool(id: string) {
     setBuiltWith((current) =>
       current.includes(id)
@@ -2363,6 +2388,8 @@ export function useProtoLiveApp() {
     setCustomToolsInput,
     vibeCoded,
     setVibeCoded,
+    upvotedProjectIds,
+    handleToggleUpvote,
     publicProjectCount,
     recommendationSummary,
     replyToReview,

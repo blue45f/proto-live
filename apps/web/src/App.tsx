@@ -58,6 +58,8 @@ export default function App() {
     fastestResponseProject,
     favoriteProjectCount,
     favoriteProjectIds,
+    upvotedProjectIds,
+    handleToggleUpvote,
     fundingRangeId,
     handleLogin,
     handleLogout,
@@ -438,6 +440,7 @@ export default function App() {
             hasFundingRangeError={hasFundingRangeError}
             favoriteProjectCount={favoriteProjectCount}
             favoriteProjectIds={favoriteProjectIds}
+            upvotedProjectIds={upvotedProjectIds}
             pageSize={pageSize}
             projectMeta={projectMeta}
             activeFilters={activeFilters}
@@ -547,6 +550,7 @@ export default function App() {
             onCreate={openSubmitDialog}
             onOpenDetail={openProjectDetail}
             onToggleFavorite={toggleFavorite}
+            onToggleUpvote={(project) => void handleToggleUpvote(project)}
           />
         )}
       </main>

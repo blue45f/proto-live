@@ -101,6 +101,7 @@ export function MarketView(props: {
   hasFundingRangeError: boolean
   favoriteProjectCount: number
   favoriteProjectIds: Set<number>
+  upvotedProjectIds: Set<number>
   pageSize: number
   projectMeta: ProjectMeta
   activeFilters: ActiveFilter[]
@@ -149,6 +150,7 @@ export function MarketView(props: {
   onCreate: () => void
   onOpenDetail: (project: Project) => void
   onToggleFavorite: (projectId: number) => void
+  onToggleUpvote: (project: Project) => void
 }) {
   const {
     apiOnline,
@@ -193,6 +195,7 @@ export function MarketView(props: {
     hasFundingRangeError,
     favoriteProjectCount,
     favoriteProjectIds,
+    upvotedProjectIds,
     pageSize,
     projectMeta,
     activeFilters,
@@ -238,6 +241,7 @@ export function MarketView(props: {
     onCreate,
     onOpenDetail,
     onToggleFavorite,
+    onToggleUpvote,
   } = props
 
   return (
@@ -801,6 +805,8 @@ export function MarketView(props: {
                     onOpenDetail={() => onOpenDetail(project)}
                     isFavorite={favoriteProjectIds.has(project.id)}
                     onToggleFavorite={() => onToggleFavorite(project.id)}
+                    isUpvoted={upvotedProjectIds.has(project.id)}
+                    onToggleUpvote={() => onToggleUpvote(project)}
                   />
                 ))}
               </div>

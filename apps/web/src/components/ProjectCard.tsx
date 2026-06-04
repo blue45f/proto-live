@@ -1,4 +1,4 @@
-import { ArrowUpRight, Star } from 'lucide-react'
+import { ArrowUpRight, ChevronUp, Star } from 'lucide-react'
 import type { Project } from '../api'
 import {
   type ProjectListViewMode,
@@ -20,6 +20,8 @@ export function ProjectCard({
   onOpenDetail,
   onToggleFavorite,
   isFavorite,
+  onToggleUpvote,
+  isUpvoted,
 }: {
   project: Project
   viewMode: ProjectListViewMode
@@ -27,6 +29,8 @@ export function ProjectCard({
   onOpenDetail: () => void
   onToggleFavorite: () => void
   isFavorite: boolean
+  onToggleUpvote: () => void
+  isUpvoted: boolean
 }) {
   const isProtected = project.accessMode === 'screened'
   const responseTone = getResponseTimeTone(project.validation.responseTimeMs)
@@ -76,6 +80,21 @@ export function ProjectCard({
         </button>
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onToggleUpvote}
+              aria-pressed={isUpvoted}
+              aria-label={project.title + ' 추천'}
+              className={
+                'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-black transition ' +
+                (isUpvoted
+                  ? 'border-amber-300/60 bg-amber-300/15 text-amber-100'
+                  : 'border-stone-700 text-stone-300 hover:border-amber-300/50 hover:text-amber-100')
+              }
+            >
+              <ChevronUp className="h-3.5 w-3.5" />
+              {project.upvoteCount ?? 0}
+            </button>
             {signalRankText && (
               <span className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-2.5 py-1 text-[11px] font-black text-cyan-100">
                 {signalRankText} 추천
