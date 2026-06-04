@@ -6,6 +6,7 @@ import { ProjectDiligencePanel } from './components/ProjectDiligencePanel'
 import { AdminDashboardView } from './components/pages/AdminDashboardView'
 import { MarketView } from './components/pages/MarketView'
 import { MakerProfileView } from './components/pages/MakerProfileView'
+import { AboutView } from './components/pages/AboutView'
 import { LoginModal } from './components/modals/LoginModal'
 import { MatchModal } from './components/modals/MatchModal'
 import { SubmitProjectModal } from './components/modals/SubmitProjectModal'
@@ -83,6 +84,9 @@ export default function App() {
     iframeLoading,
     isAdminDashboardAvailable,
     isAdminView,
+    isAboutView,
+    openAbout,
+    goHome,
     isApplyingAllAdminRecommendations,
     isAuthenticated,
     isDiligenceEventsLoading,
@@ -231,14 +235,14 @@ export default function App() {
   const [viewAnnouncement, setViewAnnouncement] = useState('')
   const hasAnnouncedRef = useRef(false)
   useEffect(() => {
-    const label = isAdminView ? '운영 콘솔' : '프로토타입 마켓'
+    const label = isAdminView ? '운영 콘솔' : isAboutView ? '소개' : '프로토타입 마켓'
     document.title = `${label} · ProtoLive`
     if (!hasAnnouncedRef.current) {
       hasAnnouncedRef.current = true
       return
     }
     setViewAnnouncement(`${label} 화면으로 전환했습니다`)
-  }, [isAdminView])
+  }, [isAdminView, isAboutView])
 
   return (
     <div className="protolive-shell min-h-screen bg-base text-stone-100">
@@ -257,22 +261,29 @@ export default function App() {
       <header className="protolive-header sticky top-0 z-40 border-b bg-base/85 backdrop-blur">
         <div className="mx-auto flex min-h-[76px] max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:flex-nowrap lg:px-8">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="protolive-logo grid h-11 w-11 place-items-center rounded-lg bg-lime-300 text-slate-950 shadow-[0_0_0_1px_oklch(89%_0.18_125/0.25)]">
+            <button
+              type="button"
+              onClick={goHome}
+              aria-label="ProtoLive 홈으로"
+              className="protolive-logo grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-lime-300 text-slate-950 shadow-[0_0_0_1px_oklch(89%_0.18_125/0.25)] transition hover:bg-lime-200"
+            >
               <Zap className="h-5 w-5" />
-            </div>
+            </button>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="protolive-title text-xl font-black tracking-tight text-stone-50">
                   ProtoLive
                 </h1>
                 <span className="protolive-badge rounded-full border border-lime-400/30 bg-lime-300/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-lime-200">
-                  평가·리뷰·투자
+                  공유·피드백·투자
                 </span>
               </div>
               <p className="protolive-subtitle truncate text-xs font-medium text-stone-400">
                 {isAdminView
-                  ? '프로토타입 투자 연결 플랫폼의 수익·운영 지표를 관리하는 관리자 대시보드'
-                  : '만든 사이트를 올리면 평가와 리뷰를 거쳐 투자 관심까지 이어집니다'}
+                  ? '바이브코딩 커뮤니티의 수익·운영 지표를 관리하는 관리자 대시보드'
+                  : isAboutView
+                    ? '바이브코딩으로 만든 웹앱을 살아있는 채로 공유하고 피드백받는 커뮤니티'
+                    : '바이브코딩으로 만든 사이트를 올리고 커뮤니티 피드백과 투자 관심을 받으세요'}
               </p>
             </div>
           </div>
@@ -304,6 +315,18 @@ export default function App() {
                 </button>
               </div>
             ) : null}
+            <button
+              type="button"
+              onClick={isAboutView ? goHome : openAbout}
+              aria-pressed={isAboutView}
+              className={`inline-flex min-h-11 shrink-0 items-center rounded-lg border px-3 text-xs font-black transition sm:rounded-full ${
+                isAboutView
+                  ? 'border-lime-300/50 bg-lime-300/10 text-lime-100'
+                  : 'border-stone-700/80 bg-stone-900/70 text-stone-300 hover:border-lime-300/40 hover:text-lime-100'
+              }`}
+            >
+              소개
+            </button>
             <div
               className={`protolive-status hidden shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold xl:flex ${
                 apiOnline
@@ -394,6 +417,10 @@ export default function App() {
             onBack={closeMakerProfile}
             onOpenProject={openProjectDetail}
           />
+        ) : isAboutView ? (
+          <div className="lg:col-span-2">
+            <AboutView onCreate={openSubmitDialog} onBrowse={goHome} />
+          </div>
         ) : isAdminView ? (
           <AdminDashboardView
             adminDashboard={adminDashboard}

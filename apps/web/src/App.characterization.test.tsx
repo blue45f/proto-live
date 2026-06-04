@@ -240,3 +240,24 @@ describe('App characterization: submit deep link', () => {
     expect(await screen.findByText('라이브 프로토타입 등록')).toBeInTheDocument()
   })
 })
+
+describe('App characterization: about page', () => {
+  it('renders the public about page on /about for logged-out visitors', async () => {
+    setPath('/about')
+    render(<App />)
+
+    // 공개 페이지라 비로그인도 접근 가능(시장으로 튕기지 않음).
+    expect(await screen.findByText('커뮤니티가 먼저, 투자는 사다리 위에')).toBeInTheDocument()
+    expect(screen.getByText('바이브코딩 네이티브')).toBeInTheDocument()
+  })
+
+  it('navigates to /about when the 소개 link is clicked', async () => {
+    const user = userEvent.setup()
+    await renderAppLoaded()
+
+    await user.click(screen.getByRole('button', { name: '소개' }))
+
+    await waitFor(() => expect(window.location.pathname).toBe('/about'))
+    expect(await screen.findByText('어느 단계든 환영합니다')).toBeInTheDocument()
+  })
+})

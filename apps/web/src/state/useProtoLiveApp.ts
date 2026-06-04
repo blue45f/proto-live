@@ -197,16 +197,15 @@ export function useProtoLiveApp() {
   }, [])
 
   const effectiveView = useMemo<AppView>(() => {
-    if (view === 'admin' && isSessionHydrating) {
+    // 운영 콘솔만 권한 게이트. 마켓/소개는 공개라 그대로 통과한다.
+    if (view !== 'admin') {
+      return view
+    }
+    if (isSessionHydrating) {
       return 'admin'
     }
-
-    if (!session) {
-      return 'market'
-    }
-
-    return view === 'admin' && !canAccessAdmin ? 'market' : view
-  }, [session, view, canAccessAdmin, isSessionHydrating])
+    return canAccessAdmin ? 'admin' : 'market'
+  }, [view, canAccessAdmin, isSessionHydrating])
 
   const [adminRevenueConfig, setAdminRevenueConfig] =
     useState<RevenueModelConfig>(readAdminRevenueConfig)
@@ -649,6 +648,7 @@ export function useProtoLiveApp() {
   const favoriteProjectCount = favoriteProjectIds.size
 
   const isAdminView = effectiveView === 'admin'
+  const isAboutView = effectiveView === 'about'
   const isAdminDashboardAvailable =
     adminDashboard.lastUpdatedAt !== EMPTY_ADMIN_DASHBOARD.lastUpdatedAt
   const orderedAdminRecommendations = useMemo(
@@ -2391,6 +2391,30 @@ export function useProtoLiveApp() {
     }
   }, [])
 
+  // 소개 페이지로 이동(공개). 상세/메이커 오버레이를 닫고 /about URL을 갱신한다.
+  const openAbout = useCallback(() => {
+    setMakerProfileId(null)
+    setDetailProjectId(null)
+    setView('about')
+    closeModalStack()
+    if (typeof window !== 'undefined') {
+      navigate(routePath.about())
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [closeModalStack])
+
+  // 브랜드/홈 클릭 시 피드로 복귀.
+  const goHome = useCallback(() => {
+    setMakerProfileId(null)
+    setDetailProjectId(null)
+    setView('market')
+    closeModalStack()
+    if (typeof window !== 'undefined') {
+      navigate(routePath.market())
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [closeModalStack])
+
   return {
     accessMode,
     accessModeOptions,
@@ -2400,6 +2424,9 @@ export function useProtoLiveApp() {
     isMakerProfileLoading,
     openMakerProfile,
     closeMakerProfile,
+    openAbout,
+    goHome,
+    isAboutView,
     activeFilters,
     adminAuditLogs,
     adminDashboard,

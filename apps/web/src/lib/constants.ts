@@ -12,11 +12,12 @@ import type {
 } from '../api'
 import { DEFAULT_REVENUE_CONFIG, DEFAULT_REVENUE_TARGET } from './revenue-config'
 
-export type AppView = 'market' | 'admin'
+export type AppView = 'market' | 'admin' | 'about'
 
 export const LOGIN_MODAL_KEY = 'protolive:login-form:v1'
 export const ADMIN_PATH_SEGMENT = 'admin'
 export const SUBMIT_PATH_SEGMENT = 'submit'
+export const ABOUT_PATH_SEGMENT = 'about'
 
 export const EMPTY_STATS: MarketStats = {
   totalProjects: 0,
