@@ -36,6 +36,7 @@ test('JsonProjectsStore persists projects, users, proposals, and next ids', () =
       description: 'A project that survives process restarts.',
       liveUrl: 'https://example.org/',
       category: 'AI & SaaS',
+      maturity: 'live',
       accessMode: 'screened',
       protectionNoticeAccepted: true,
       thumbnail: null,

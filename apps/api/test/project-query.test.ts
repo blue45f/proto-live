@@ -130,6 +130,64 @@ test('session secret resolver requires explicit secret in production', async () 
   )
 })
 
+test('getAllProjects filters by maturity stage', async () => {
+  await withSeededService(
+    (state) => {
+      state.users.push({ id: 1, email: 'maker@protolive.local', role: 'maker' })
+      const base = {
+        userId: 1,
+        description: 'Maturity filter fixture',
+        category: 'AI & SaaS' as ProjectCategory,
+        accessMode: 'open' as ProjectAccessMode,
+        protectionNoticeAccepted: true,
+        investorCount: 0,
+        matchCount: 0,
+        committedAmountMin: 0,
+        committedAmountMax: 0,
+        validation: {
+          success: true,
+          status: 200,
+          message: 'ok',
+          checkedAt: '2026-06-01T00:00:00.000Z',
+          finalUrl: 'https://example.com',
+          responseTimeMs: 120,
+        },
+      }
+      state.projects.push(
+        {
+          ...base,
+          id: 1,
+          title: 'Early Prototype',
+          liveUrl: 'https://early.example.com',
+          maturity: 'early' as const,
+          createdAt: new Date('2026-06-01T12:00:00.000Z'),
+        },
+        {
+          ...base,
+          id: 2,
+          title: 'Live Product',
+          liveUrl: 'https://live.example.com',
+          maturity: 'live' as const,
+          createdAt: new Date('2026-06-01T11:00:00.000Z'),
+        }
+      )
+    },
+    async (service) => {
+      const early = await service.getAllProjects({ maturity: 'early' })
+      assert.equal(early.length, 1)
+      assert.equal(early[0].title, 'Early Prototype')
+      assert.equal(early[0].maturity, 'early')
+
+      const live = await service.getAllProjects({ maturity: 'live' })
+      assert.equal(live.length, 1)
+      assert.equal(live[0].maturity, 'live')
+
+      const all = await service.getAllProjects({})
+      assert.equal(all.length, 2)
+    }
+  )
+})
+
 test('getAllProjects supports category/search/access mode query filters', async () => {
   await withSeededService(
     (state) => {

@@ -10,12 +10,19 @@ import {
   MaxLength,
   Min,
 } from 'class-validator'
-import { ProjectAccessMode, ProjectCategory, PROJECT_CATEGORIES } from '../project.constants'
+import {
+  ProjectAccessMode,
+  ProjectCategory,
+  ProjectMaturity,
+  PROJECT_CATEGORIES,
+  PROJECT_MATURITIES,
+} from '../project.constants'
 
 export type ProjectSortKey = 'signal' | 'recent' | 'created' | 'funding'
 
 export interface ProjectQueryInput {
   category?: string
+  maturity?: ProjectMaturity
   accessMode?: ProjectAccessMode
   q?: string
   tag?: string
@@ -56,6 +63,13 @@ export class GetProjectsQueryDto {
   @IsIn(PROJECT_CATEGORIES as readonly string[], { message: '카테고리가 유효하지 않습니다.' })
   @IsOptional()
   category?: ProjectCategory
+
+  @Transform(({ value }) => trimOrUndefined(value))
+  @IsIn(PROJECT_MATURITIES.map((maturity) => maturity.id), {
+    message: '진행 단계가 유효하지 않습니다.',
+  })
+  @IsOptional()
+  maturity?: ProjectMaturity
 
   @Transform(({ value }) => trimOrUndefined(value))
   @IsIn(['screened', 'open'], { message: '공개 범위가 유효하지 않습니다.' })

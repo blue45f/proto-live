@@ -6,6 +6,7 @@ import type {
   MarketStats,
   ProjectEventType,
   ProjectListQuery,
+  ProjectMaturity,
   ProjectReviewType,
 } from '../api'
 import { DEFAULT_REVENUE_CONFIG, DEFAULT_REVENUE_TARGET } from './revenue-config'
@@ -297,6 +298,27 @@ export const eventCopy: Record<
     icon: RefreshCw,
     label: '갱신',
     tone: 'border-stone-500/30 bg-stone-800/50 text-stone-200',
+  },
+}
+
+export const maturityCopy: Record<
+  ProjectMaturity,
+  { label: string; helper: string; tone: string }
+> = {
+  early: {
+    label: '초기',
+    helper: '데모·프로토타입·갓 시작한 거친 초기물. 완성도보다 방향과 가능성을 봐주세요.',
+    tone: 'border-violet-300/35 bg-violet-300/10 text-violet-100',
+  },
+  building: {
+    label: '만드는 중',
+    helper: '핵심 흐름은 동작하지만 아직 다듬는 중입니다.',
+    tone: 'border-lime-300/35 bg-lime-300/10 text-lime-100',
+  },
+  live: {
+    label: '운영',
+    helper: '실제 사용 가능한 운영 단계입니다.',
+    tone: 'border-amber-300/35 bg-amber-300/10 text-amber-100',
   },
 }
 

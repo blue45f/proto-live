@@ -26,6 +26,26 @@ export const PROJECT_ACCESS_MODES = [
 
 export type ProjectAccessMode = (typeof PROJECT_ACCESS_MODES)[number]['id']
 
+export const PROJECT_MATURITIES = [
+  {
+    id: 'early',
+    label: '초기',
+    description: '데모·프로토타입·갓 시작한 거친 초기물. 완성도보다 방향과 가능성을 봅니다.',
+  },
+  {
+    id: 'building',
+    label: '만드는 중',
+    description: '핵심 흐름은 동작하지만 아직 다듬는 중입니다.',
+  },
+  {
+    id: 'live',
+    label: '운영',
+    description: '실제 사용 가능한 운영 단계입니다.',
+  },
+] as const
+
+export type ProjectMaturity = (typeof PROJECT_MATURITIES)[number]['id']
+
 export const FUNDING_RANGES = [
   {
     id: 'pre-seed-10-30',

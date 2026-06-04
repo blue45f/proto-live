@@ -16,6 +16,7 @@ export interface Project {
   description: string
   liveUrl: string
   category: string
+  maturity: ProjectMaturity
   tags?: string[]
   accessMode: ProjectAccessMode
   protectionNoticeAccepted?: boolean
@@ -32,6 +33,7 @@ export interface Project {
 }
 
 export type ProjectAccessMode = 'screened' | 'open'
+export type ProjectMaturity = 'early' | 'building' | 'live'
 export type ProjectEventType = 'create' | 'preview' | 'outbound' | 'match' | 'refresh'
 export type ProjectReviewType = 'review' | 'support' | 'idea'
 export type ProjectReviewAuthorRole = 'maker' | 'investor' | 'member'
@@ -342,6 +344,7 @@ export interface CreateProjectPayload {
   description: string
   liveUrl: string
   category: string
+  maturity?: ProjectMaturity
   tags?: string[]
   accessMode: ProjectAccessMode
   protectionNoticeAccepted: boolean

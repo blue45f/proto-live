@@ -828,6 +828,10 @@ export class ProjectsService {
           return false
         }
 
+        if (query.maturity && project.maturity !== query.maturity) {
+          return false
+        }
+
         if (query.accessMode && project.accessMode !== query.accessMode) {
           return false
         }
@@ -976,6 +980,7 @@ export class ProjectsService {
       description,
       liveUrl,
       category,
+      maturity,
       accessMode,
       protectionNoticeAccepted,
       thumbnail,
@@ -1009,6 +1014,7 @@ export class ProjectsService {
       description: description.trim(),
       liveUrl: normalizePublicHttpUrl(liveUrl).href,
       category: category as ProjectCategory,
+      maturity: maturity ?? 'building',
       tags: this.normalizeTags(tags),
       accessMode: accessMode as ProjectAccessMode,
       protectionNoticeAccepted,
@@ -2288,6 +2294,7 @@ export class ProjectsService {
     return {
       ...project,
       accessMode,
+      maturity: project.maturity ?? 'live',
       protectionNoticeAccepted: project.protectionNoticeAccepted ?? true,
       liveUrl: displayUrl,
       validation: {

@@ -14,8 +14,10 @@ import {
 import {
   PROJECT_ACCESS_MODES,
   PROJECT_CATEGORIES,
+  PROJECT_MATURITIES,
   ProjectAccessMode,
   ProjectCategory,
+  ProjectMaturity,
 } from '../project.constants'
 
 /**
@@ -48,6 +50,13 @@ export class CreateProjectDto {
   @IsNotEmpty({ message: '카테고리는 필수 항목입니다.' })
   @IsIn(PROJECT_CATEGORIES, { message: '유효한 카테고리를 선택해주세요.' })
   category: ProjectCategory
+
+  @IsOptional()
+  @IsString({ message: '진행 단계는 문자열이어야 합니다.' })
+  @IsIn(PROJECT_MATURITIES.map((maturity) => maturity.id), {
+    message: '유효한 진행 단계를 선택해주세요.',
+  })
+  maturity?: ProjectMaturity
 
   @IsString({ message: '공개 범위는 문자열이어야 합니다.' })
   @IsNotEmpty({ message: '공개 범위를 선택해주세요.' })

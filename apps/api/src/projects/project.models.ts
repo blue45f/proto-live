@@ -1,4 +1,9 @@
-import { FundingRangeId, ProjectAccessMode, ProjectCategory } from './project.constants'
+import {
+  FundingRangeId,
+  ProjectAccessMode,
+  ProjectCategory,
+  ProjectMaturity,
+} from './project.constants'
 
 export interface ValidationSnapshot {
   success: boolean
@@ -16,6 +21,9 @@ export interface Project {
   description: string
   liveUrl: string
   category: ProjectCategory
+  // 런타임에서는 항상 채워진다(deserialize 백필 · createProject · hydrate 기본값).
+  // 인터페이스는 레거시/테스트 리터럴 호환을 위해 옵셔널로 둔다.
+  maturity?: ProjectMaturity
   tags?: string[]
   accessMode: ProjectAccessMode
   protectionNoticeAccepted: boolean

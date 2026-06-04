@@ -108,6 +108,8 @@ function deserializeState(state: SerializedProjectsState): ProjectsState {
       ? state.projects.map((project) => ({
           ...project,
           accessMode: project.accessMode ?? 'open',
+          // 레거시 레코드는 이미 라이브 검증을 통과한 운영 단계로 백필한다.
+          maturity: project.maturity ?? 'live',
           protectionNoticeAccepted: project.protectionNoticeAccepted ?? true,
           createdAt: new Date(project.createdAt),
         }))
