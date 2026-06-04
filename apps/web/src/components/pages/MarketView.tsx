@@ -157,6 +157,7 @@ export function MarketView(props: {
   // handlers (list)
   onCreate: () => void
   onOpenDetail: (project: Project) => void
+  onOpenMaker: (makerId: number) => void
   onToggleFavorite: (projectId: number) => void
   onToggleUpvote: (project: Project) => void
   onToggleFeatured: (project: Project) => void
@@ -257,6 +258,7 @@ export function MarketView(props: {
     onNextPage,
     onCreate,
     onOpenDetail,
+    onOpenMaker,
     onToggleFavorite,
     onToggleUpvote,
     onToggleFeatured,
@@ -399,6 +401,7 @@ export function MarketView(props: {
               onLogBodyChange={onLogBodyChange}
               onSubmitLog={onSubmitLog}
               isSubmittingLog={isSubmittingLog}
+              onOpenMaker={onOpenMaker}
             />
           ) : (
             <div className="rounded-xl border border-stone-800 bg-stone-950/60 p-6 text-sm text-stone-300">

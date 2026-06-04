@@ -50,6 +50,7 @@ export function ProjectDetailRoute({
   onLogBodyChange,
   onSubmitLog,
   isSubmittingLog,
+  onOpenMaker,
 }: {
   project: Project
   events: ProjectEvent[]
@@ -83,6 +84,7 @@ export function ProjectDetailRoute({
   onLogBodyChange: (body: string) => void
   onSubmitLog: (event: React.FormEvent) => void
   isSubmittingLog: boolean
+  onOpenMaker: (makerId: number) => void
 }) {
   const canPostLog = !!session && session.id === project.userId
   const isProtected = project.accessMode === 'screened'
@@ -145,6 +147,13 @@ export function ProjectDetailRoute({
             <p className="mt-3 max-w-3xl overflow-wrap-anywhere text-base leading-7 text-stone-300">
               {project.description}
             </p>
+            <button
+              type="button"
+              onClick={() => onOpenMaker(project.userId)}
+              className="mt-3 inline-flex min-h-9 items-center gap-1 rounded-lg border border-stone-700 px-3 text-xs font-black text-stone-300 transition hover:border-lime-300/50 hover:text-lime-100"
+            >
+              이 메이커의 다른 프로젝트
+            </button>
             {tags.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {tags.map((tag) => (

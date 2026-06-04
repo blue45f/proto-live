@@ -17,6 +17,7 @@ import {
   ProjectEvent,
   ProjectReview,
   ProjectLogEntry,
+  MakerProfile,
   ProjectReviewType,
   hasPagination,
   createMatchProposal,
@@ -34,6 +35,7 @@ import {
   fetchProjectEvents,
   fetchProjectLog,
   addProjectLogEntry,
+  fetchMakerProfile,
   fetchProjectReviews,
   getApiErrorMessage,
   loginUser,
@@ -123,6 +125,9 @@ export function useProtoLiveApp() {
   const [detailProjectId, setDetailProjectId] = useState<number | null>(
     () => matchRoute().projectId
   )
+  const [makerProfileId, setMakerProfileId] = useState<number | null>(() => matchRoute().makerId)
+  const [makerProfile, setMakerProfile] = useState<MakerProfile | null>(null)
+  const [isMakerProfileLoading, setIsMakerProfileLoading] = useState(false)
   const [session, setSession] = useState<AuthSession | null>(() => readSession())
   const [isSessionHydrating, setIsSessionHydrating] = useState(true)
   const [isLoginOpen, setIsLoginOpen] = useState(false)
@@ -342,6 +347,7 @@ export function useProtoLiveApp() {
 
     const onPopState = () => {
       const route = matchRoute()
+      setMakerProfileId(route.makerId)
       setDetailProjectId(route.projectId)
       setView(route.view)
     }
@@ -377,6 +383,19 @@ export function useProtoLiveApp() {
       .catch(() => setProjectLog([]))
       .finally(() => setIsProjectLogLoading(false))
   }, [detailProjectId])
+
+  useEffect(() => {
+    if (!makerProfileId) {
+      setMakerProfile(null)
+      return
+    }
+
+    setIsMakerProfileLoading(true)
+    fetchMakerProfile(makerProfileId)
+      .then((profile) => setMakerProfile(profile))
+      .catch(() => setMakerProfile(null))
+      .finally(() => setIsMakerProfileLoading(false))
+  }, [makerProfileId])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -1273,6 +1292,7 @@ export function useProtoLiveApp() {
         return
       }
 
+      setMakerProfileId(null)
       setView(nextView)
       closeModalStack()
     },
@@ -2287,6 +2307,7 @@ export function useProtoLiveApp() {
     setDiligenceEvents([])
     setIsProjectReviewsLoading(true)
     setIsDiligenceEventsLoading(true)
+    setMakerProfileId(null)
     setDetailProjectId(project.id)
     setView('market')
     if (typeof window !== 'undefined') {
@@ -2306,10 +2327,33 @@ export function useProtoLiveApp() {
     }
   }, [])
 
+  const openMakerProfile = useCallback((makerId: number) => {
+    setDetailProjectId(null)
+    setMakerProfileId(makerId)
+    setView('market')
+    if (typeof window !== 'undefined') {
+      navigate(routePath.maker(makerId), { makerId })
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [])
+
+  const closeMakerProfile = useCallback(() => {
+    setMakerProfileId(null)
+    if (typeof window !== 'undefined') {
+      navigate(routePath.market())
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [])
+
   return {
     accessMode,
     accessModeOptions,
     activeFilterCount,
+    makerProfileId,
+    makerProfile,
+    isMakerProfileLoading,
+    openMakerProfile,
+    closeMakerProfile,
     activeFilters,
     adminAuditLogs,
     adminDashboard,
