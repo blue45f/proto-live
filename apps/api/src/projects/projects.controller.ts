@@ -220,6 +220,16 @@ export class ProjectsController {
   }
 
   /**
+   * POST /api/projects/:id/upvote
+   * 로그인 회원의 업보트를 토글합니다(1인 1표, 본인 프로젝트 제외).
+   */
+  @Post(':id/upvote')
+  toggleUpvote(@Req() request: Request, @Param('id', ParseIntPipe) id: number) {
+    const session = this.projectsService.requireSession(request.headers.cookie)
+    return this.projectsService.toggleUpvote(id, session.email)
+  }
+
+  /**
    * POST /api/projects/:id/reviews
    * 로그인 회원의 평가/리뷰/성장지원 의견 또는 대댓글을 저장합니다.
    */

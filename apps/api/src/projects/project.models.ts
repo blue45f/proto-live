@@ -28,6 +28,7 @@ export interface Project {
   builtWith?: string[]
   customTools?: string[]
   vibeCoded?: boolean
+  upvoteCount?: number
   tags?: string[]
   accessMode: ProjectAccessMode
   protectionNoticeAccepted: boolean
@@ -141,6 +142,17 @@ export interface ProjectEvent {
   id: number
   projectId: number
   type: ProjectEventType
+  createdAt: Date
+}
+
+/**
+ * 업보트는 project_events와 분리해 저장한다(이벤트 타입 union을 건드리지 않아
+ * admin 퍼널/시그널/트렌드 Record에 새지 않는다). 1인 1표는 (projectId,email) 유일성으로 보장.
+ */
+export interface ProjectUpvote {
+  id: number
+  projectId: number
+  email: string
   createdAt: Date
 }
 
@@ -343,12 +355,14 @@ export interface ProjectsState {
   proposals: MatchProposal[]
   events: ProjectEvent[]
   reviews: ProjectReview[]
+  upvotes: ProjectUpvote[]
   auditLogs: AuditLog[]
   nextUserId: number
   nextProjectId: number
   nextProposalId: number
   nextEventId: number
   nextReviewId: number
+  nextUpvoteId: number
   nextAuditLogId: number
 }
 
@@ -359,12 +373,14 @@ export function createEmptyProjectsState(): ProjectsState {
     proposals: [],
     events: [],
     reviews: [],
+    upvotes: [],
     auditLogs: [],
     nextUserId: 1,
     nextProjectId: 1,
     nextProposalId: 1,
     nextEventId: 1,
     nextReviewId: 1,
+    nextUpvoteId: 1,
     nextAuditLogId: 1,
   }
 }

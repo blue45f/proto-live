@@ -188,6 +188,54 @@ test('getAllProjects filters by maturity stage', async () => {
   )
 })
 
+test('toggleUpvote enforces one vote per member and blocks self-upvote', async () => {
+  await withSeededService(
+    (state) => {
+      state.users.push(
+        { id: 1, email: 'maker@protolive.local', role: 'maker' },
+        { id: 2, email: 'member@protolive.local', role: 'member' }
+      )
+      state.projects.push({
+        id: 1,
+        userId: 1,
+        title: 'Upvote Target',
+        description: 'A project to vote on',
+        liveUrl: 'https://upvote.example.com',
+        category: 'AI & SaaS' as ProjectCategory,
+        maturity: 'live' as const,
+        accessMode: 'open' as ProjectAccessMode,
+        protectionNoticeAccepted: true,
+        investorCount: 0,
+        matchCount: 0,
+        committedAmountMin: 0,
+        committedAmountMax: 0,
+        validation: {
+          success: true,
+          status: 200,
+          message: 'ok',
+          checkedAt: '2026-06-01T00:00:00.000Z',
+          finalUrl: 'https://upvote.example.com',
+          responseTimeMs: 120,
+        },
+        createdAt: new Date('2026-06-01T12:00:00.000Z'),
+      })
+    },
+    (service) => {
+      const first = service.toggleUpvote(1, 'member@protolive.local')
+      assert.equal(first.viewerUpvoted, true)
+      assert.equal(first.project.upvoteCount, 1)
+
+      // Same member toggling again removes the vote (1 person, 1 vote).
+      const second = service.toggleUpvote(1, 'member@protolive.local')
+      assert.equal(second.viewerUpvoted, false)
+      assert.equal(second.project.upvoteCount, 0)
+
+      // The maker cannot upvote their own project.
+      assert.throws(() => service.toggleUpvote(1, 'maker@protolive.local'), /자신의 프로젝트/)
+    }
+  )
+})
+
 test('getAllProjects supports category/search/access mode query filters', async () => {
   await withSeededService(
     (state) => {
