@@ -17,6 +17,7 @@ export interface Project {
   liveUrl: string
   category: string
   maturity: ProjectMaturity
+  stack?: ProjectStack
   builtWith?: string[]
   customTools?: string[]
   vibeCoded?: boolean
@@ -39,6 +40,7 @@ export interface Project {
 
 export type ProjectAccessMode = 'screened' | 'open'
 export type ProjectMaturity = 'early' | 'building' | 'live'
+export type ProjectStack = 'web' | 'app' | 'game' | 'tools'
 export type ProjectEventType = 'create' | 'preview' | 'outbound' | 'match' | 'refresh'
 export type ProjectReviewType = 'review' | 'support' | 'idea'
 export type ProjectReviewAuthorRole = 'maker' | 'investor' | 'member'
@@ -350,6 +352,7 @@ export interface CreateProjectPayload {
   liveUrl: string
   category: string
   maturity?: ProjectMaturity
+  stack?: ProjectStack
   builtWith?: string[]
   customTools?: string[]
   vibeCoded?: boolean
@@ -403,6 +406,7 @@ export interface ProjectListQuery {
   tag?: string
   accessMode?: ProjectAccessMode
   sort?: 'signal' | 'recent' | 'created' | 'funding' | 'upvotes'
+  stack?: ProjectStack
   minSignal?: number
   minFundingAmount?: number
   maxFundingAmount?: number

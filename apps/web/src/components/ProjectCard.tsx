@@ -5,6 +5,7 @@ import {
   buildToolLabel,
   maturityCopy,
   reviewTypeCopy,
+  stackCopy,
 } from '../lib/constants'
 import {
   formatRelativeTime,
@@ -112,6 +113,11 @@ export function ProjectCard({
             >
               {maturity.label}
             </span>
+            {project.stack && (
+              <span className="rounded-full border border-stone-700 bg-stone-950/60 px-2.5 py-1 text-[11px] font-black text-stone-300">
+                {stackCopy[project.stack]}
+              </span>
+            )}
             {project.featured && (
               <span className="rounded-full border border-sky-300/40 bg-sky-300/10 px-2.5 py-1 text-[11px] font-black text-sky-100">
                 투자 검토 대상

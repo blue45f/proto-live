@@ -125,6 +125,8 @@ export default function App() {
     protectionNoticeAccepted,
     maturity,
     setMaturity,
+    stack,
+    setStack,
     builtWith,
     toggleBuildTool,
     customToolsInput,
@@ -678,6 +680,7 @@ export default function App() {
           title={title}
           category={category}
           maturity={maturity}
+          stack={stack}
           builtWith={builtWith}
           customToolsInput={customToolsInput}
           vibeCoded={vibeCoded}
@@ -695,6 +698,7 @@ export default function App() {
           onTitleChange={setTitle}
           onCategoryChange={setCategory}
           onMaturityChange={setMaturity}
+          onStackChange={setStack}
           onToggleBuildTool={toggleBuildTool}
           onCustomToolsInputChange={setCustomToolsInput}
           onVibeCodedChange={setVibeCoded}

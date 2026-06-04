@@ -14,8 +14,10 @@ import {
   ProjectAccessMode,
   ProjectCategory,
   ProjectMaturity,
+  ProjectStack,
   PROJECT_CATEGORIES,
   PROJECT_MATURITIES,
+  PROJECT_STACKS,
 } from '../project.constants'
 
 export type ProjectSortKey = 'signal' | 'recent' | 'created' | 'funding' | 'upvotes'
@@ -23,6 +25,7 @@ export type ProjectSortKey = 'signal' | 'recent' | 'created' | 'funding' | 'upvo
 export interface ProjectQueryInput {
   category?: string
   maturity?: ProjectMaturity
+  stack?: ProjectStack
   accessMode?: ProjectAccessMode
   q?: string
   tag?: string
@@ -71,6 +74,11 @@ export class GetProjectsQueryDto {
   })
   @IsOptional()
   maturity?: ProjectMaturity
+
+  @Transform(({ value }) => trimOrUndefined(value))
+  @IsIn(PROJECT_STACKS.map((stack) => stack.id), { message: '빌드 유형이 유효하지 않습니다.' })
+  @IsOptional()
+  stack?: ProjectStack
 
   @Transform(({ value }) => trimOrUndefined(value))
   @IsIn(['screened', 'open'], { message: '공개 범위가 유효하지 않습니다.' })

@@ -8,6 +8,7 @@ import type {
   ProjectListQuery,
   ProjectMaturity,
   ProjectReviewType,
+  ProjectStack,
 } from '../api'
 import { DEFAULT_REVENUE_CONFIG, DEFAULT_REVENUE_TARGET } from './revenue-config'
 
@@ -340,6 +341,13 @@ export const MAX_CUSTOM_TOOLS = 3
 
 export function buildToolLabel(id: string): string {
   return BUILD_TOOLS.find((tool) => tool.id === id)?.label ?? id
+}
+
+export const stackCopy: Record<ProjectStack, string> = {
+  web: '웹',
+  app: '앱',
+  game: '게임',
+  tools: '도구',
 }
 
 export const maturityReviewHint: Record<ProjectMaturity, string> = {

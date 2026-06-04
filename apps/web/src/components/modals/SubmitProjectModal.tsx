@@ -1,9 +1,9 @@
 import React from 'react'
 import { AlertTriangle, BadgeCheck, CheckCircle2, Globe2, Loader2, ShieldCheck } from 'lucide-react'
 import type { AuthSession } from '../../local-auth'
-import type { MarketConfig, ProjectAccessMode, ProjectMaturity } from '../../api'
+import type { MarketConfig, ProjectAccessMode, ProjectMaturity, ProjectStack } from '../../api'
 import { getValidationTone } from '../../lib/format'
-import { BUILD_TOOLS, maturityCopy } from '../../lib/constants'
+import { BUILD_TOOLS, maturityCopy, stackCopy } from '../../lib/constants'
 import { parseTagInput } from '../../state/storage'
 import { Modal } from '../Modal'
 
@@ -29,6 +29,8 @@ export function SubmitProjectModal({
   onTitleChange,
   onCategoryChange,
   onMaturityChange,
+  stack,
+  onStackChange,
   onToggleBuildTool,
   onCustomToolsInputChange,
   onVibeCodedChange,
@@ -61,6 +63,8 @@ export function SubmitProjectModal({
   onTitleChange: (value: string) => void
   onCategoryChange: (value: string) => void
   onMaturityChange: (value: ProjectMaturity) => void
+  stack: ProjectStack | ''
+  onStackChange: (value: ProjectStack | '') => void
   onToggleBuildTool: (id: string) => void
   onCustomToolsInputChange: (value: string) => void
   onVibeCodedChange: (value: boolean) => void
@@ -141,6 +145,23 @@ export function SubmitProjectModal({
             데모·프로토타입·갓 시작한 거친 초기물도 환영합니다. 단, 실제로 열리는 라이브 URL은
             필요해요.
           </p>
+          <label className="mt-3 block">
+            <span className="mb-1 block text-xs font-black text-stone-300">
+              빌드 유형 <span className="font-medium text-stone-500">(선택)</span>
+            </span>
+            <select
+              value={stack}
+              onChange={(event) => onStackChange(event.target.value as ProjectStack | '')}
+              className="min-h-11 w-full rounded-lg border border-stone-700 bg-stone-950 px-3 text-sm text-stone-100 outline-none focus:border-lime-300/60"
+            >
+              <option value="">선택 안 함</option>
+              {(Object.keys(stackCopy) as ProjectStack[]).map((id) => (
+                <option key={id} value={id}>
+                  {stackCopy[id]}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
         <div className="rounded-lg border border-amber-300/25 bg-amber-300/10 p-3">
           <div className="flex items-start gap-3">

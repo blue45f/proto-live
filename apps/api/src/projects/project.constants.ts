@@ -46,6 +46,15 @@ export const PROJECT_MATURITIES = [
 
 export type ProjectMaturity = (typeof PROJECT_MATURITIES)[number]['id']
 
+export const PROJECT_STACKS = [
+  { id: 'web', label: '웹' },
+  { id: 'app', label: '앱' },
+  { id: 'game', label: '게임' },
+  { id: 'tools', label: '도구' },
+] as const
+
+export type ProjectStack = (typeof PROJECT_STACKS)[number]['id']
+
 export const BUILD_TOOLS = [
   { id: 'cursor', label: 'Cursor' },
   { id: 'claude-code', label: 'Claude Code' },

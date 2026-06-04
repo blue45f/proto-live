@@ -837,6 +837,10 @@ export class ProjectsService {
           return false
         }
 
+        if (query.stack && project.stack !== query.stack) {
+          return false
+        }
+
         if (query.featured && !project.featured) {
           return false
         }
@@ -1001,6 +1005,7 @@ export class ProjectsService {
       liveUrl,
       category,
       maturity,
+      stack,
       builtWith,
       customTools,
       vibeCoded,
@@ -1038,6 +1043,7 @@ export class ProjectsService {
       liveUrl: normalizePublicHttpUrl(liveUrl).href,
       category: category as ProjectCategory,
       maturity: maturity ?? 'building',
+      stack: stack ?? undefined,
       builtWith: builtWith && builtWith.length > 0 ? [...new Set(builtWith)] : undefined,
       customTools:
         customTools && customTools.length > 0

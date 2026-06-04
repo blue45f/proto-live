@@ -324,6 +324,7 @@ function normalizeProjectQuery(query: GetProjectsQueryDto): ProjectQueryInput {
   return {
     category: query.category,
     maturity: query.maturity,
+    stack: query.stack,
     accessMode: query.accessMode,
     q: query.q,
     tag: query.tag,

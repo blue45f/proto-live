@@ -13,6 +13,7 @@ import {
   Project,
   ProjectAccessMode,
   ProjectMaturity,
+  ProjectStack,
   ProjectEvent,
   ProjectReview,
   ProjectReviewType,
@@ -253,6 +254,7 @@ export function useProtoLiveApp() {
   const [accessMode, setAccessMode] = useState<ProjectAccessMode>('screened')
   const [protectionNoticeAccepted, setProtectionNoticeAccepted] = useState(false)
   const [maturity, setMaturity] = useState<ProjectMaturity>('building')
+  const [stack, setStack] = useState<ProjectStack | ''>('')
   const [builtWith, setBuiltWith] = useState<string[]>([])
   const [customToolsInput, setCustomToolsInput] = useState('')
   const [vibeCoded, setVibeCoded] = useState(false)
@@ -1895,6 +1897,7 @@ export function useProtoLiveApp() {
         liveUrl,
         category,
         maturity,
+        stack: stack || undefined,
         builtWith: builtWith.length > 0 ? builtWith : undefined,
         customTools: parseTagInput(customToolsInput),
         vibeCoded,
@@ -1911,6 +1914,7 @@ export function useProtoLiveApp() {
       setTagInput('')
       setAccessMode('screened')
       setMaturity('building')
+      setStack('')
       setBuiltWith([])
       setCustomToolsInput('')
       setVibeCoded(false)
@@ -2370,6 +2374,8 @@ export function useProtoLiveApp() {
     protectionNoticeAccepted,
     maturity,
     setMaturity,
+    stack,
+    setStack,
     builtWith,
     toggleBuildTool,
     customToolsInput,
