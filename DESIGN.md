@@ -2,19 +2,18 @@
 
 ## Theme
 
-Use a focused, late-night diligence workspace: dark enough for live demo review, but not neon SaaS. Avoid purple-blue gradient dominance, glassmorphism as default, decorative glow fields, and gradient text.
+Use a bright "maker lounge": daytime, natural light, an encouraging place to share a rough-but-live build and get feedback. Light, not dark. Avoid the SaaS reflexes for this category (Product Hunt coral on white, playful purple gradients, indie-hacker beige). No glassmorphism as default, no decorative glow fields, no gradient text, no shimmer or mix-blend.
 
 ## Color Strategy
 
-Use tinted neutrals with a full semantic palette:
+Restrained base plus one committed brand hue, all in OKLCH (never pure `#000`/`#fff`; tint neutrals toward ink-blue):
 
-- Background: near-ink neutral with slight green/blue tint.
-- Primary action: acidic chartreuse for proof and action.
-- Secondary signal: cyan for live network telemetry.
-- Deal signal: amber for funding intent.
-- Error: red/coral with plain language recovery.
-
-Use OKLCH values where practical. Do not use pure `#000` or `#fff`.
+- Background: linen white (`oklch(98.4% 0.006 95)`), raised surface a touch lighter, sunken a touch darker.
+- Text: ink-blue ramp (`oklch(28% 0.02 250)` strong → faint), not black.
+- Primary action: warm sap green (`oklch(58% 0.13 150)`) for proof and action; chosen because sap green is rare as a SaaS primary, so it dodges the category reflex.
+- Link/secondary: ink-blue accent (`oklch(64% 0.14 250)`), hue-separated from primary.
+- Signal colors read at a glance: maturity badges (early violet / building green / live amber), upvote ember, success green hue-separated from primary.
+- Semantic: success / warning / error / info each its own hue with light tint + readable dark text.
 
 ## Typography
 

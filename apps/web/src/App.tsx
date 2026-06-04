@@ -222,7 +222,7 @@ export default function App() {
   }, [isAdminView])
 
   return (
-    <div className="protolive-shell min-h-screen bg-[oklch(14%_0.018_205)] text-stone-100">
+    <div className="protolive-shell min-h-screen bg-base text-stone-100">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-cyan-300 focus:px-4 focus:py-2 focus:font-bold focus:text-slate-950"
@@ -235,7 +235,7 @@ export default function App() {
 
       <ToastContainer />
 
-      <header className="protolive-header sticky top-0 z-40 border-b border-cyan-900/40 bg-[oklch(14%_0.018_205)/0.92] backdrop-blur">
+      <header className="protolive-header sticky top-0 z-40 border-b bg-base/85 backdrop-blur">
         <div className="mx-auto flex min-h-[76px] max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:flex-nowrap lg:px-8">
           <div className="flex min-w-0 items-center gap-3">
             <div className="protolive-logo grid h-11 w-11 place-items-center rounded-lg bg-lime-300 text-slate-950 shadow-[0_0_0_1px_oklch(89%_0.18_125/0.25)]">

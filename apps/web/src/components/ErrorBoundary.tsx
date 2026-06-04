@@ -34,7 +34,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return (
         <main
           role="alert"
-          className="grid min-h-screen place-items-center bg-[oklch(14%_0.018_205)] px-6 text-stone-100"
+          className="grid min-h-screen place-items-center bg-[oklch(98.4%_0.006_95)] px-6 text-stone-100"
         >
           <div className="max-w-md text-center">
             <h1 className="text-2xl font-black text-stone-50">화면을 표시하지 못했습니다</h1>

@@ -32,7 +32,7 @@ export function Modal({
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
         tabIndex={-1}
-        className="protolive-modal relative max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-stone-700 bg-[oklch(16%_0.018_205)] p-5 shadow-2xl"
+        className="protolive-modal relative max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-xl border border-stone-700 bg-[oklch(99.2%_0.004_95)] p-5 shadow-2xl"
       >
         <div className="mb-5 flex items-start justify-between gap-3 border-b border-stone-800 pb-4">
           <div>
