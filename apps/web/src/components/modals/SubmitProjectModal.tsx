@@ -206,6 +206,8 @@ export function SubmitProjectModal({
               value={liveUrl}
               onChange={(event) => onLiveUrlChange(event.target.value)}
               placeholder="https://your-live-demo.com"
+              aria-invalid={urlCheckStatus === 'error' || undefined}
+              aria-describedby={urlCheckStatus !== 'idle' ? 'submit-url-check' : undefined}
               className="min-h-11 flex-1 rounded-lg border border-stone-700 bg-stone-950 px-3 text-sm text-stone-100 outline-none placeholder:text-stone-500 focus:border-lime-300/60"
             />
             <button
@@ -225,6 +227,9 @@ export function SubmitProjectModal({
         </label>
         {urlCheckStatus !== 'idle' && (
           <div
+            id="submit-url-check"
+            role={urlCheckStatus === 'error' ? 'alert' : 'status'}
+            aria-live="polite"
             className={`rounded-lg border p-3 text-sm ${getValidationTone({ success: urlCheckStatus === 'success', message: urlCheckMessage, checkedAt: new Date().toISOString() })}`}
           >
             <div className="flex items-start gap-2">
