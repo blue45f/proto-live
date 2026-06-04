@@ -46,6 +46,23 @@ export const PROJECT_MATURITIES = [
 
 export type ProjectMaturity = (typeof PROJECT_MATURITIES)[number]['id']
 
+export const BUILD_TOOLS = [
+  { id: 'cursor', label: 'Cursor' },
+  { id: 'claude-code', label: 'Claude Code' },
+  { id: 'lovable', label: 'Lovable' },
+  { id: 'v0', label: 'v0' },
+  { id: 'bolt', label: 'Bolt' },
+  { id: 'replit', label: 'Replit' },
+  { id: 'windsurf', label: 'Windsurf' },
+  { id: 'wrtn', label: '뤼튼' },
+  { id: 'copilot', label: 'GitHub Copilot' },
+] as const
+
+export type BuildToolId = (typeof BUILD_TOOLS)[number]['id']
+
+export const MAX_BUILD_TOOLS = 5
+export const MAX_CUSTOM_TOOLS = 3
+
 export const FUNDING_RANGES = [
   {
     id: 'pre-seed-10-30',

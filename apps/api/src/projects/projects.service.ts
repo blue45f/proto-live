@@ -981,6 +981,9 @@ export class ProjectsService {
       liveUrl,
       category,
       maturity,
+      builtWith,
+      customTools,
+      vibeCoded,
       accessMode,
       protectionNoticeAccepted,
       thumbnail,
@@ -1015,6 +1018,12 @@ export class ProjectsService {
       liveUrl: normalizePublicHttpUrl(liveUrl).href,
       category: category as ProjectCategory,
       maturity: maturity ?? 'building',
+      builtWith: builtWith && builtWith.length > 0 ? [...new Set(builtWith)] : undefined,
+      customTools:
+        customTools && customTools.length > 0
+          ? [...new Set(customTools.map((tool) => tool.trim()).filter(Boolean))]
+          : undefined,
+      vibeCoded: vibeCoded ?? undefined,
       tags: this.normalizeTags(tags),
       accessMode: accessMode as ProjectAccessMode,
       protectionNoticeAccepted,

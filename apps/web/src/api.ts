@@ -17,6 +17,9 @@ export interface Project {
   liveUrl: string
   category: string
   maturity: ProjectMaturity
+  builtWith?: string[]
+  customTools?: string[]
+  vibeCoded?: boolean
   tags?: string[]
   accessMode: ProjectAccessMode
   protectionNoticeAccepted?: boolean
@@ -345,6 +348,9 @@ export interface CreateProjectPayload {
   liveUrl: string
   category: string
   maturity?: ProjectMaturity
+  builtWith?: string[]
+  customTools?: string[]
+  vibeCoded?: boolean
   tags?: string[]
   accessMode: ProjectAccessMode
   protectionNoticeAccepted: boolean

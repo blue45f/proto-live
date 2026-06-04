@@ -24,6 +24,10 @@ export interface Project {
   // 런타임에서는 항상 채워진다(deserialize 백필 · createProject · hydrate 기본값).
   // 인터페이스는 레거시/테스트 리터럴 호환을 위해 옵셔널로 둔다.
   maturity?: ProjectMaturity
+  // 바이브코딩 표식: 메이커가 자가 신고한 제작 도구와 AI 제작 여부.
+  builtWith?: string[]
+  customTools?: string[]
+  vibeCoded?: boolean
   tags?: string[]
   accessMode: ProjectAccessMode
   protectionNoticeAccepted: boolean

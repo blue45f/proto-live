@@ -322,6 +322,25 @@ export const maturityCopy: Record<
   },
 }
 
+export const BUILD_TOOLS: Array<{ id: string; label: string }> = [
+  { id: 'cursor', label: 'Cursor' },
+  { id: 'claude-code', label: 'Claude Code' },
+  { id: 'lovable', label: 'Lovable' },
+  { id: 'v0', label: 'v0' },
+  { id: 'bolt', label: 'Bolt' },
+  { id: 'replit', label: 'Replit' },
+  { id: 'windsurf', label: 'Windsurf' },
+  { id: 'wrtn', label: '뤼튼' },
+  { id: 'copilot', label: 'GitHub Copilot' },
+]
+
+export const MAX_BUILD_TOOLS = 5
+export const MAX_CUSTOM_TOOLS = 3
+
+export function buildToolLabel(id: string): string {
+  return BUILD_TOOLS.find((tool) => tool.id === id)?.label ?? id
+}
+
 export const reviewTypeCopy: Record<
   ProjectReviewType,
   { label: string; helper: string; tone: string }
