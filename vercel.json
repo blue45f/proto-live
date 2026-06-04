@@ -12,7 +12,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://CHANGE-ME-protolive-api.onrender.com/api/:path*"
+      "destination": "https://protolive-api.onrender.com/api/:path*"
     },
     {
       "source": "/:path*",
