@@ -1,6 +1,11 @@
 import { ArrowUpRight, Star } from 'lucide-react'
 import type { Project } from '../api'
-import { type ProjectListViewMode, reviewTypeCopy } from '../lib/constants'
+import {
+  type ProjectListViewMode,
+  buildToolLabel,
+  maturityCopy,
+  reviewTypeCopy,
+} from '../lib/constants'
 import {
   formatRelativeTime,
   getResponseTimeTone,
@@ -27,6 +32,11 @@ export function ProjectCard({
   const responseTone = getResponseTimeTone(project.validation.responseTimeMs)
   const signalRankText = signalRank === null ? null : '#' + signalRank
   const tags = project.tags ?? []
+  const maturity = maturityCopy[project.maturity]
+  const tools = [
+    ...(project.builtWith ?? []).map((id) => buildToolLabel(id)),
+    ...(project.customTools ?? []),
+  ]
   const latestReview = project.reviewSummary?.latest
   const isCardView = viewMode === 'cards'
   const isReviewView = viewMode === 'reviews'
@@ -75,6 +85,11 @@ export function ProjectCard({
               {project.category}
             </span>
             <span
+              className={'rounded-full border px-2.5 py-1 text-[11px] font-black ' + maturity.tone}
+            >
+              {maturity.label}
+            </span>
+            <span
               className={
                 'rounded-full border px-2.5 py-1 text-[11px] font-black ' +
                 getValidationTone(project.validation)
@@ -115,6 +130,26 @@ export function ProjectCard({
                   #{tag}
                 </span>
               ))}
+            </div>
+          )}
+          {(tools.length > 0 || project.vibeCoded) && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {project.vibeCoded && (
+                <span className="rounded-full border border-violet-300/30 bg-violet-300/10 px-2 py-0.5 text-[11px] font-black text-violet-100">
+                  AI 제작
+                </span>
+              )}
+              {tools.slice(0, 2).map((tool) => (
+                <span
+                  key={tool}
+                  className="rounded-full border border-stone-700 bg-stone-950/60 px-2 py-0.5 text-[11px] font-black text-stone-300"
+                >
+                  {tool}
+                </span>
+              ))}
+              {tools.length > 2 && (
+                <span className="text-[11px] font-black text-stone-500">+{tools.length - 2}</span>
+              )}
             </div>
           )}
           {isReviewView && latestReview && (
