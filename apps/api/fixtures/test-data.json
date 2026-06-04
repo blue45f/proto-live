@@ -1,111 +1,53 @@
 {
-  "version": "2.0",
-  "description": "ProtoLive 샘플 데이터: 사이트 평가, 회원 리뷰, 성장 지원, 투자 관심 흐름",
-  "environment": "local",
-  "createdAt": "2026-06-02",
+  "version": 2,
+  "description": "ProtoLive 쇼케이스 시드 — 메이커(히준)가 실제 라이브 운영 중인 바이브코딩 서비스들.",
+  "environment": "demo",
+  "createdAt": "2026-06-05T00:00:00.000Z",
   "accounts": [
     {
       "id": 1,
-      "email": "maker-mealmap@protolive.local",
-      "password": "pass-mock-01",
+      "email": "maker-heejun@protolive.local",
+      "password": "pass-mock-heejun",
       "role": "maker",
-      "name": "밀맵 팀",
-      "description": "학부모 식단 추천 서비스 운영팀",
-      "notes": "리뷰 응답 적극"
+      "name": "히준",
+      "description": "여러 바이브코딩 서비스를 라이브로 운영하는 메이커",
+      "notes": "쇼케이스 메이커"
     },
     {
       "id": 2,
-      "email": "maker-careloop@protolive.local",
-      "password": "pass-mock-02",
-      "role": "maker",
-      "name": "케어루프 팀",
-      "description": "가족 돌봄 협업 서비스 운영팀",
-      "notes": "선별 공개 샘플"
+      "email": "admin@protolive.local",
+      "password": "pass-mock-admin",
+      "role": "admin",
+      "name": "프로토라이브 운영자",
+      "description": "커뮤니티 운영·큐레이션",
+      "notes": "운영자"
     },
     {
       "id": 3,
-      "email": "maker-growth@protolive.local",
-      "password": "pass-mock-05",
-      "role": "maker",
-      "name": "그로스 샘플 팀",
-      "description": "여러 프로토타입 비교 운영 계정",
-      "notes": "모바일 앱형 샘플"
-    },
-    {
-      "id": 4,
-      "email": "investor-seed@protolive.local",
-      "password": "pass-mock-03",
-      "role": "investor",
-      "name": "시드 투자자",
-      "description": "생활밀착형 초기 제품 검토",
-      "notes": "투자 의향 샘플"
-    },
-    {
-      "id": 5,
-      "email": "investor-impact@protolive.local",
-      "password": "pass-mock-04",
-      "role": "investor",
-      "name": "임팩트 투자자",
-      "description": "돌봄/교육/지역 커뮤니티 관심",
-      "notes": "지원 요청 샘플"
-    },
-    {
-      "id": 6,
-      "email": "investor-commerce@protolive.local",
-      "password": "pass-mock-06",
-      "role": "investor",
-      "name": "커머스 투자자",
-      "description": "소비자 앱과 커머스 전환 검토",
-      "notes": "리뷰 대댓글 확인용"
-    },
-    {
-      "id": 7,
-      "email": "member-parent@protolive.local",
-      "password": "pass-member-01",
+      "email": "member@protolive.local",
+      "password": "pass-mock-member",
       "role": "member",
-      "name": "학부모 회원",
-      "description": "일반 사용자 리뷰와 별점을 남기는 계정",
-      "notes": "리뷰/대댓글 테스트"
-    },
-    {
-      "id": 8,
-      "email": "member-runner@protolive.local",
-      "password": "pass-member-02",
-      "role": "member",
-      "name": "러닝 초보 회원",
-      "description": "제품 사용 아이디어와 대댓글을 남기는 계정",
-      "notes": "일반 회원 샘플"
-    },
-    {
-      "id": 9,
-      "email": "member-shopper@protolive.local",
-      "password": "pass-member-03",
-      "role": "member",
-      "name": "쇼핑 사용자 회원",
-      "description": "커머스 프로토타입 리뷰를 남기는 계정",
-      "notes": "일반 회원 샘플"
-    },
-    {
-      "id": 10,
-      "email": "admin-ops@protolive.local",
-      "password": "pass-admin-01",
-      "role": "admin",
-      "name": "프로토라이브 운영자",
-      "description": "신고 리뷰, 투자 관심 동의, 운영 감사 로그를 확인하는 관리자",
-      "notes": "운영 검토 샘플"
+      "name": "커뮤니티 멤버",
+      "description": "피드백을 남기는 멤버",
+      "notes": "리뷰어"
     }
   ],
   "projects": [
     {
       "id": 1,
       "userId": 1,
-      "title": "MealMap Kids",
-      "description": "아이 알레르기와 선호도를 넣으면 주간 도시락 식단과 장보기 목록을 만들어 주는 학부모용 웹앱입니다.",
-      "liveUrl": "https://example.com/mealmap-kids",
+      "title": "툰스펙트럼",
       "category": "Social",
       "accessMode": "open",
+      "description": "네이버·카카오·리디·레진 등 국내 웹툰·웹소설을 가로질러 무엇을 어디서 왜 봐야 하는지 한곳에서 찾는 통합 인덱스. 통합 랭킹·연재 캘린더·가격비교·작가별 보기.",
+      "liveUrl": "https://toonspectrum.vercel.app/",
+      "maturity": "live",
+      "stack": "web",
+      "vibeCoded": true,
+      "builtWith": ["claude-code", "cursor"],
+      "tags": ["웹툰", "웹소설", "통합인덱스", "콘텐츠"],
       "protectionNoticeAccepted": true,
-      "thumbnail": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22960%22%20height%3D%22600%22%20viewBox%3D%220%200%20960%20600%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20stop-color%3D%22%23fed7aa%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23fb923c%22%20stop-opacity%3D%220.58%22%2F%3E%3C%2FlinearGradient%3E%3Cfilter%20id%3D%22s%22%3E%3CfeDropShadow%20dx%3D%220%22%20dy%3D%2218%22%20stdDeviation%3D%2224%22%20flood-color%3D%22%23334155%22%20flood-opacity%3D%220.22%22%2F%3E%3C%2Ffilter%3E%3C%2Fdefs%3E%3Crect%20width%3D%22960%22%20height%3D%22600%22%20rx%3D%2242%22%20fill%3D%22url(%23g)%22%2F%3E%3Ccircle%20cx%3D%22812%22%20cy%3D%22112%22%20r%3D%22128%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.16%22%2F%3E%3Ccircle%20cx%3D%22112%22%20cy%3D%22504%22%20r%3D%22160%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.12%22%2F%3E%3Crect%20x%3D%2272%22%20y%3D%2270%22%20width%3D%22816%22%20height%3D%22460%22%20rx%3D%2234%22%20fill%3D%22%23fffaf0%22%20opacity%3D%220.92%22%20filter%3D%22url(%23s)%22%2F%3E%3Crect%20x%3D%22108%22%20y%3D%22112%22%20width%3D%22230%22%20height%3D%2228%22%20rx%3D%2214%22%20fill%3D%22%23fb923c%22%20opacity%3D%220.9%22%2F%3E%3Crect%20x%3D%22108%22%20y%3D%22170%22%20width%3D%22430%22%20height%3D%2242%22%20rx%3D%2218%22%20fill%3D%22%23334155%22%20opacity%3D%220.9%22%2F%3E%3Crect%20x%3D%22108%22%20y%3D%22232%22%20width%3D%22520%22%20height%3D%2218%22%20rx%3D%229%22%20fill%3D%22%2364748b%22%20opacity%3D%220.42%22%2F%3E%3Crect%20x%3D%22108%22%20y%3D%22264%22%20width%3D%22380%22%20height%3D%2218%22%20rx%3D%229%22%20fill%3D%22%2364748b%22%20opacity%3D%220.28%22%2F%3E%3Crect%20x%3D%22650%22%20y%3D%22170%22%20width%3D%22160%22%20height%3D%22210%22%20rx%3D%2226%22%20fill%3D%22%23fde68a%22%2F%3E%3Crect%20x%3D%22680%22%20y%3D%22206%22%20width%3D%22100%22%20height%3D%2218%22%20rx%3D%229%22%20fill%3D%22%23f97316%22%2F%3E%3Crect%20x%3D%22680%22%20y%3D%22246%22%20width%3D%2284%22%20height%3D%2284%22%20rx%3D%2222%22%20fill%3D%22%2386efac%22%2F%3E%3Crect%20x%3D%22680%22%20y%3D%22350%22%20width%3D%22104%22%20height%3D%2216%22%20rx%3D%228%22%20fill%3D%22%2394a3b8%22%20opacity%3D%220.45%22%2F%3E%3Ctext%20x%3D%22108%22%20y%3D%22380%22%20font-family%3D%22-apple-system%2CBlinkMacSystemFont%2CSegoe%20UI%2Csans-serif%22%20font-size%3D%2242%22%20font-weight%3D%22800%22%20fill%3D%22%23172033%22%3EMealMap%20Kids%3C%2Ftext%3E%3Ctext%20x%3D%22110%22%20y%3D%22424%22%20font-family%3D%22-apple-system%2CBlinkMacSystemFont%2CSegoe%20UI%2Csans-serif%22%20font-size%3D%2222%22%20font-weight%3D%22600%22%20fill%3D%22%23475569%22%3Eparents%20review%20lunch%20plans%3C%2Ftext%3E%3C%2Fsvg%3E",
+      "thumbnail": null,
       "investorCount": 0,
       "matchCount": 0,
       "committedAmountMin": 0,
@@ -113,24 +55,28 @@
       "validation": {
         "success": true,
         "status": 200,
-        "message": "샘플 사이트 확인 통과",
-        "responseTimeMs": 240,
-        "finalUrl": "https://example.com/mealmap-kids",
-        "checkedAt": "2026-06-01T01:00:00.000Z"
+        "message": "라이브 사이트 확인 통과",
+        "responseTimeMs": 180,
+        "finalUrl": "https://toonspectrum.vercel.app/",
+        "checkedAt": "2026-06-04T23:00:00.000Z"
       },
-      "createdAt": "2026-05-21T10:00:00.000Z",
-      "tags": ["학부모", "식단", "생활편의", "알레르기", "MVP"]
+      "createdAt": "2026-05-10T09:00:00.000Z"
     },
     {
       "id": 2,
-      "userId": 2,
-      "title": "CareLoop Home",
-      "description": "부모님 병원 일정, 복약 알림, 가족 역할 분담을 한 화면에서 나누는 가족 돌봄 협업 서비스입니다.",
-      "liveUrl": "https://example.com/careloop-home",
+      "userId": 1,
+      "title": "이력서공방",
       "category": "AI & SaaS",
-      "accessMode": "screened",
+      "accessMode": "open",
+      "description": "AI 기반 이력서 관리 플랫폼. 작성·버전 관리·맞춤 피드백으로 채용에 맞는 이력서를 빠르게 다듬는다.",
+      "liveUrl": "https://resume-gongbang.vercel.app/",
+      "maturity": "live",
+      "stack": "web",
+      "vibeCoded": true,
+      "builtWith": ["claude-code", "cursor"],
+      "tags": ["이력서", "AI", "채용", "생산성"],
       "protectionNoticeAccepted": true,
-      "thumbnail": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22960%22%20height%3D%22600%22%20viewBox%3D%220%200%20960%20600%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20stop-color%3D%22%23bfdbfe%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%2338bdf8%22%20stop-opacity%3D%220.58%22%2F%3E%3C%2FlinearGradient%3E%3Cfilter%20id%3D%22s%22%3E%3CfeDropShadow%20dx%3D%220%22%20dy%3D%2218%22%20stdDeviation%3D%2224%22%20flood-color%3D%22%23334155%22%20flood-opacity%3D%220.22%22%2F%3E%3C%2Ffilter%3E%3C%2Fdefs%3E%3Crect%20width%3D%22960%22%20height%3D%22600%22%20rx%3D%2242%22%20fill%3D%22url(%23g)%22%2F%3E%3Ccircle%20cx%3D%22812%22%20cy%3D%22112%22%20r%3D%22128%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.16%22%2F%3E%3Ccircle%20cx%3D%22112%22%20cy%3D%22504%22%20r%3D%22160%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.12%22%2F%3E%3Crect%20x%3D%2272%22%20y%3D%2270%22%20width%3D%22816%22%20height%3D%22460%22%20rx%3D%2234%22%20fill%3D%22%23fffaf0%22%20opacity%3D%220.92%22%20filter%3D%22url(%23s)%22%2F%3E%3Crect%20x%3D%22108%22%20y%3D%22112%22%20width%3D%22230%22%20height%3D%2228%22%20rx%3D%2214%22%20fill%3D%22%2338bdf8%22%20opacity%3D%220.9%22%2F%3E%3Crect%20x%3D%22108%22%20y%3D%22170%22%20width%3D%22430%22%20height%3D%2242%22%20rx%3D%2218%22%20fill%3D%22%23334155%22%20opacity%3D%220.9%22%2F%3E%3Crect%20x%3D%22108%22%20y%3D%22232%22%20width%3D%22520%22%20height%3D%2218%22%20rx%3D%229%22%20fill%3D%22%2364748b%22%20opacity%3D%220.42%22%2F%3E%3Crect%20x%3D%22108%22%20y%3D%22264%22%20width%3D%22380%22%20height%3D%2218%22%20rx%3D%229%22%20fill%3D%22%2364748b%22%20opacity%3D%220.28%22%2F%3E%3Crect%20x%3D%22632%22%20y%3D%22150%22%20width%3D%22190%22%20height%3D%22250%22%20rx%3D%2232%22%20fill%3D%22%23e0f2fe%22%2F%3E%3Ccircle%20cx%3D%22690%22%20cy%3D%22218%22%20r%3D%2234%22%20fill%3D%22%2338bdf8%22%2F%3E%3Ccircle%20cx%3D%22764%22%20cy%3D%22218%22%20r%3D%2234%22%20fill%3D%22%2399f6e4%22%2F%3E%3Crect%20x%3D%22674%22%20y%3D%22294%22%20width%3D%22120%22%20height%3D%2218%22%20rx%3D%229%22%20fill%3D%22%230f766e%22%20opacity%3D%220.55%22%2F%3E%3Crect%20x%3D%22674%22%20y%3D%22334%22%20width%3D%2282%22%20height%3D%2218%22%20rx%3D%229%22%20fill%3D%22%230f766e%22%20opacity%3D%220.32%22%2F%3E%3Ctext%20x%3D%22108%22%20y%3D%22380%22%20font-family%3D%22-apple-system%2CBlinkMacSystemFont%2CSegoe%20UI%2Csans-serif%22%20font-size%3D%2242%22%20font-weight%3D%22800%22%20fill%3D%22%23172033%22%3ECareLoop%20Home%3C%2Ftext%3E%3Ctext%20x%3D%22110%22%20y%3D%22424%22%20font-family%3D%22-apple-system%2CBlinkMacSystemFont%2CSegoe%20UI%2Csans-serif%22%20font-size%3D%2222%22%20font-weight%3D%22600%22%20fill%3D%22%23475569%22%3Efamily%20care%20tasks%20in%20one%20place%3C%2Ftext%3E%3C%2Fsvg%3E",
+      "thumbnail": null,
       "investorCount": 0,
       "matchCount": 0,
       "committedAmountMin": 0,
@@ -138,24 +84,28 @@
       "validation": {
         "success": true,
         "status": 200,
-        "message": "샘플 사이트 확인 통과",
-        "responseTimeMs": 410,
-        "finalUrl": "https://example.com/careloop-home",
-        "checkedAt": "2026-06-01T02:20:00.000Z"
+        "message": "라이브 사이트 확인 통과",
+        "responseTimeMs": 210,
+        "finalUrl": "https://resume-gongbang.vercel.app/",
+        "checkedAt": "2026-06-04T23:00:00.000Z"
       },
-      "createdAt": "2026-05-22T09:30:00.000Z",
-      "tags": ["가족돌봄", "알림", "헬스케어", "개인정보", "B2C"]
+      "createdAt": "2026-05-18T09:00:00.000Z"
     },
     {
       "id": 3,
-      "userId": 3,
-      "title": "FitCheck Studio",
-      "description": "사진 한 장으로 옷 핏을 비교하고 친구 리뷰를 받아 구매 결정을 돕는 모바일 쇼핑 프로토타입입니다.",
-      "liveUrl": "https://example.com/fitcheck-studio",
-      "category": "XR & E-Commerce",
+      "userId": 1,
+      "title": "TermsDesk",
+      "category": "DevTools",
       "accessMode": "open",
+      "description": "약관·정책 문서의 버전 관리와 변조 방지 게시. 회사가 약관을 직접 쓰지 않아도 등록·버전관리·변경이력 감사·게시를 담당한다(SaaS/셀프호스팅).",
+      "liveUrl": "https://termsdesk.vercel.app/",
+      "maturity": "live",
+      "stack": "web",
+      "vibeCoded": true,
+      "builtWith": ["claude-code"],
+      "tags": ["약관", "정책", "버전관리", "SaaS"],
       "protectionNoticeAccepted": true,
-      "thumbnail": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22960%22%20height%3D%22600%22%20viewBox%3D%220%200%20960%20600%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20stop-color%3D%22%23ddd6fe%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23a78bfa%22%20stop-opacity%3D%220.58%22%2F%3E%3C%2FlinearGradient%3E%3Cfilter%20id%3D%22s%22%3E%3CfeDropShadow%20dx%3D%220%22%20dy%3D%2218%22%20stdDeviation%3D%2224%22%20flood-color%3D%22%23334155%22%20flood-opacity%3D%220.22%22%2F%3E%3C%2Ffilter%3E%3C%2Fdefs%3E%3Crect%20width%3D%22960%22%20height%3D%22600%22%20rx%3D%2242%22%20fill%3D%22url(%23g)%22%2F%3E%3Ccircle%20cx%3D%22812%22%20cy%3D%22112%22%20r%3D%22128%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.16%22%2F%3E%3Ccircle%20cx%3D%22112%22%20cy%3D%22504%22%20r%3D%22160%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.12%22%2F%3E%3Crect%20x%3D%2272%22%20y%3D%2270%22%20width%3D%22816%22%20height%3D%22460%22%20rx%3D%2234%22%20fill%3D%22%23fffaf0%22%20opacity%3D%220.92%22%20filter%3D%22url(%23s)%22%2F%3E%3Crect%20x%3D%22108%22%20y%3D%22112%22%20width%3D%22230%22%20height%3D%2228%22%20rx%3D%2214%22%20fill%3D%22%23a78bfa%22%20opacity%3D%220.9%22%2F%3E%3Crect%20x%3D%22108%22%20y%3D%22170%22%20width%3D%22430%22%20height%3D%2242%22%20rx%3D%2218%22%20fill%3D%22%23334155%22%20opacity%3D%220.9%22%2F%3E%3Crect%20x%3D%22108%22%20y%3D%22232%22%20width%3D%22520%22%20height%3D%2218%22%20rx%3D%229%22%20fill%3D%22%2364748b%22%20opacity%3D%220.42%22%2F%3E%3Crect%20x%3D%22108%22%20y%3D%22264%22%20width%3D%22380%22%20height%3D%2218%22%20rx%3D%229%22%20fill%3D%22%2364748b%22%20opacity%3D%220.28%22%2F%3E%3Crect%20x%3D%22642%22%20y%3D%22140%22%20width%3D%22156%22%20height%3D%22270%22%20rx%3D%2242%22%20fill%3D%22%23faf5ff%22%2F%3E%3Ccircle%20cx%3D%22720%22%20cy%3D%22218%22%20r%3D%2242%22%20fill%3D%22%23c4b5fd%22%2F%3E%3Cpath%20d%3D%22M684%20320c30-58%2058-58%2088%200v70h-88z%22%20fill%3D%22%237c3aed%22%20opacity%3D%220.72%22%2F%3E%3Crect%20x%3D%22620%22%20y%3D%22434%22%20width%3D%22196%22%20height%3D%2218%22%20rx%3D%229%22%20fill%3D%22%236d28d9%22%20opacity%3D%220.32%22%2F%3E%3Ctext%20x%3D%22108%22%20y%3D%22380%22%20font-family%3D%22-apple-system%2CBlinkMacSystemFont%2CSegoe%20UI%2Csans-serif%22%20font-size%3D%2242%22%20font-weight%3D%22800%22%20fill%3D%22%23172033%22%3EFitCheck%20Studio%3C%2Ftext%3E%3Ctext%20x%3D%22110%22%20y%3D%22424%22%20font-family%3D%22-apple-system%2CBlinkMacSystemFont%2CSegoe%20UI%2Csans-serif%22%20font-size%3D%2222%22%20font-weight%3D%22600%22%20fill%3D%22%23475569%22%3Etry%20outfits%20before%20buying%3C%2Ftext%3E%3C%2Fsvg%3E",
+      "thumbnail": null,
       "investorCount": 0,
       "matchCount": 0,
       "committedAmountMin": 0,
@@ -163,48 +113,57 @@
       "validation": {
         "success": true,
         "status": 200,
-        "message": "샘플 사이트 확인 통과",
-        "responseTimeMs": 360,
-        "finalUrl": "https://example.com/fitcheck-studio",
-        "checkedAt": "2026-06-01T04:10:00.000Z"
+        "message": "라이브 사이트 확인 통과",
+        "responseTimeMs": 165,
+        "finalUrl": "https://termsdesk.vercel.app/",
+        "checkedAt": "2026-06-04T23:00:00.000Z"
       },
-      "createdAt": "2026-05-23T14:40:00.000Z",
-      "tags": ["쇼핑", "친구리뷰", "커머스", "모바일", "바이럴"]
+      "createdAt": "2026-05-22T09:00:00.000Z"
     },
     {
       "id": 4,
-      "userId": 3,
-      "title": "BudgetBloom",
-      "description": "가계부를 쓰기 어려운 사용자를 위해 카드 지출을 꽃밭처럼 보여주고 다음 주 절약 목표를 추천합니다.",
-      "liveUrl": "https://example.com/budgetbloom",
-      "category": "FinTech",
+      "userId": 1,
+      "title": "Remote DevTools",
+      "category": "DevTools",
       "accessMode": "open",
+      "description": "웹 앱을 위한 원격 디버깅 플랫폼. 세션을 녹화하고 재생해 사용자 환경의 버그를 그대로 재현한다.",
+      "liveUrl": "https://remote-devtools.vercel.app/",
+      "maturity": "building",
+      "stack": "tools",
+      "vibeCoded": true,
+      "builtWith": ["claude-code", "cursor"],
+      "tags": ["디버깅", "녹화", "리플레이", "개발도구"],
       "protectionNoticeAccepted": true,
-      "thumbnail": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22960%22%20height%3D%22600%22%20viewBox%3D%220%200%20960%20600%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20stop-color%3D%22%23bbf7d0%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%2322c55e%22%20stop-opacity%3D%220.58%22%2F%3E%3C%2FlinearGradient%3E%3Cfilter%20id%3D%22s%22%3E%3CfeDropShadow%20dx%3D%220%22%20dy%3D%2218%22%20stdDeviation%3D%2224%22%20flood-color%3D%22%23334155%22%20flood-opacity%3D%220.22%22%2F%3E%3C%2Ffilter%3E%3C%2Fdefs%3E%3Crect%20width%3D%22960%22%20height%3D%22600%22%20rx%3D%2242%22%20fill%3D%22url(%23g)%22%2F%3E%3Ccircle%20cx%3D%22812%22%20cy%3D%22112%22%20r%3D%22128%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.16%22%2F%3E%3Ccircle%20cx%3D%22112%22%20cy%3D%22504%22%20r%3D%22160%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.12%22%2F%3E%3Crect%20x%3D%2272%22%20y%3D%2270%22%20width%3D%22816%22%20height%3D%22460%22%20rx%3D%2234%22%20fill%3D%22%23fffaf0%22%20opacity%3D%220.92%22%20filter%3D%22url(%23s)%22%2F%3E%3Crect%20x%3D%22108%22%20y%3D%22112%22%20width%3D%22230%22%20height%3D%2228%22%20rx%3D%2214%22%20fill%3D%22%2322c55e%22%20opacity%3D%220.9%22%2F%3E%3Crect%20x%3D%22108%22%20y%3D%22170%22%20width%3D%22430%22%20height%3D%2242%22%20rx%3D%2218%22%20fill%3D%22%23334155%22%20opacity%3D%220.9%22%2F%3E%3Crect%20x%3D%22108%22%20y%3D%22232%22%20width%3D%22520%22%20height%3D%2218%22%20rx%3D%229%22%20fill%3D%22%2364748b%22%20opacity%3D%220.42%22%2F%3E%3Crect%20x%3D%22108%22%20y%3D%22264%22%20width%3D%22380%22%20height%3D%2218%22%20rx%3D%229%22%20fill%3D%22%2364748b%22%20opacity%3D%220.28%22%2F%3E%3Crect%20x%3D%22640%22%20y%3D%22160%22%20width%3D%22180%22%20height%3D%22220%22%20rx%3D%2230%22%20fill%3D%22%23f0fdf4%22%2F%3E%3Cpath%20d%3D%22M690%20334c18-82%2062-120%2098-150%22%20stroke%3D%22%2316a34a%22%20stroke-width%3D%2216%22%20stroke-linecap%3D%22round%22%20fill%3D%22none%22%2F%3E%3Ccircle%20cx%3D%22734%22%20cy%3D%22248%22%20r%3D%2234%22%20fill%3D%22%2386efac%22%2F%3E%3Ccircle%20cx%3D%22786%22%20cy%3D%22190%22%20r%3D%2226%22%20fill%3D%22%234ade80%22%2F%3E%3Crect%20x%3D%22674%22%20y%3D%22410%22%20width%3D%22112%22%20height%3D%2220%22%20rx%3D%2210%22%20fill%3D%22%2315803d%22%20opacity%3D%220.36%22%2F%3E%3Ctext%20x%3D%22108%22%20y%3D%22380%22%20font-family%3D%22-apple-system%2CBlinkMacSystemFont%2CSegoe%20UI%2Csans-serif%22%20font-size%3D%2242%22%20font-weight%3D%22800%22%20fill%3D%22%23172033%22%3EBudgetBloom%3C%2Ftext%3E%3Ctext%20x%3D%22110%22%20y%3D%22424%22%20font-family%3D%22-apple-system%2CBlinkMacSystemFont%2CSegoe%20UI%2Csans-serif%22%20font-size%3D%2222%22%20font-weight%3D%22600%22%20fill%3D%22%23475569%22%3Emoney%20habits%20without%20spreadsheets%3C%2Ftext%3E%3C%2Fsvg%3E",
+      "thumbnail": null,
       "investorCount": 0,
       "matchCount": 0,
       "committedAmountMin": 0,
       "committedAmountMax": 0,
       "validation": {
-        "success": false,
-        "status": 403,
-        "message": "외부 접근 정책 확인 필요",
-        "responseTimeMs": 1720,
-        "checkedAt": "2026-06-01T06:30:00.000Z"
+        "success": true,
+        "status": 200,
+        "message": "라이브 사이트 확인 통과",
+        "responseTimeMs": 240,
+        "finalUrl": "https://remote-devtools.vercel.app/",
+        "checkedAt": "2026-06-04T23:00:00.000Z"
       },
-      "createdAt": "2026-05-24T08:15:00.000Z",
-      "tags": ["가계부", "절약", "핀테크", "습관형성", "초기검증"]
+      "createdAt": "2026-05-28T09:00:00.000Z"
     },
     {
       "id": 5,
       "userId": 1,
-      "title": "LocalRun Club",
-      "description": "동네 산책과 러닝 코스를 모임으로 바꾸고, 초보자도 안전하게 참여하도록 난이도와 동선을 알려줍니다.",
-      "liveUrl": "https://example.com/localrun-club",
-      "category": "Social",
+      "title": "spa-seo-gateway",
+      "category": "DevTools",
       "accessMode": "open",
+      "description": "SPA가 만드는 동적 콘텐츠를 봇 요청 시점에 헤드리스 Chromium으로 실시간 렌더링. 봇에는 완성된 HTML, 사람에는 원본 SPA를 그대로 전달하는 다이내믹 렌더링 게이트웨이.",
+      "liveUrl": "https://spa-seo-gateway.vercel.app/",
+      "maturity": "live",
+      "stack": "tools",
+      "vibeCoded": true,
+      "builtWith": ["claude-code"],
+      "tags": ["SEO", "SSR", "렌더링", "게이트웨이"],
       "protectionNoticeAccepted": true,
-      "thumbnail": "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22960%22%20height%3D%22600%22%20viewBox%3D%220%200%20960%20600%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22g%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%221%22%20y2%3D%221%22%3E%3Cstop%20stop-color%3D%22%23bae6fd%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23facc15%22%20stop-opacity%3D%220.58%22%2F%3E%3C%2FlinearGradient%3E%3Cfilter%20id%3D%22s%22%3E%3CfeDropShadow%20dx%3D%220%22%20dy%3D%2218%22%20stdDeviation%3D%2224%22%20flood-color%3D%22%23334155%22%20flood-opacity%3D%220.22%22%2F%3E%3C%2Ffilter%3E%3C%2Fdefs%3E%3Crect%20width%3D%22960%22%20height%3D%22600%22%20rx%3D%2242%22%20fill%3D%22url(%23g)%22%2F%3E%3Ccircle%20cx%3D%22812%22%20cy%3D%22112%22%20r%3D%22128%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.16%22%2F%3E%3Ccircle%20cx%3D%22112%22%20cy%3D%22504%22%20r%3D%22160%22%20fill%3D%22%23ffffff%22%20opacity%3D%220.12%22%2F%3E%3Crect%20x%3D%2272%22%20y%3D%2270%22%20width%3D%22816%22%20height%3D%22460%22%20rx%3D%2234%22%20fill%3D%22%23fffaf0%22%20opacity%3D%220.92%22%20filter%3D%22url(%23s)%22%2F%3E%3Crect%20x%3D%22108%22%20y%3D%22112%22%20width%3D%22230%22%20height%3D%2228%22%20rx%3D%2214%22%20fill%3D%22%23facc15%22%20opacity%3D%220.9%22%2F%3E%3Crect%20x%3D%22108%22%20y%3D%22170%22%20width%3D%22430%22%20height%3D%2242%22%20rx%3D%2218%22%20fill%3D%22%23334155%22%20opacity%3D%220.9%22%2F%3E%3Crect%20x%3D%22108%22%20y%3D%22232%22%20width%3D%22520%22%20height%3D%2218%22%20rx%3D%229%22%20fill%3D%22%2364748b%22%20opacity%3D%220.42%22%2F%3E%3Crect%20x%3D%22108%22%20y%3D%22264%22%20width%3D%22380%22%20height%3D%2218%22%20rx%3D%229%22%20fill%3D%22%2364748b%22%20opacity%3D%220.28%22%2F%3E%3Crect%20x%3D%22624%22%20y%3D%22178%22%20width%3D%22220%22%20height%3D%22170%22%20rx%3D%2232%22%20fill%3D%22%23fefce8%22%2F%3E%3Cpath%20d%3D%22M660%20292c42-72%2084%2046%20132-28%2016-24%2028-46%2042-58%22%20stroke%3D%22%230284c7%22%20stroke-width%3D%2214%22%20stroke-linecap%3D%22round%22%20fill%3D%22none%22%2F%3E%3Ccircle%20cx%3D%22666%22%20cy%3D%22294%22%20r%3D%2216%22%20fill%3D%22%23facc15%22%2F%3E%3Ccircle%20cx%3D%22832%22%20cy%3D%22204%22%20r%3D%2216%22%20fill%3D%22%23f97316%22%2F%3E%3Crect%20x%3D%22660%22%20y%3D%22392%22%20width%3D%22142%22%20height%3D%2218%22%20rx%3D%229%22%20fill%3D%22%230369a1%22%20opacity%3D%220.32%22%2F%3E%3Ctext%20x%3D%22108%22%20y%3D%22380%22%20font-family%3D%22-apple-system%2CBlinkMacSystemFont%2CSegoe%20UI%2Csans-serif%22%20font-size%3D%2242%22%20font-weight%3D%22800%22%20fill%3D%22%23172033%22%3ELocalRun%20Club%3C%2Ftext%3E%3Ctext%20x%3D%22110%22%20y%3D%22424%22%20font-family%3D%22-apple-system%2CBlinkMacSystemFont%2CSegoe%20UI%2Csans-serif%22%20font-size%3D%2222%22%20font-weight%3D%22600%22%20fill%3D%22%23475569%22%3Eneighbors%20turn%20routes%20into%20events%3C%2Ftext%3E%3C%2Fsvg%3E",
+      "thumbnail": null,
       "investorCount": 0,
       "matchCount": 0,
       "committedAmountMin": 0,
@@ -212,199 +171,45 @@
       "validation": {
         "success": true,
         "status": 200,
-        "message": "샘플 사이트 확인 통과",
-        "responseTimeMs": 295,
-        "finalUrl": "https://example.com/localrun-club",
-        "checkedAt": "2026-06-01T08:00:00.000Z"
+        "message": "라이브 사이트 확인 통과",
+        "responseTimeMs": 150,
+        "finalUrl": "https://spa-seo-gateway.vercel.app/",
+        "checkedAt": "2026-06-04T23:00:00.000Z"
       },
-      "createdAt": "2026-05-28T10:30:00.000Z",
-      "tags": ["러닝", "동네모임", "커뮤니티", "초보자", "오프라인"]
+      "createdAt": "2026-06-01T09:00:00.000Z"
     }
   ],
-  "proposals": [
-    {
-      "id": 1,
-      "projectId": 1,
-      "fundingRangeId": "seed-50-100",
-      "message": "학부모 커뮤니티에서 반복 사용이 확인되면 시드 라운드로 검토하고 싶습니다.",
-      "createdAt": "2026-05-25T06:10:00.000Z"
-    },
-    {
-      "id": 2,
-      "projectId": 1,
-      "fundingRangeId": "pre-seed-30-50",
-      "message": "학교/학원 제휴 테스트를 같이 설계해 보겠습니다.",
-      "createdAt": "2026-05-26T13:00:00.000Z"
-    },
-    {
-      "id": 3,
-      "projectId": 2,
-      "fundingRangeId": "seed-100-300",
-      "message": "돌봄 시장은 신뢰 설계가 중요합니다. 개인정보 흐름을 더 보고 싶습니다.",
-      "createdAt": "2026-05-29T21:40:00.000Z"
-    },
-    {
-      "id": 4,
-      "projectId": 2,
-      "fundingRangeId": "seed-50-100",
-      "message": "병원 일정 공유 기능이 실제 가족에게 쓰이는지 파일럿을 제안합니다.",
-      "createdAt": "2026-05-30T09:20:00.000Z"
-    },
-    {
-      "id": 5,
-      "projectId": 3,
-      "fundingRangeId": "pre-seed-30-50",
-      "message": "구매 전환 실험을 2주 단위로 보면 빠르게 판단할 수 있습니다.",
-      "createdAt": "2026-05-31T11:10:00.000Z"
-    },
-    {
-      "id": 6,
-      "projectId": 3,
-      "fundingRangeId": "seed-50-100",
-      "message": "친구 리뷰가 구매 확신을 높이는지 지표를 보고 싶습니다.",
-      "createdAt": "2026-05-31T11:42:00.000Z"
-    },
-    {
-      "id": 7,
-      "projectId": 5,
-      "fundingRangeId": "pre-seed-10-30",
-      "message": "지역 커뮤니티 운영자와 함께 첫 모임 밀도를 만들어 봅시다.",
-      "createdAt": "2026-06-01T00:55:00.000Z"
-    },
-    {
-      "id": 8,
-      "projectId": 5,
-      "fundingRangeId": "seed-50-100",
-      "message": "안전한 운동 모임이라는 포지션이 좋습니다. 보험/장비 제휴도 검토 가능합니다.",
-      "createdAt": "2026-06-01T03:33:00.000Z"
-    }
-  ],
+  "proposals": [],
   "events": [
     {
       "id": 1,
       "projectId": 1,
       "type": "create",
-      "createdAt": "2026-05-21T10:05:00.000Z"
+      "createdAt": "2026-05-10T09:00:00.000Z"
     },
     {
       "id": 2,
-      "projectId": 1,
-      "type": "preview",
-      "createdAt": "2026-05-24T08:12:00.000Z"
+      "projectId": 2,
+      "type": "create",
+      "createdAt": "2026-05-18T09:00:00.000Z"
     },
     {
       "id": 3,
-      "projectId": 1,
-      "type": "outbound",
-      "createdAt": "2026-05-24T09:20:00.000Z"
+      "projectId": 3,
+      "type": "create",
+      "createdAt": "2026-05-22T09:00:00.000Z"
     },
     {
       "id": 4,
-      "projectId": 1,
-      "type": "match",
-      "createdAt": "2026-05-25T06:11:00.000Z"
+      "projectId": 4,
+      "type": "create",
+      "createdAt": "2026-05-28T09:00:00.000Z"
     },
     {
       "id": 5,
-      "projectId": 1,
-      "type": "match",
-      "createdAt": "2026-05-26T13:01:00.000Z"
-    },
-    {
-      "id": 6,
-      "projectId": 2,
-      "type": "create",
-      "createdAt": "2026-05-22T09:40:00.000Z"
-    },
-    {
-      "id": 7,
-      "projectId": 2,
-      "type": "preview",
-      "createdAt": "2026-05-30T18:20:00.000Z"
-    },
-    {
-      "id": 8,
-      "projectId": 2,
-      "type": "match",
-      "createdAt": "2026-05-30T21:00:00.000Z"
-    },
-    {
-      "id": 9,
-      "projectId": 2,
-      "type": "match",
-      "createdAt": "2026-06-01T00:10:00.000Z"
-    },
-    {
-      "id": 10,
-      "projectId": 3,
-      "type": "create",
-      "createdAt": "2026-05-23T14:55:00.000Z"
-    },
-    {
-      "id": 11,
-      "projectId": 3,
-      "type": "preview",
-      "createdAt": "2026-05-31T10:10:00.000Z"
-    },
-    {
-      "id": 12,
-      "projectId": 3,
-      "type": "match",
-      "createdAt": "2026-05-31T11:12:00.000Z"
-    },
-    {
-      "id": 13,
-      "projectId": 3,
-      "type": "match",
-      "createdAt": "2026-05-31T11:44:00.000Z"
-    },
-    {
-      "id": 14,
-      "projectId": 3,
-      "type": "outbound",
-      "createdAt": "2026-06-01T04:22:00.000Z"
-    },
-    {
-      "id": 15,
-      "projectId": 4,
-      "type": "create",
-      "createdAt": "2026-05-24T08:20:00.000Z"
-    },
-    {
-      "id": 16,
-      "projectId": 4,
-      "type": "refresh",
-      "createdAt": "2026-06-01T06:35:00.000Z"
-    },
-    {
-      "id": 17,
       "projectId": 5,
       "type": "create",
-      "createdAt": "2026-05-28T10:45:00.000Z"
-    },
-    {
-      "id": 18,
-      "projectId": 5,
-      "type": "preview",
-      "createdAt": "2026-05-29T09:33:00.000Z"
-    },
-    {
-      "id": 19,
-      "projectId": 5,
-      "type": "outbound",
-      "createdAt": "2026-05-30T08:00:00.000Z"
-    },
-    {
-      "id": 20,
-      "projectId": 5,
-      "type": "match",
-      "createdAt": "2026-06-01T01:30:00.000Z"
-    },
-    {
-      "id": 21,
-      "projectId": 5,
-      "type": "match",
-      "createdAt": "2026-06-01T04:00:00.000Z"
+      "createdAt": "2026-06-01T09:00:00.000Z"
     }
   ],
   "reviews": [
@@ -412,227 +217,41 @@
       "id": 1,
       "projectId": 1,
       "parentId": null,
-      "authorEmail": "parent-user@protolive.local",
+      "authorEmail": "member@protolive.local",
       "authorRole": "member",
       "type": "review",
       "rating": 5,
-      "body": "알레르기 표시가 먼저 보여서 안심됩니다. 장보기 목록이 바로 나오는 점이 정말 편해요.",
-      "createdAt": "2026-05-24T08:30:00.000Z"
+      "body": "플랫폼을 가로질러 한 번에 보는 게 진짜 편해요. 연재 캘린더가 특히 좋네요.",
+      "createdAt": "2026-05-26T08:30:00.000Z"
     },
     {
       "id": 2,
-      "projectId": 1,
-      "parentId": 1,
-      "authorEmail": "maker-mealmap@protolive.local",
-      "authorRole": "maker",
-      "type": "review",
+      "projectId": 2,
+      "parentId": null,
+      "authorEmail": "member@protolive.local",
+      "authorRole": "member",
+      "type": "idea",
       "rating": null,
-      "body": "감사합니다. 알레르기 경고를 첫 화면 고정 영역으로 더 크게 보이게 개선하겠습니다.",
-      "createdAt": "2026-05-24T10:00:00.000Z"
+      "body": "직무별 추천 문구 템플릿이 있으면 초안 잡기 더 빠를 것 같아요.",
+      "createdAt": "2026-05-30T10:00:00.000Z"
     },
     {
       "id": 3,
-      "projectId": 1,
-      "parentId": null,
-      "authorEmail": "investor-seed@protolive.local",
-      "authorRole": "investor",
-      "type": "support",
-      "rating": null,
-      "body": "초등 학부모 20명 인터뷰를 먼저 잡고, 도시락 사진 업로드 기능을 가장 작은 실험으로 두면 좋겠습니다.",
-      "createdAt": "2026-05-25T05:40:00.000Z"
-    },
-    {
-      "id": 4,
-      "projectId": 1,
-      "parentId": null,
-      "authorEmail": "teacher-review@protolive.local",
-      "authorRole": "member",
-      "type": "idea",
-      "rating": null,
-      "body": "학교 급식표를 가져와서 집 도시락과 겹치지 않게 추천하면 차별점이 분명해질 것 같습니다.",
-      "status": "reported",
-      "reportCount": 1,
-      "reportedBy": ["safety-reviewer@protolive.local"],
-      "reportReasons": [
-        {
-          "reporterEmail": "safety-reviewer@protolive.local",
-          "reason": "표현이 단정적이라 운영자 확인이 필요합니다.",
-          "createdAt": "2026-05-26T13:05:00.000Z"
-        }
-      ],
-      "lastReportedAt": "2026-05-26T13:05:00.000Z",
-      "createdAt": "2026-05-26T12:20:00.000Z"
-    },
-    {
-      "id": 5,
-      "projectId": 2,
-      "parentId": null,
-      "authorEmail": "caregiver@protolive.local",
-      "authorRole": "member",
-      "type": "review",
-      "rating": 4,
-      "body": "복약 체크를 가족끼리 나눠 보는 구조가 좋습니다. 다만 알림이 너무 많아질까 걱정됩니다.",
-      "createdAt": "2026-05-30T18:40:00.000Z"
-    },
-    {
-      "id": 6,
-      "projectId": 2,
-      "parentId": 5,
-      "authorEmail": "maker-careloop@protolive.local",
-      "authorRole": "maker",
-      "type": "review",
-      "rating": null,
-      "body": "알림 묶음 기능을 이번 주 안에 추가하겠습니다. 하루 요약 알림을 기본값으로 둘 예정입니다.",
-      "createdAt": "2026-05-30T20:10:00.000Z"
-    },
-    {
-      "id": 7,
-      "projectId": 2,
-      "parentId": null,
-      "authorEmail": "investor-impact@protolive.local",
-      "authorRole": "investor",
-      "type": "support",
-      "rating": null,
-      "body": "개인정보 동의 화면을 쉬운 말로 다시 쓰면 가족 사용자 진입 장벽이 낮아질 것 같습니다.",
-      "createdAt": "2026-05-31T09:00:00.000Z"
-    },
-    {
-      "id": 8,
-      "projectId": 3,
-      "parentId": null,
-      "authorEmail": "shopper-01@protolive.local",
-      "authorRole": "member",
-      "type": "review",
-      "rating": 4,
-      "body": "친구에게 바로 물어보는 흐름이 자연스럽습니다. 사진 업로드 후 결과가 조금만 더 빨랐으면 좋겠습니다.",
-      "createdAt": "2026-05-31T10:30:00.000Z"
-    },
-    {
-      "id": 9,
-      "projectId": 3,
-      "parentId": null,
-      "authorEmail": "investor-commerce@protolive.local",
-      "authorRole": "investor",
-      "type": "idea",
-      "rating": null,
-      "body": "리뷰를 남긴 친구에게 할인 코드를 주면 바이럴 루프가 만들어질 수 있습니다.",
-      "createdAt": "2026-05-31T11:00:00.000Z"
-    },
-    {
-      "id": 10,
-      "projectId": 3,
-      "parentId": 9,
-      "authorEmail": "maker-growth@protolive.local",
-      "authorRole": "maker",
-      "type": "idea",
-      "rating": null,
-      "body": "좋은 아이디어입니다. 다음 버전에 친구 초대 보상 실험을 넣겠습니다.",
-      "createdAt": "2026-05-31T12:00:00.000Z"
-    },
-    {
-      "id": 11,
       "projectId": 4,
       "parentId": null,
-      "authorEmail": "budget-user@protolive.local",
+      "authorEmail": "member@protolive.local",
       "authorRole": "member",
-      "type": "review",
-      "rating": 3,
-      "body": "시각화는 귀엽지만 은행 연동 전까지는 직접 입력이 번거롭습니다.",
-      "createdAt": "2026-06-01T06:45:00.000Z"
-    },
-    {
-      "id": 12,
-      "projectId": 4,
-      "parentId": null,
-      "authorEmail": "investor-seed@protolive.local",
-      "authorRole": "investor",
       "type": "support",
       "rating": null,
-      "body": "접근 차단 문제를 먼저 풀어야 합니다. 데모가 안정적으로 열리면 사용자 테스트를 도와드릴 수 있습니다.",
-      "createdAt": "2026-06-01T07:00:00.000Z"
-    },
-    {
-      "id": 13,
-      "projectId": 5,
-      "parentId": null,
-      "authorEmail": "runner-newbie@protolive.local",
-      "authorRole": "member",
-      "type": "review",
-      "rating": 5,
-      "body": "초보자용 코스와 모임 분위기가 같이 보여서 처음 참여할 때 덜 부담스럽습니다.",
-      "createdAt": "2026-05-29T09:50:00.000Z"
-    },
-    {
-      "id": 14,
-      "projectId": 5,
-      "parentId": 13,
-      "authorEmail": "maker-mealmap@protolive.local",
-      "authorRole": "maker",
-      "type": "review",
-      "rating": null,
-      "body": "초보자 배지를 더 잘 보이게 바꾸겠습니다. 후기 남겨주셔서 감사합니다.",
-      "createdAt": "2026-05-29T10:30:00.000Z"
-    },
-    {
-      "id": 15,
-      "projectId": 5,
-      "parentId": null,
-      "authorEmail": "local-host@protolive.local",
-      "authorRole": "member",
-      "type": "idea",
-      "rating": null,
-      "body": "동네 카페와 제휴해서 완주 후 모이는 장소를 추천하면 모임이 더 오래 이어질 것 같습니다.",
-      "createdAt": "2026-05-30T07:40:00.000Z"
-    },
-    {
-      "id": 16,
-      "projectId": 5,
-      "parentId": null,
-      "authorEmail": "investor-impact@protolive.local",
-      "authorRole": "investor",
-      "type": "support",
-      "rating": null,
-      "body": "지역 운영자 5명을 연결해 첫 달 모임 유지율을 같이 보겠습니다.",
-      "createdAt": "2026-06-01T01:10:00.000Z"
-    },
-    {
-      "id": 17,
-      "projectId": 5,
-      "parentId": 16,
-      "authorEmail": "maker-mealmap@protolive.local",
-      "authorRole": "maker",
-      "type": "support",
-      "rating": null,
-      "body": "운영자 인터뷰 질문지를 준비해 공유드리겠습니다.",
-      "createdAt": "2026-06-01T03:10:00.000Z"
+      "body": "초기 단계지만 세션 리플레이 방향이 명확해서 응원합니다.",
+      "createdAt": "2026-06-02T11:15:00.000Z"
     }
   ],
-  "auditLogs": [
-    {
-      "id": 1,
-      "action": "review_reported",
-      "actorEmail": "safety-reviewer@protolive.local",
-      "targetType": "review",
-      "targetId": 4,
-      "projectId": 1,
-      "message": "표현이 단정적이라 운영자 확인이 필요합니다.",
-      "createdAt": "2026-05-26T13:05:00.000Z"
-    },
-    {
-      "id": 2,
-      "action": "match_compliance_accepted",
-      "actorEmail": "investor-impact@protolive.local",
-      "targetType": "project",
-      "targetId": 5,
-      "projectId": 5,
-      "message": "투자 권유가 아닌 연락 의향이며 개인정보 전달 동의와 초기 위험 고지를 확인했습니다.",
-      "createdAt": "2026-06-01T03:33:00.000Z"
-    }
-  ],
-  "nextUserId": 11,
+  "auditLogs": [],
+  "nextUserId": 4,
   "nextProjectId": 6,
-  "nextProposalId": 9,
-  "nextEventId": 22,
-  "nextReviewId": 18,
-  "nextAuditLogId": 3
+  "nextProposalId": 1,
+  "nextEventId": 6,
+  "nextReviewId": 4,
+  "nextAuditLogId": 1
 }
