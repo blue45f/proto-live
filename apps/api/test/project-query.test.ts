@@ -26,7 +26,9 @@ async function withSeededService(
     seed(state)
     new JsonProjectsStore(filePath).write(state)
 
-    await run(new ProjectsService())
+    const service = new ProjectsService()
+    await service.onModuleInit()
+    await run(service)
   } finally {
     if (previousStorePath === undefined) {
       delete process.env.PROJECT_STORE_PATH
