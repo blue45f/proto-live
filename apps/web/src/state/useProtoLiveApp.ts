@@ -99,6 +99,7 @@ import {
   readProjectListViewMode,
 } from './storage'
 import { matchRoute, navigate, routePath } from '../router/route'
+import { useFavorites } from './useFavorites'
 
 export function useProtoLiveApp() {
   const filterPreset = useMemo(() => readFilterPreset(), [])
@@ -241,23 +242,7 @@ export function useProtoLiveApp() {
   const [onlyVerified, setOnlyVerified] = useState(filterPreset.onlyVerified ?? false)
   const [minSignal, setMinSignal] = useState(filterPreset.minSignal ?? 0)
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(filterPreset.favorites ?? false)
-  const [favoriteProjectIds, setFavoriteProjectIds] = useState<Set<number>>(() => {
-    if (typeof window === 'undefined') {
-      return new Set<number>()
-    }
-
-    try {
-      const raw = localStorage.getItem('protolive:favorites')
-      if (!raw) {
-        return new Set<number>()
-      }
-
-      const parsed = JSON.parse(raw)
-      return new Set(Array.isArray(parsed) ? parsed : [])
-    } catch {
-      return new Set<number>()
-    }
-  })
+  const { favoriteProjectIds, toggleFavorite } = useFavorites()
 
   const [isSubmitOpen, setIsSubmitOpen] = useState(false)
   const [title, setTitle] = useState('')
@@ -949,18 +934,6 @@ export function useProtoLiveApp() {
       : projects
   }, [projects, favoriteProjectIds, showFavoritesOnly])
 
-  const toggleFavorite = useCallback((projectId: number) => {
-    setFavoriteProjectIds((current) => {
-      const next = new Set(current)
-      if (next.has(projectId)) {
-        next.delete(projectId)
-      } else {
-        next.add(projectId)
-      }
-      return next
-    })
-  }, [])
-
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setDebouncedSearch(searchQuery)
@@ -978,10 +951,6 @@ export function useProtoLiveApp() {
 
     return () => window.clearTimeout(timer)
   }, [adminRevenueConfig, adminRevenueTargetMonthly, adminScenarioMultipliers])
-
-  useEffect(() => {
-    localStorage.setItem('protolive:favorites', JSON.stringify(Array.from(favoriteProjectIds)))
-  }, [favoriteProjectIds])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
