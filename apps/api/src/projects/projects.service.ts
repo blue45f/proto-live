@@ -2,9 +2,13 @@ import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   Logger,
   NotFoundException,
+  OnModuleDestroy,
+  OnModuleInit,
+  Optional,
 } from '@nestjs/common'
 import axios, { AxiosResponse } from 'axios'
 import {
@@ -47,6 +51,7 @@ import {
   ProjectsState,
   User,
   ValidationSnapshot,
+  createEmptyProjectsState,
 } from './project.models'
 import { CreateMatchProposalDto } from './dto/create-match-proposal.dto'
 import { CreateProjectDto } from './dto/create-project.dto'
@@ -56,7 +61,8 @@ import { ReportProjectReviewDto } from './dto/report-project-review.dto'
 import { LoginDto } from './dto/login.dto'
 import { calculateProjectSignalScore, summarizeProjectEvents } from './project-signals'
 import { maskEmail } from './pii'
-import { JsonProjectsStore } from './projects.store'
+import { PROJECTS_STORE, type ProjectsStore } from './store/projects-store'
+import { FileProjectsStore } from './store/file-projects-store'
 import {
   assertResolvesToPublicInternet,
   normalizePublicHttpUrl,
@@ -113,11 +119,11 @@ export interface ProjectListPage {
 }
 
 @Injectable()
-export class ProjectsService {
+export class ProjectsService implements OnModuleInit, OnModuleDestroy {
   private readonly defaultScenarioMultipliers = [0.75, 1, 1.25, 1.5]
   private readonly defaultMonthlyRevenueTarget = 2500000
   private readonly logger = new Logger(ProjectsService.name)
-  private readonly store = new JsonProjectsStore()
+  private readonly store: ProjectsStore
   private users: User[]
   private projects: Project[]
   private proposals: MatchProposal[]
@@ -136,8 +142,23 @@ export class ProjectsService {
   private nextReviewId: number
   private nextAuditLogId: number
 
-  constructor() {
-    const state = this.store.read()
+  // 영속 드라이버는 DI로 주입한다. 직접 `new ProjectsService()`(단위 테스트)에서는 파일 드라이버로 기본.
+  constructor(@Optional() @Inject(PROJECTS_STORE) store?: ProjectsStore) {
+    this.store = store ?? new FileProjectsStore()
+    this.hydrate(createEmptyProjectsState())
+  }
+
+  // 부팅 하이드레이션: 영속된 전체 상태를 메모리로 한 번 읽어온다(드라이버가 파일/DB 비동기).
+  async onModuleInit(): Promise<void> {
+    this.hydrate(await this.store.load())
+  }
+
+  // graceful shutdown: write-behind 잔여 쓰기를 비운다.
+  async onModuleDestroy(): Promise<void> {
+    await this.store.flush()
+  }
+
+  private hydrate(state: ProjectsState): void {
     this.users = state.users
     this.projects = state.projects
     this.proposals = state.proposals
@@ -1533,7 +1554,7 @@ export class ProjectsService {
       nextAuditLogId: this.nextAuditLogId,
     }
 
-    this.store.write(state)
+    this.store.save(state)
   }
 
   private addAuditLog(input: Omit<AuditLog, 'id' | 'createdAt'>): AuditLog {

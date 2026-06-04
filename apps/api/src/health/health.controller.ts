@@ -1,5 +1,5 @@
-import { Controller, Get, ServiceUnavailableException } from '@nestjs/common'
-import { JsonProjectsStore } from '../projects/projects.store'
+import { Controller, Get, Inject, ServiceUnavailableException } from '@nestjs/common'
+import { PROJECTS_STORE, type ProjectsStore } from '../projects/store/projects-store'
 
 /**
  * 헬스 체크 컨트롤러
@@ -7,7 +7,7 @@ import { JsonProjectsStore } from '../projects/projects.store'
  */
 @Controller('api/health')
 export class HealthController {
-  private readonly store = new JsonProjectsStore()
+  constructor(@Inject(PROJECTS_STORE) private readonly store: ProjectsStore) {}
 
   /**
    * GET /api/health
@@ -28,8 +28,8 @@ export class HealthController {
    * 준비되지 않았으면 503으로 트래픽을 차단합니다.
    */
   @Get('ready')
-  getReady(): { status: string; store: string; timestamp: string } {
-    const result = this.store.checkReadiness()
+  async getReady(): Promise<{ status: string; store: string; timestamp: string }> {
+    const result = await this.store.checkReadiness()
     if (!result.ready) {
       throw new ServiceUnavailableException({
         status: 'unavailable',

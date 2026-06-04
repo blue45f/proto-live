@@ -2,9 +2,10 @@ import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
 import { RateLimitMiddleware } from './common/rate-limit.middleware'
 import { ProjectsModule } from './projects/projects.module'
 import { HealthModule } from './health/health.module'
+import { StoreModule } from './projects/store/store.module'
 
 @Module({
-  imports: [ProjectsModule, HealthModule],
+  imports: [StoreModule, ProjectsModule, HealthModule],
   controllers: [],
   providers: [],
 })

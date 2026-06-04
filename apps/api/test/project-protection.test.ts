@@ -48,7 +48,9 @@ async function withProjectsService(run: (service: ProjectsService) => Promise<vo
     state.nextProjectId = 2
 
     new JsonProjectsStore(filePath).write(state)
-    await run(new ProjectsService())
+    const service = new ProjectsService()
+    await service.onModuleInit()
+    await run(service)
   } finally {
     if (previousStorePath === undefined) {
       delete process.env.PROJECT_STORE_PATH
