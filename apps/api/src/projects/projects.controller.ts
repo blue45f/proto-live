@@ -21,6 +21,7 @@ import { LoginDto } from './dto/login.dto'
 import { ModerateProjectReviewDto } from './dto/moderate-project-review.dto'
 import { ReportProjectReviewDto } from './dto/report-project-review.dto'
 import { RecordProjectEventDto } from './dto/record-project-event.dto'
+import { SetProjectFeaturedDto } from './dto/set-project-featured.dto'
 import { GetProjectsQueryDto, ProjectQueryInput } from './dto/get-projects-query.dto'
 import { AdminRevenueProjectionQueryDto } from './dto/admin-revenue-projection-query.dto'
 
@@ -220,6 +221,30 @@ export class ProjectsController {
   }
 
   /**
+   * POST /api/projects/:id/upvote
+   * 로그인 회원의 업보트를 토글합니다(1인 1표, 본인 프로젝트 제외).
+   */
+  @Post(':id/upvote')
+  toggleUpvote(@Req() request: Request, @Param('id', ParseIntPipe) id: number) {
+    const session = this.projectsService.requireSession(request.headers.cookie)
+    return this.projectsService.toggleUpvote(id, session.email)
+  }
+
+  /**
+   * POST /api/projects/:id/featured
+   * 운영자가 투자 검토 대상(featured)으로 올리거나 내립니다.
+   */
+  @Post(':id/featured')
+  setFeatured(
+    @Req() request: Request,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: SetProjectFeaturedDto
+  ): Project {
+    this.projectsService.requireAdminSession(request.headers.cookie)
+    return this.projectsService.setProjectFeatured(id, body.featured)
+  }
+
+  /**
    * POST /api/projects/:id/reviews
    * 로그인 회원의 평가/리뷰/성장지원 의견 또는 대댓글을 저장합니다.
    */
@@ -298,6 +323,8 @@ export class ProjectsController {
 function normalizeProjectQuery(query: GetProjectsQueryDto): ProjectQueryInput {
   return {
     category: query.category,
+    maturity: query.maturity,
+    stack: query.stack,
     accessMode: query.accessMode,
     q: query.q,
     tag: query.tag,
@@ -308,5 +335,6 @@ function normalizeProjectQuery(query: GetProjectsQueryDto): ProjectQueryInput {
     page: query.page,
     limit: query.limit,
     onlyVerified: query.onlyVerified === 'true',
+    featured: query.featured === 'true',
   }
 }

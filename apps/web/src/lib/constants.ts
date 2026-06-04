@@ -6,7 +6,9 @@ import type {
   MarketStats,
   ProjectEventType,
   ProjectListQuery,
+  ProjectMaturity,
   ProjectReviewType,
+  ProjectStack,
 } from '../api'
 import { DEFAULT_REVENUE_CONFIG, DEFAULT_REVENUE_TARGET } from './revenue-config'
 
@@ -203,6 +205,7 @@ export const PROJECT_LIST_VIEW_OPTIONS: Array<{
 
 export const FUNDING_SORT_OPTIONS: ProjectListQuery['sort'][] = [
   'signal',
+  'upvotes',
   'recent',
   'created',
   'funding',
@@ -298,6 +301,60 @@ export const eventCopy: Record<
     label: '갱신',
     tone: 'border-stone-500/30 bg-stone-800/50 text-stone-200',
   },
+}
+
+export const maturityCopy: Record<
+  ProjectMaturity,
+  { label: string; helper: string; tone: string }
+> = {
+  early: {
+    label: '초기',
+    helper: '데모·프로토타입·갓 시작한 거친 초기물. 완성도보다 방향과 가능성을 봐주세요.',
+    tone: 'border-violet-300/35 bg-violet-300/10 text-violet-100',
+  },
+  building: {
+    label: '만드는 중',
+    helper: '핵심 흐름은 동작하지만 아직 다듬는 중입니다.',
+    tone: 'border-lime-300/35 bg-lime-300/10 text-lime-100',
+  },
+  live: {
+    label: '운영',
+    helper: '실제 사용 가능한 운영 단계입니다.',
+    tone: 'border-amber-300/35 bg-amber-300/10 text-amber-100',
+  },
+}
+
+export const BUILD_TOOLS: Array<{ id: string; label: string }> = [
+  { id: 'cursor', label: 'Cursor' },
+  { id: 'claude-code', label: 'Claude Code' },
+  { id: 'lovable', label: 'Lovable' },
+  { id: 'v0', label: 'v0' },
+  { id: 'bolt', label: 'Bolt' },
+  { id: 'replit', label: 'Replit' },
+  { id: 'windsurf', label: 'Windsurf' },
+  { id: 'wrtn', label: '뤼튼' },
+  { id: 'copilot', label: 'GitHub Copilot' },
+]
+
+export const MAX_BUILD_TOOLS = 5
+export const MAX_CUSTOM_TOOLS = 3
+
+export function buildToolLabel(id: string): string {
+  return BUILD_TOOLS.find((tool) => tool.id === id)?.label ?? id
+}
+
+export const stackCopy: Record<ProjectStack, string> = {
+  web: '웹',
+  app: '앱',
+  game: '게임',
+  tools: '도구',
+}
+
+export const maturityReviewHint: Record<ProjectMaturity, string> = {
+  early:
+    '아직 초기 단계예요. 완성도보다 방향과 가능성, 다음에 뭘 더 만들면 좋을지 위주로 의견을 남겨주세요.',
+  building: '만드는 중이에요. 핵심 흐름이 잘 작동하는지, 더 다듬을 부분 위주로 봐주세요.',
+  live: '운영 중인 서비스예요. 완성도와 실사용 경험, 시장성 관점에서 평가해주세요.',
 }
 
 export const reviewTypeCopy: Record<

@@ -12,6 +12,8 @@ import {
   AdminDashboardSnapshot,
   Project,
   ProjectAccessMode,
+  ProjectMaturity,
+  ProjectStack,
   ProjectEvent,
   ProjectReview,
   ProjectReviewType,
@@ -34,6 +36,8 @@ import {
   loginUser,
   logoutUser,
   recordProjectEvent,
+  toggleProjectUpvote,
+  setProjectFeatured,
   refreshAllProjects,
   refreshProject,
   moderateProjectReview,
@@ -68,6 +72,7 @@ import {
   FILTER_PRESET_STORAGE_KEY,
   FILTER_UI_STORAGE_KEY,
   LIST_VIEW_STORAGE_KEY,
+  MAX_BUILD_TOOLS,
 } from '../lib/constants'
 import {
   formatCurrency,
@@ -92,10 +97,10 @@ import {
   readAdminRevenueTarget,
   readAdminScenarioMultipliers,
   readFilterPreset,
-  readInitialProjectId,
-  readInitialView,
   readProjectListViewMode,
 } from './storage'
+import { matchRoute, navigate, routePath } from '../router/route'
+import { useFavorites } from './useFavorites'
 
 export function useProtoLiveApp() {
   const filterPreset = useMemo(() => readFilterPreset(), [])
@@ -111,8 +116,10 @@ export function useProtoLiveApp() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isApplyingAllAdminRecommendations, setIsApplyingAllAdminRecommendations] = useState(false)
   const [loadError, setLoadError] = useState('')
-  const [view, setView] = useState<AppView>(readInitialView())
-  const [detailProjectId, setDetailProjectId] = useState<number | null>(readInitialProjectId)
+  const [view, setView] = useState<AppView>(() => matchRoute().view)
+  const [detailProjectId, setDetailProjectId] = useState<number | null>(
+    () => matchRoute().projectId
+  )
   const [session, setSession] = useState<AuthSession | null>(() => readSession())
   const [isSessionHydrating, setIsSessionHydrating] = useState(true)
   const [isLoginOpen, setIsLoginOpen] = useState(false)
@@ -218,8 +225,8 @@ export function useProtoLiveApp() {
       ? filterPreset.accessMode
       : 'All'
   )
-  const [sortMode, setSortMode] = useState<'signal' | 'recent' | 'created' | 'funding'>(
-    filterPreset.sort as 'signal' | 'recent' | 'created' | 'funding'
+  const [sortMode, setSortMode] = useState<'signal' | 'recent' | 'created' | 'funding' | 'upvotes'>(
+    filterPreset.sort as 'signal' | 'recent' | 'created' | 'funding' | 'upvotes'
   )
   const [page, setPage] = useState(filterPreset.page ?? 1)
   const [pageSize, setPageSize] = useState(clampPageSize(filterPreset.limit ?? 12))
@@ -236,23 +243,7 @@ export function useProtoLiveApp() {
   const [onlyVerified, setOnlyVerified] = useState(filterPreset.onlyVerified ?? false)
   const [minSignal, setMinSignal] = useState(filterPreset.minSignal ?? 0)
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(filterPreset.favorites ?? false)
-  const [favoriteProjectIds, setFavoriteProjectIds] = useState<Set<number>>(() => {
-    if (typeof window === 'undefined') {
-      return new Set<number>()
-    }
-
-    try {
-      const raw = localStorage.getItem('protolive:favorites')
-      if (!raw) {
-        return new Set<number>()
-      }
-
-      const parsed = JSON.parse(raw)
-      return new Set(Array.isArray(parsed) ? parsed : [])
-    } catch {
-      return new Set<number>()
-    }
-  })
+  const { favoriteProjectIds, toggleFavorite } = useFavorites()
 
   const [isSubmitOpen, setIsSubmitOpen] = useState(false)
   const [title, setTitle] = useState('')
@@ -262,6 +253,12 @@ export function useProtoLiveApp() {
   const [tagInput, setTagInput] = useState('')
   const [accessMode, setAccessMode] = useState<ProjectAccessMode>('screened')
   const [protectionNoticeAccepted, setProtectionNoticeAccepted] = useState(false)
+  const [maturity, setMaturity] = useState<ProjectMaturity>('building')
+  const [stack, setStack] = useState<ProjectStack | ''>('')
+  const [builtWith, setBuiltWith] = useState<string[]>([])
+  const [customToolsInput, setCustomToolsInput] = useState('')
+  const [vibeCoded, setVibeCoded] = useState(false)
+  const [upvotedProjectIds, setUpvotedProjectIds] = useState<Set<number>>(new Set())
   const [urlCheckStatus, setUrlCheckStatus] = useState<'idle' | 'checking' | 'success' | 'error'>(
     'idle'
   )
@@ -337,8 +334,9 @@ export function useProtoLiveApp() {
     }
 
     const onPopState = () => {
-      setDetailProjectId(readInitialProjectId())
-      setView(readInitialView())
+      const route = matchRoute()
+      setDetailProjectId(route.projectId)
+      setView(route.view)
     }
 
     window.addEventListener('popstate', onPopState)
@@ -938,18 +936,6 @@ export function useProtoLiveApp() {
       : projects
   }, [projects, favoriteProjectIds, showFavoritesOnly])
 
-  const toggleFavorite = useCallback((projectId: number) => {
-    setFavoriteProjectIds((current) => {
-      const next = new Set(current)
-      if (next.has(projectId)) {
-        next.delete(projectId)
-      } else {
-        next.add(projectId)
-      }
-      return next
-    })
-  }, [])
-
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setDebouncedSearch(searchQuery)
@@ -967,10 +953,6 @@ export function useProtoLiveApp() {
 
     return () => window.clearTimeout(timer)
   }, [adminRevenueConfig, adminRevenueTargetMonthly, adminScenarioMultipliers])
-
-  useEffect(() => {
-    localStorage.setItem('protolive:favorites', JSON.stringify(Array.from(favoriteProjectIds)))
-  }, [favoriteProjectIds])
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -1835,6 +1817,57 @@ export function useProtoLiveApp() {
     }
   }
 
+  async function handleToggleUpvote(project: Project) {
+    if (!session) {
+      setIsLoginOpen(true)
+      return
+    }
+
+    try {
+      const { project: updated, viewerUpvoted } = await toggleProjectUpvote(project.id)
+      setProjects((current) => upsertProject(current, updated))
+      setUpvotedProjectIds((current) => {
+        const next = new Set(current)
+        if (viewerUpvoted) {
+          next.add(project.id)
+        } else {
+          next.delete(project.id)
+        }
+        return next
+      })
+    } catch (error) {
+      toast('error', '추천 실패', getApiErrorMessage(error, '추천을 처리하지 못했습니다.'))
+    }
+  }
+
+  async function handleToggleFeatured(project: Project) {
+    if (!canAccessAdmin) {
+      return
+    }
+
+    try {
+      const updated = await setProjectFeatured(project.id, !project.featured)
+      setProjects((current) => upsertProject(current, updated))
+      toast(
+        'success',
+        updated.featured ? '투자 검토 대상 등록' : '투자 검토 대상 해제',
+        `${updated.title} 상태를 업데이트했습니다.`
+      )
+    } catch (error) {
+      toast('error', '처리 실패', getApiErrorMessage(error, '투자 검토 상태를 바꾸지 못했습니다.'))
+    }
+  }
+
+  function toggleBuildTool(id: string) {
+    setBuiltWith((current) =>
+      current.includes(id)
+        ? current.filter((tool) => tool !== id)
+        : current.length >= MAX_BUILD_TOOLS
+          ? current
+          : [...current, id]
+    )
+  }
+
   async function handleSubmitProject(event: React.FormEvent) {
     event.preventDefault()
     if (!handleRequireMakerOnly()) {
@@ -1863,6 +1896,11 @@ export function useProtoLiveApp() {
         description,
         liveUrl,
         category,
+        maturity,
+        stack: stack || undefined,
+        builtWith: builtWith.length > 0 ? builtWith : undefined,
+        customTools: parseTagInput(customToolsInput),
+        vibeCoded,
         tags: parseTagInput(tagInput),
         accessMode,
         protectionNoticeAccepted,
@@ -1875,6 +1913,11 @@ export function useProtoLiveApp() {
       setLiveUrl('')
       setTagInput('')
       setAccessMode('screened')
+      setMaturity('building')
+      setStack('')
+      setBuiltWith([])
+      setCustomToolsInput('')
+      setVibeCoded(false)
       setProtectionNoticeAccepted(false)
       setUrlCheckStatus('idle')
       setUrlCheckMessage('')
@@ -2206,7 +2249,7 @@ export function useProtoLiveApp() {
     setDetailProjectId(project.id)
     setView('market')
     if (typeof window !== 'undefined') {
-      window.history.pushState({ projectId: project.id }, '', '/projects/' + project.id)
+      navigate(routePath.detail(project.id), { projectId: project.id })
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [])
@@ -2217,7 +2260,7 @@ export function useProtoLiveApp() {
     setDiligenceEvents([])
     setReplyToReview(null)
     if (typeof window !== 'undefined') {
-      window.history.pushState({}, '', '/')
+      navigate(routePath.market())
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [])
@@ -2329,6 +2372,19 @@ export function useProtoLiveApp() {
     projects,
     protectedProjectCount,
     protectionNoticeAccepted,
+    maturity,
+    setMaturity,
+    stack,
+    setStack,
+    builtWith,
+    toggleBuildTool,
+    customToolsInput,
+    setCustomToolsInput,
+    vibeCoded,
+    setVibeCoded,
+    upvotedProjectIds,
+    handleToggleUpvote,
+    handleToggleFeatured,
     publicProjectCount,
     recommendationSummary,
     replyToReview,

@@ -16,6 +16,13 @@ export interface Project {
   description: string
   liveUrl: string
   category: string
+  maturity: ProjectMaturity
+  stack?: ProjectStack
+  builtWith?: string[]
+  customTools?: string[]
+  vibeCoded?: boolean
+  upvoteCount?: number
+  featured?: boolean
   tags?: string[]
   accessMode: ProjectAccessMode
   protectionNoticeAccepted?: boolean
@@ -32,6 +39,8 @@ export interface Project {
 }
 
 export type ProjectAccessMode = 'screened' | 'open'
+export type ProjectMaturity = 'early' | 'building' | 'live'
+export type ProjectStack = 'web' | 'app' | 'game' | 'tools'
 export type ProjectEventType = 'create' | 'preview' | 'outbound' | 'match' | 'refresh'
 export type ProjectReviewType = 'review' | 'support' | 'idea'
 export type ProjectReviewAuthorRole = 'maker' | 'investor' | 'member'
@@ -342,6 +351,11 @@ export interface CreateProjectPayload {
   description: string
   liveUrl: string
   category: string
+  maturity?: ProjectMaturity
+  stack?: ProjectStack
+  builtWith?: string[]
+  customTools?: string[]
+  vibeCoded?: boolean
   tags?: string[]
   accessMode: ProjectAccessMode
   protectionNoticeAccepted: boolean
@@ -391,7 +405,8 @@ export interface ProjectListQuery {
   category?: string
   tag?: string
   accessMode?: ProjectAccessMode
-  sort?: 'signal' | 'recent' | 'created' | 'funding'
+  sort?: 'signal' | 'recent' | 'created' | 'funding' | 'upvotes'
+  stack?: ProjectStack
   minSignal?: number
   minFundingAmount?: number
   maxFundingAmount?: number
@@ -564,6 +579,19 @@ export async function createMatchProposal(id: number, payload: CreateMatchPayloa
 
 export async function recordProjectEvent(id: number, type: 'preview' | 'outbound' | 'refresh') {
   const response = await client.post<Project>(`/projects/${id}/events`, { type })
+  return response.data
+}
+
+export async function toggleProjectUpvote(id: number) {
+  const response = await client.post<{ project: Project; viewerUpvoted: boolean }>(
+    `/projects/${id}/upvote`,
+    {}
+  )
+  return response.data
+}
+
+export async function setProjectFeatured(id: number, featured: boolean) {
+  const response = await client.post<Project>(`/projects/${id}/featured`, { featured })
   return response.data
 }
 

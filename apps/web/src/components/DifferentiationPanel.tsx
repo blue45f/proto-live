@@ -12,7 +12,7 @@ export function DifferentiationPanel() {
         {differentiationRows.map((row) => (
           <div
             key={row.label}
-            className="protolive-reco-item rounded-lg border border-stone-800 bg-[oklch(15%_0.015_205)] p-3"
+            className="protolive-reco-item rounded-lg border border-stone-800 bg-[oklch(96.2%_0.008_92)] p-3"
           >
             <p className="text-xs font-black text-cyan-100">{row.label}</p>
             <p className="mt-2 text-xs leading-5 text-stone-500">일반: {row.usual}</p>

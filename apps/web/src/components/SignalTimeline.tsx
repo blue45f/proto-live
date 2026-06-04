@@ -28,7 +28,7 @@ export function SignalTimeline({
   return (
     <aside
       id={titleId}
-      className={`${className} min-h-0 border-l border-stone-800 bg-[oklch(15%_0.016_205)]`}
+      className={`${className} min-h-0 border-l border-stone-800 bg-[oklch(96.2%_0.008_92)]`}
     >
       <div className="border-b border-stone-800 p-4">
         <div className="flex items-center gap-2">

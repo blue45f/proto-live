@@ -90,7 +90,7 @@ export function MarketView(props: {
   selectedTag: string
   selectedAccessMode: 'All' | ProjectAccessMode
   searchQuery: string
-  sortMode: 'signal' | 'recent' | 'created' | 'funding'
+  sortMode: 'signal' | 'recent' | 'created' | 'funding' | 'upvotes'
   projectListView: ProjectListViewMode
   onlyVerified: boolean
   minSignal: number
@@ -101,6 +101,7 @@ export function MarketView(props: {
   hasFundingRangeError: boolean
   favoriteProjectCount: number
   favoriteProjectIds: Set<number>
+  upvotedProjectIds: Set<number>
   pageSize: number
   projectMeta: ProjectMeta
   activeFilters: ActiveFilter[]
@@ -129,6 +130,7 @@ export function MarketView(props: {
   onToggleAdvancedFilters: () => void
   onProjectListViewChange: (view: ProjectListViewMode) => void
   onSortSignal: () => void
+  onSortUpvotes: () => void
   onSortRecentClean: () => void
   onSortFunding: () => void
   onToggleOnlyVerified: () => void
@@ -149,6 +151,9 @@ export function MarketView(props: {
   onCreate: () => void
   onOpenDetail: (project: Project) => void
   onToggleFavorite: (projectId: number) => void
+  onToggleUpvote: (project: Project) => void
+  onToggleFeatured: (project: Project) => void
+  canFeature: boolean
 }) {
   const {
     apiOnline,
@@ -193,6 +198,7 @@ export function MarketView(props: {
     hasFundingRangeError,
     favoriteProjectCount,
     favoriteProjectIds,
+    upvotedProjectIds,
     pageSize,
     projectMeta,
     activeFilters,
@@ -219,6 +225,7 @@ export function MarketView(props: {
     onToggleAdvancedFilters,
     onProjectListViewChange,
     onSortSignal,
+    onSortUpvotes,
     onSortRecentClean,
     onSortFunding,
     onToggleOnlyVerified,
@@ -238,6 +245,9 @@ export function MarketView(props: {
     onCreate,
     onOpenDetail,
     onToggleFavorite,
+    onToggleUpvote,
+    onToggleFeatured,
+    canFeature,
   } = props
 
   return (
@@ -394,7 +404,7 @@ export function MarketView(props: {
 
         {!detailProjectId && (
           <>
-            <div className="rounded-xl border border-stone-800 bg-[oklch(17%_0.018_205)] p-4">
+            <div className="rounded-xl border border-stone-800 bg-[oklch(99.2%_0.004_95)] p-4">
               <div className="space-y-3">
                 <div className="protolive-chip-row flex flex-wrap items-center gap-2">
                   {categoryOptions.map((item) => (
@@ -491,6 +501,18 @@ export function MarketView(props: {
                     }`}
                   >
                     관심 많은 사이트
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={sortMode === 'upvotes'}
+                    onClick={onSortUpvotes}
+                    className={`inline-flex min-h-8 items-center gap-2 rounded-lg border px-3 text-xs font-black transition ${
+                      sortMode === 'upvotes'
+                        ? 'border-cyan-300/70 bg-cyan-300/20 text-cyan-100'
+                        : 'border-stone-700 bg-stone-950/55 text-stone-300 hover:border-cyan-300/50 hover:text-cyan-100'
+                    }`}
+                  >
+                    추천순
                   </button>
                   <button
                     type="button"
@@ -801,6 +823,10 @@ export function MarketView(props: {
                     onOpenDetail={() => onOpenDetail(project)}
                     isFavorite={favoriteProjectIds.has(project.id)}
                     onToggleFavorite={() => onToggleFavorite(project.id)}
+                    isUpvoted={upvotedProjectIds.has(project.id)}
+                    onToggleUpvote={() => onToggleUpvote(project)}
+                    canFeature={canFeature}
+                    onToggleFeatured={() => onToggleFeatured(project)}
                   />
                 ))}
               </div>
@@ -822,7 +848,7 @@ export function MarketView(props: {
             </span>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.015_205)] p-3">
+            <div className="rounded-lg border border-stone-800 bg-[oklch(96.2%_0.008_92)] p-3">
               <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">
                 확인 완료율
               </p>
@@ -834,7 +860,7 @@ export function MarketView(props: {
                 />
               </div>
             </div>
-            <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.015_205)] p-3">
+            <div className="rounded-lg border border-stone-800 bg-[oklch(96.2%_0.008_92)] p-3">
               <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">
                 사이트당 관심 활동
               </p>
@@ -843,7 +869,7 @@ export function MarketView(props: {
                 투자자가 실제로 살펴본 정도를 보여줍니다.
               </p>
             </div>
-            <div className="rounded-lg border border-stone-800 bg-[oklch(15%_0.015_205)] p-3 sm:col-span-2">
+            <div className="rounded-lg border border-stone-800 bg-[oklch(96.2%_0.008_92)] p-3 sm:col-span-2">
               <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">
                 최근 활동
               </p>
@@ -876,7 +902,7 @@ export function MarketView(props: {
               {stats.topSignals.map((item, index) => (
                 <div
                   key={item.id}
-                  className="rounded-lg border border-stone-800 bg-[oklch(16%_0.016_205)] p-3 transition hover:border-cyan-300/45"
+                  className="rounded-lg border border-stone-800 bg-[oklch(99.2%_0.004_95)] p-3 transition hover:border-cyan-300/45"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -919,7 +945,7 @@ export function MarketView(props: {
               return (
                 <div
                   key={signal}
-                  className="rounded-lg border border-stone-800 bg-[oklch(16%_0.016_205)] p-3"
+                  className="rounded-lg border border-stone-800 bg-[oklch(99.2%_0.004_95)] p-3"
                 >
                   <p className="text-sm font-black text-stone-100">{item.title}</p>
                   <p className="mt-1 text-xs leading-5 text-stone-400">{item.body}</p>

@@ -23,6 +23,7 @@ import {
   ProjectReview,
   ProjectReviewAuthorRole,
   ProjectReviewSummary,
+  ProjectUpvote,
   AuthSession,
   AdminDashboardMetrics,
   AdminEventTrendPoint,
@@ -51,6 +52,7 @@ import { ModerateProjectReviewDto } from './dto/moderate-project-review.dto'
 import { ReportProjectReviewDto } from './dto/report-project-review.dto'
 import { LoginDto } from './dto/login.dto'
 import { calculateProjectSignalScore, summarizeProjectEvents } from './project-signals'
+import { maskEmail } from './pii'
 import { JsonProjectsStore } from './projects.store'
 import {
   assertResolvesToPublicInternet,
@@ -117,12 +119,14 @@ export class ProjectsService {
   private projects: Project[]
   private proposals: MatchProposal[]
   private events: ProjectEvent[]
+  private upvotes: ProjectUpvote[]
   private reviews: ProjectReview[]
   private auditLogs: AuditLog[]
   private nextUserId: number
   private nextProjectId: number
   private nextProposalId: number
   private nextEventId: number
+  private nextUpvoteId: number
   private nextReviewId: number
   private nextAuditLogId: number
 
@@ -132,12 +136,14 @@ export class ProjectsService {
     this.projects = state.projects
     this.proposals = state.proposals
     this.events = state.events
+    this.upvotes = state.upvotes
     this.reviews = state.reviews
     this.auditLogs = state.auditLogs
     this.nextUserId = state.nextUserId
     this.nextProjectId = state.nextProjectId
     this.nextProposalId = state.nextProposalId
     this.nextEventId = state.nextEventId
+    this.nextUpvoteId = state.nextUpvoteId
     this.nextReviewId = state.nextReviewId
     this.nextAuditLogId = state.nextAuditLogId
   }
@@ -294,15 +300,12 @@ export class ProjectsService {
       params.totalInvestors * assumption.investorMonthlyFee * investorMonthlyPlanConversionRate
     )
     const monthlyLeadRevenue = Math.round(params.totalSignals * assumption.leadCaptureFee)
-    const projectedTransactionPool =
-      params.totalInvestors * averageCommittedPerInvestor * leadCloseRate
-    const monthlyTransactionRevenue = Math.round(projectedTransactionPool * transactionRate)
+    // 자금이동 없음 원칙: 투자 "의향"은 비구속 관심이라 실현 거래수익으로 환산하지 않는다.
+    // 공개 지표가 의향을 수익처럼 보이지 않도록 0으로 고정하고 총수익에서도 제외한다.
+    const monthlyTransactionRevenue = 0
 
     const totalMonthlyRevenue = Math.round(
-      monthlyMakerPlanRevenue +
-        monthlyInvestorPlanRevenue +
-        monthlyLeadRevenue +
-        monthlyTransactionRevenue
+      monthlyMakerPlanRevenue + monthlyInvestorPlanRevenue + monthlyLeadRevenue
     )
     const annualRevenue = totalMonthlyRevenue * 12
 
@@ -820,10 +823,25 @@ export class ProjectsService {
     const minSignal = query.minSignal
     const minFundingAmount = query.minFundingAmount
     const maxFundingAmount = query.maxFundingAmount
+    const eventsByProject = this.groupEventsByProject()
+    const reviewsByProject = this.groupVisibleReviewsByProject()
+    const upvoteCountByProject = this.groupUpvoteCountsByProject()
 
     return this.projects
       .filter((project) => {
         if (query.category && project.category !== query.category) {
+          return false
+        }
+
+        if (query.maturity && project.maturity !== query.maturity) {
+          return false
+        }
+
+        if (query.stack && project.stack !== query.stack) {
+          return false
+        }
+
+        if (query.featured && !project.featured) {
           return false
         }
 
@@ -869,7 +887,13 @@ export class ProjectsService {
 
         return true
       })
-      .map((project) => this.hydrateProject(project))
+      .map((project) =>
+        this.hydrateProject(project, {
+          events: eventsByProject.get(project.id) ?? [],
+          reviews: reviewsByProject.get(project.id) ?? [],
+          upvoteCount: upvoteCountByProject.get(project.id) ?? 0,
+        })
+      )
       .filter((project) => {
         if (minSignal === undefined) {
           return true
@@ -906,6 +930,11 @@ export class ProjectsService {
 
       if (sortBy === 'funding') {
         const diff = b.committedAmountMax - a.committedAmountMax
+        if (diff !== 0) return diff
+      }
+
+      if (sortBy === 'upvotes') {
+        const diff = (b.upvoteCount ?? 0) - (a.upvoteCount ?? 0)
         if (diff !== 0) return diff
       }
 
@@ -975,6 +1004,11 @@ export class ProjectsService {
       description,
       liveUrl,
       category,
+      maturity,
+      stack,
+      builtWith,
+      customTools,
+      vibeCoded,
       accessMode,
       protectionNoticeAccepted,
       thumbnail,
@@ -1008,6 +1042,14 @@ export class ProjectsService {
       description: description.trim(),
       liveUrl: normalizePublicHttpUrl(liveUrl).href,
       category: category as ProjectCategory,
+      maturity: maturity ?? 'building',
+      stack: stack ?? undefined,
+      builtWith: builtWith && builtWith.length > 0 ? [...new Set(builtWith)] : undefined,
+      customTools:
+        customTools && customTools.length > 0
+          ? [...new Set(customTools.map((tool) => tool.trim()).filter(Boolean))]
+          : undefined,
+      vibeCoded: vibeCoded ?? undefined,
       tags: this.normalizeTags(tags),
       accessMode: accessMode as ProjectAccessMode,
       protectionNoticeAccepted,
@@ -1423,12 +1465,14 @@ export class ProjectsService {
       projects: this.projects,
       proposals: this.proposals,
       events: this.events,
+      upvotes: this.upvotes,
       reviews: this.reviews,
       auditLogs: this.auditLogs,
       nextUserId: this.nextUserId,
       nextProjectId: this.nextProjectId,
       nextProposalId: this.nextProposalId,
       nextEventId: this.nextEventId,
+      nextUpvoteId: this.nextUpvoteId,
       nextReviewId: this.nextReviewId,
       nextAuditLogId: this.nextAuditLogId,
     }
@@ -1463,6 +1507,10 @@ export class ProjectsService {
 
   private getVisibleProjectReviews(projectId: number): ProjectReview[] {
     const projectReviews = this.reviews.filter((review) => review.projectId === projectId)
+    return this.filterVisibleReviews(projectReviews)
+  }
+
+  private filterVisibleReviews(projectReviews: ProjectReview[]): ProjectReview[] {
     const hiddenReviewIds = new Set(
       projectReviews.filter((review) => review.status === 'hidden').map((review) => review.id)
     )
@@ -1474,6 +1522,78 @@ export class ProjectsService {
 
       return !review.parentId || !hiddenReviewIds.has(review.parentId)
     })
+  }
+
+  /** 전 프로젝트의 이벤트/가시 리뷰를 한 번에 그룹핑해 hydrate의 프로젝트별 전수 필터(O(N²))를 없앤다. */
+  private groupEventsByProject(): Map<number, ProjectEvent[]> {
+    const byProject = new Map<number, ProjectEvent[]>()
+    for (const event of this.events) {
+      const list = byProject.get(event.projectId)
+      if (list) list.push(event)
+      else byProject.set(event.projectId, [event])
+    }
+    return byProject
+  }
+
+  private groupVisibleReviewsByProject(): Map<number, ProjectReview[]> {
+    const byProject = new Map<number, ProjectReview[]>()
+    for (const review of this.reviews) {
+      const list = byProject.get(review.projectId)
+      if (list) list.push(review)
+      else byProject.set(review.projectId, [review])
+    }
+    for (const [projectId, list] of byProject) {
+      byProject.set(projectId, this.filterVisibleReviews(list))
+    }
+    return byProject
+  }
+
+  private groupUpvoteCountsByProject(): Map<number, number> {
+    const byProject = new Map<number, number>()
+    for (const upvote of this.upvotes) {
+      byProject.set(upvote.projectId, (byProject.get(upvote.projectId) ?? 0) + 1)
+    }
+    return byProject
+  }
+
+  /** 운영자가 검증된 프로젝트를 투자 검토 대상으로 올리거나 내린다(투자 사다리 수동 게이트). */
+  setProjectFeatured(id: number, featured: boolean): Project {
+    const project = this.findProject(id)
+    project.featured = featured
+    this.persist()
+    return this.hydrateProject(project)
+  }
+
+  /** 로그인 회원의 업보트를 토글한다. 1인 1표(projectId+email 유일) + 본인 프로젝트 추천 차단. */
+  toggleUpvote(projectId: number, email: string): { project: Project; viewerUpvoted: boolean } {
+    const project = this.findProject(projectId)
+    const normalizedEmail = email.trim().toLowerCase()
+
+    const owner = this.users.find((user) => user.id === project.userId)
+    if (owner && owner.email === normalizedEmail) {
+      throw new ForbiddenException('자신의 프로젝트에는 추천할 수 없습니다.')
+    }
+
+    const existing = this.upvotes.find(
+      (upvote) => upvote.projectId === projectId && upvote.email === normalizedEmail
+    )
+
+    let viewerUpvoted: boolean
+    if (existing) {
+      this.upvotes = this.upvotes.filter((upvote) => upvote.id !== existing.id)
+      viewerUpvoted = false
+    } else {
+      this.upvotes.push({
+        id: this.nextUpvoteId++,
+        projectId,
+        email: normalizedEmail,
+        createdAt: new Date(),
+      })
+      viewerUpvoted = true
+    }
+
+    this.persist()
+    return { project: this.hydrateProject(project), viewerUpvoted }
   }
 
   private addProjectEvent(projectId: number, type: ProjectEventType): ProjectEvent {
@@ -2274,9 +2394,16 @@ export class ProjectsService {
     }
   }
 
-  private hydrateProject(project: Project): Project {
-    const events = this.events.filter((event) => event.projectId === project.id)
-    const reviews = this.getVisibleProjectReviews(project.id)
+  private hydrateProject(
+    project: Project,
+    precomputed?: { events: ProjectEvent[]; reviews: ProjectReview[]; upvoteCount: number }
+  ): Project {
+    const events =
+      precomputed?.events ?? this.events.filter((event) => event.projectId === project.id)
+    const reviews = precomputed?.reviews ?? this.getVisibleProjectReviews(project.id)
+    const upvoteCount =
+      precomputed?.upvoteCount ??
+      this.upvotes.filter((upvote) => upvote.projectId === project.id).length
     const accessMode = project.accessMode ?? 'open'
     const displayUrl = accessMode === 'screened' ? this.redactUrl(project.liveUrl) : project.liveUrl
     const displayFinalUrl =
@@ -2287,6 +2414,7 @@ export class ProjectsService {
     return {
       ...project,
       accessMode,
+      maturity: project.maturity ?? 'live',
       protectionNoticeAccepted: project.protectionNoticeAccepted ?? true,
       liveUrl: displayUrl,
       validation: {
@@ -2296,6 +2424,7 @@ export class ProjectsService {
       signalScore: calculateProjectSignalScore(project, events),
       eventSummary: summarizeProjectEvents(events),
       reviewSummary: this.summarizeProjectReviews(reviews),
+      upvoteCount,
     }
   }
 
@@ -2324,7 +2453,7 @@ export class ProjectsService {
         ? {
             id: latest.id,
             type: latest.type,
-            authorEmail: latest.authorEmail,
+            authorEmail: maskEmail(latest.authorEmail),
             body: latest.body,
             createdAt: latest.createdAt.toISOString(),
           }

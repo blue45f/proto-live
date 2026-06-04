@@ -1,6 +1,12 @@
-import { ArrowUpRight, Star } from 'lucide-react'
+import { ArrowUpRight, ChevronUp, Star } from 'lucide-react'
 import type { Project } from '../api'
-import { type ProjectListViewMode, reviewTypeCopy } from '../lib/constants'
+import {
+  type ProjectListViewMode,
+  buildToolLabel,
+  maturityCopy,
+  reviewTypeCopy,
+  stackCopy,
+} from '../lib/constants'
 import {
   formatRelativeTime,
   getResponseTimeTone,
@@ -15,6 +21,10 @@ export function ProjectCard({
   onOpenDetail,
   onToggleFavorite,
   isFavorite,
+  onToggleUpvote,
+  isUpvoted,
+  canFeature,
+  onToggleFeatured,
 }: {
   project: Project
   viewMode: ProjectListViewMode
@@ -22,11 +32,20 @@ export function ProjectCard({
   onOpenDetail: () => void
   onToggleFavorite: () => void
   isFavorite: boolean
+  onToggleUpvote: () => void
+  isUpvoted: boolean
+  canFeature: boolean
+  onToggleFeatured: () => void
 }) {
   const isProtected = project.accessMode === 'screened'
   const responseTone = getResponseTimeTone(project.validation.responseTimeMs)
   const signalRankText = signalRank === null ? null : '#' + signalRank
   const tags = project.tags ?? []
+  const maturity = maturityCopy[project.maturity]
+  const tools = [
+    ...(project.builtWith ?? []).map((id) => buildToolLabel(id)),
+    ...(project.customTools ?? []),
+  ]
   const latestReview = project.reviewSummary?.latest
   const isCardView = viewMode === 'cards'
   const isReviewView = viewMode === 'reviews'
@@ -66,6 +85,21 @@ export function ProjectCard({
         </button>
         <div className="min-w-0">
           <div className="mb-2 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onToggleUpvote}
+              aria-pressed={isUpvoted}
+              aria-label={project.title + ' 추천'}
+              className={
+                'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-black transition ' +
+                (isUpvoted
+                  ? 'border-amber-300/60 bg-amber-300/15 text-amber-100'
+                  : 'border-stone-700 text-stone-300 hover:border-amber-300/50 hover:text-amber-100')
+              }
+            >
+              <ChevronUp className="h-3.5 w-3.5" />
+              {project.upvoteCount ?? 0}
+            </button>
             {signalRankText && (
               <span className="rounded-full border border-cyan-300/30 bg-cyan-300/10 px-2.5 py-1 text-[11px] font-black text-cyan-100">
                 {signalRankText} 추천
@@ -74,6 +108,30 @@ export function ProjectCard({
             <span className="rounded-full border border-stone-700 bg-stone-950/60 px-2.5 py-1 text-[11px] font-black text-stone-300">
               {project.category}
             </span>
+            <span
+              className={'rounded-full border px-2.5 py-1 text-[11px] font-black ' + maturity.tone}
+            >
+              {maturity.label}
+            </span>
+            {project.stack && (
+              <span className="rounded-full border border-stone-700 bg-stone-950/60 px-2.5 py-1 text-[11px] font-black text-stone-300">
+                {stackCopy[project.stack]}
+              </span>
+            )}
+            {project.featured && (
+              <span className="rounded-full border border-sky-300/40 bg-sky-300/10 px-2.5 py-1 text-[11px] font-black text-sky-100">
+                투자 검토 대상
+              </span>
+            )}
+            {canFeature && (
+              <button
+                type="button"
+                onClick={onToggleFeatured}
+                className="rounded-full border border-sky-300/40 px-2.5 py-1 text-[11px] font-black text-sky-100 transition hover:bg-sky-300/10"
+              >
+                {project.featured ? '투자검토 해제' : '투자검토 지정'}
+              </button>
+            )}
             <span
               className={
                 'rounded-full border px-2.5 py-1 text-[11px] font-black ' +
@@ -115,6 +173,26 @@ export function ProjectCard({
                   #{tag}
                 </span>
               ))}
+            </div>
+          )}
+          {(tools.length > 0 || project.vibeCoded) && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {project.vibeCoded && (
+                <span className="rounded-full border border-violet-300/30 bg-violet-300/10 px-2 py-0.5 text-[11px] font-black text-violet-100">
+                  AI 제작
+                </span>
+              )}
+              {tools.slice(0, 2).map((tool) => (
+                <span
+                  key={tool}
+                  className="rounded-full border border-stone-700 bg-stone-950/60 px-2 py-0.5 text-[11px] font-black text-stone-300"
+                >
+                  {tool}
+                </span>
+              ))}
+              {tools.length > 2 && (
+                <span className="text-[11px] font-black text-stone-500">+{tools.length - 2}</span>
+              )}
             </div>
           )}
           {isReviewView && latestReview && (

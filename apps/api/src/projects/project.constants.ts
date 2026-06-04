@@ -26,6 +26,52 @@ export const PROJECT_ACCESS_MODES = [
 
 export type ProjectAccessMode = (typeof PROJECT_ACCESS_MODES)[number]['id']
 
+export const PROJECT_MATURITIES = [
+  {
+    id: 'early',
+    label: '초기',
+    description: '데모·프로토타입·갓 시작한 거친 초기물. 완성도보다 방향과 가능성을 봅니다.',
+  },
+  {
+    id: 'building',
+    label: '만드는 중',
+    description: '핵심 흐름은 동작하지만 아직 다듬는 중입니다.',
+  },
+  {
+    id: 'live',
+    label: '운영',
+    description: '실제 사용 가능한 운영 단계입니다.',
+  },
+] as const
+
+export type ProjectMaturity = (typeof PROJECT_MATURITIES)[number]['id']
+
+export const PROJECT_STACKS = [
+  { id: 'web', label: '웹' },
+  { id: 'app', label: '앱' },
+  { id: 'game', label: '게임' },
+  { id: 'tools', label: '도구' },
+] as const
+
+export type ProjectStack = (typeof PROJECT_STACKS)[number]['id']
+
+export const BUILD_TOOLS = [
+  { id: 'cursor', label: 'Cursor' },
+  { id: 'claude-code', label: 'Claude Code' },
+  { id: 'lovable', label: 'Lovable' },
+  { id: 'v0', label: 'v0' },
+  { id: 'bolt', label: 'Bolt' },
+  { id: 'replit', label: 'Replit' },
+  { id: 'windsurf', label: 'Windsurf' },
+  { id: 'wrtn', label: '뤼튼' },
+  { id: 'copilot', label: 'GitHub Copilot' },
+] as const
+
+export type BuildToolId = (typeof BUILD_TOOLS)[number]['id']
+
+export const MAX_BUILD_TOOLS = 5
+export const MAX_CUSTOM_TOOLS = 3
+
 export const FUNDING_RANGES = [
   {
     id: 'pre-seed-10-30',

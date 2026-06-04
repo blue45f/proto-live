@@ -1,6 +1,7 @@
 import {
   IsEmail,
   IsArray,
+  IsBoolean,
   Equals,
   IsNotEmpty,
   IsIn,
@@ -12,10 +13,17 @@ import {
   ArrayUnique,
 } from 'class-validator'
 import {
+  BUILD_TOOLS,
+  MAX_BUILD_TOOLS,
+  MAX_CUSTOM_TOOLS,
   PROJECT_ACCESS_MODES,
   PROJECT_CATEGORIES,
+  PROJECT_MATURITIES,
+  PROJECT_STACKS,
   ProjectAccessMode,
   ProjectCategory,
+  ProjectMaturity,
+  ProjectStack,
 } from '../project.constants'
 
 /**
@@ -49,6 +57,18 @@ export class CreateProjectDto {
   @IsIn(PROJECT_CATEGORIES, { message: '유효한 카테고리를 선택해주세요.' })
   category: ProjectCategory
 
+  @IsOptional()
+  @IsString({ message: '진행 단계는 문자열이어야 합니다.' })
+  @IsIn(PROJECT_MATURITIES.map((maturity) => maturity.id), {
+    message: '유효한 진행 단계를 선택해주세요.',
+  })
+  maturity?: ProjectMaturity
+
+  @IsOptional()
+  @IsString({ message: '빌드 유형은 문자열이어야 합니다.' })
+  @IsIn(PROJECT_STACKS.map((stack) => stack.id), { message: '유효한 빌드 유형을 선택해주세요.' })
+  stack?: ProjectStack
+
   @IsString({ message: '공개 범위는 문자열이어야 합니다.' })
   @IsNotEmpty({ message: '공개 범위를 선택해주세요.' })
   @IsIn(PROJECT_ACCESS_MODES.map((mode) => mode.id), {
@@ -72,4 +92,30 @@ export class CreateProjectDto {
   @IsString({ each: true, message: '태그는 문자열이어야 합니다.' })
   @MaxLength(24, { each: true, message: '태그는 24자 이하로 입력해주세요.' })
   tags?: string[]
+
+  @IsOptional()
+  @IsArray({ message: '제작 도구는 배열이어야 합니다.' })
+  @ArrayMaxSize(MAX_BUILD_TOOLS, {
+    message: `제작 도구는 최대 ${MAX_BUILD_TOOLS}개까지 선택할 수 있습니다.`,
+  })
+  @ArrayUnique({ message: '중복 도구는 제거해주세요.' })
+  @IsIn(BUILD_TOOLS.map((tool) => tool.id), {
+    each: true,
+    message: '지원하지 않는 제작 도구입니다.',
+  })
+  builtWith?: string[]
+
+  @IsOptional()
+  @IsArray({ message: '직접 입력 도구는 배열이어야 합니다.' })
+  @ArrayMaxSize(MAX_CUSTOM_TOOLS, {
+    message: `직접 입력 도구는 최대 ${MAX_CUSTOM_TOOLS}개까지 입력할 수 있습니다.`,
+  })
+  @ArrayUnique({ message: '중복 도구는 제거해주세요.' })
+  @IsString({ each: true, message: '도구 이름은 문자열이어야 합니다.' })
+  @MaxLength(24, { each: true, message: '도구 이름은 24자 이하로 입력해주세요.' })
+  customTools?: string[]
+
+  @IsOptional()
+  @IsBoolean({ message: '바이브코딩 여부는 true 또는 false 입니다.' })
+  vibeCoded?: boolean
 }

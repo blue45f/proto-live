@@ -130,6 +130,112 @@ test('session secret resolver requires explicit secret in production', async () 
   )
 })
 
+test('getAllProjects filters by maturity stage', async () => {
+  await withSeededService(
+    (state) => {
+      state.users.push({ id: 1, email: 'maker@protolive.local', role: 'maker' })
+      const base = {
+        userId: 1,
+        description: 'Maturity filter fixture',
+        category: 'AI & SaaS' as ProjectCategory,
+        accessMode: 'open' as ProjectAccessMode,
+        protectionNoticeAccepted: true,
+        investorCount: 0,
+        matchCount: 0,
+        committedAmountMin: 0,
+        committedAmountMax: 0,
+        validation: {
+          success: true,
+          status: 200,
+          message: 'ok',
+          checkedAt: '2026-06-01T00:00:00.000Z',
+          finalUrl: 'https://example.com',
+          responseTimeMs: 120,
+        },
+      }
+      state.projects.push(
+        {
+          ...base,
+          id: 1,
+          title: 'Early Prototype',
+          liveUrl: 'https://early.example.com',
+          maturity: 'early' as const,
+          createdAt: new Date('2026-06-01T12:00:00.000Z'),
+        },
+        {
+          ...base,
+          id: 2,
+          title: 'Live Product',
+          liveUrl: 'https://live.example.com',
+          maturity: 'live' as const,
+          createdAt: new Date('2026-06-01T11:00:00.000Z'),
+        }
+      )
+    },
+    async (service) => {
+      const early = await service.getAllProjects({ maturity: 'early' })
+      assert.equal(early.length, 1)
+      assert.equal(early[0].title, 'Early Prototype')
+      assert.equal(early[0].maturity, 'early')
+
+      const live = await service.getAllProjects({ maturity: 'live' })
+      assert.equal(live.length, 1)
+      assert.equal(live[0].maturity, 'live')
+
+      const all = await service.getAllProjects({})
+      assert.equal(all.length, 2)
+    }
+  )
+})
+
+test('toggleUpvote enforces one vote per member and blocks self-upvote', async () => {
+  await withSeededService(
+    (state) => {
+      state.users.push(
+        { id: 1, email: 'maker@protolive.local', role: 'maker' },
+        { id: 2, email: 'member@protolive.local', role: 'member' }
+      )
+      state.projects.push({
+        id: 1,
+        userId: 1,
+        title: 'Upvote Target',
+        description: 'A project to vote on',
+        liveUrl: 'https://upvote.example.com',
+        category: 'AI & SaaS' as ProjectCategory,
+        maturity: 'live' as const,
+        accessMode: 'open' as ProjectAccessMode,
+        protectionNoticeAccepted: true,
+        investorCount: 0,
+        matchCount: 0,
+        committedAmountMin: 0,
+        committedAmountMax: 0,
+        validation: {
+          success: true,
+          status: 200,
+          message: 'ok',
+          checkedAt: '2026-06-01T00:00:00.000Z',
+          finalUrl: 'https://upvote.example.com',
+          responseTimeMs: 120,
+        },
+        createdAt: new Date('2026-06-01T12:00:00.000Z'),
+      })
+    },
+    (service) => {
+      const first = service.toggleUpvote(1, 'member@protolive.local')
+      assert.equal(first.viewerUpvoted, true)
+      assert.equal(first.project.upvoteCount, 1)
+
+      // Same member toggling again removes the vote (1 person, 1 vote).
+      const second = service.toggleUpvote(1, 'member@protolive.local')
+      assert.equal(second.viewerUpvoted, false)
+      assert.equal(second.project.upvoteCount, 0)
+
+      // The maker cannot upvote their own project.
+      assert.throws(() => service.toggleUpvote(1, 'maker@protolive.local'), /자신의 프로젝트/)
+    }
+  )
+})
+
 test('getAllProjects supports category/search/access mode query filters', async () => {
   await withSeededService(
     (state) => {
@@ -948,9 +1054,9 @@ test('getAdminRevenueProjection applies formulas and overrides assumptions', asy
       assert.equal(overrideProjection.monthlyMakerPlanRevenue, 100)
       assert.equal(overrideProjection.monthlyInvestorPlanRevenue, 500)
       assert.equal(overrideProjection.monthlyLeadRevenue, 400)
-      assert.equal(overrideProjection.monthlyTransactionRevenue, 60)
-      assert.equal(overrideProjection.totalMonthlyRevenue, 1060)
-      assert.equal(overrideProjection.annualRevenue, 12720)
+      assert.equal(overrideProjection.monthlyTransactionRevenue, 0)
+      assert.equal(overrideProjection.totalMonthlyRevenue, 1000)
+      assert.equal(overrideProjection.annualRevenue, 12000)
       assert.equal(overrideProjection.averageCommittedPerInvestor, 1500)
       assert.equal(overrideProjection.benchmarkGaps.length, 6)
       assert.equal(overrideProjection.scenarios.length, 3)
@@ -963,8 +1069,8 @@ test('getAdminRevenueProjection applies formulas and overrides assumptions', asy
       assert.equal(overrideProjection.assumptions.estimatedMonthlyChurnRate, 10)
       assert.equal(overrideProjection.assumptions.successFeeRate, 10)
       assert.equal(overrideProjection.targetGap.targetMonthlyRevenue, 2000)
-      assert.equal(overrideProjection.targetGap.shortfall, 940)
-      assert.equal(overrideProjection.targetGap.achievedRate, 53)
+      assert.equal(overrideProjection.targetGap.shortfall, 1000)
+      assert.equal(overrideProjection.targetGap.achievedRate, 50)
       assert.equal(overrideProjection.targetGap.drivers.length, 3)
       assert.equal(
         overrideProjection.targetGap.drivers.every((driver) => driver.acquisitionCostPerUnit >= 0),
@@ -1035,8 +1141,8 @@ test('getAdminDashboard includes revenue projection payload', async () => {
       assert.equal(dashboardProjection.monthlyMakerPlanRevenue, 4500)
       assert.equal(dashboardProjection.monthlyInvestorPlanRevenue, 13300)
       assert.equal(dashboardProjection.monthlyLeadRevenue, 32000)
-      assert.equal(dashboardProjection.totalMonthlyRevenue, 49821)
-      assert.equal(dashboardProjection.annualRevenue, 597852)
+      assert.equal(dashboardProjection.totalMonthlyRevenue, 49800)
+      assert.equal(dashboardProjection.annualRevenue, 597600)
       assert.equal(dashboardProjection.targetGap.targetMonthlyRevenue, 2500000)
       assert.equal(Array.isArray(dashboardProjection.targetGap.drivers), true)
       assert.equal(

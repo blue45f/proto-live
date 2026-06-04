@@ -1,8 +1,9 @@
 import React from 'react'
 import { AlertTriangle, BadgeCheck, CheckCircle2, Globe2, Loader2, ShieldCheck } from 'lucide-react'
 import type { AuthSession } from '../../local-auth'
-import type { MarketConfig, ProjectAccessMode } from '../../api'
+import type { MarketConfig, ProjectAccessMode, ProjectMaturity, ProjectStack } from '../../api'
 import { getValidationTone } from '../../lib/format'
+import { BUILD_TOOLS, maturityCopy, stackCopy } from '../../lib/constants'
 import { parseTagInput } from '../../state/storage'
 import { Modal } from '../Modal'
 
@@ -10,6 +11,10 @@ export function SubmitProjectModal({
   session,
   title,
   category,
+  maturity,
+  builtWith,
+  customToolsInput,
+  vibeCoded,
   config,
   accessMode,
   protectionNoticeAccepted,
@@ -23,6 +28,12 @@ export function SubmitProjectModal({
   onClose,
   onTitleChange,
   onCategoryChange,
+  onMaturityChange,
+  stack,
+  onStackChange,
+  onToggleBuildTool,
+  onCustomToolsInputChange,
+  onVibeCodedChange,
   onAccessModeChange,
   onProtectionNoticeChange,
   onDescriptionChange,
@@ -34,6 +45,10 @@ export function SubmitProjectModal({
   session: AuthSession | null
   title: string
   category: string
+  maturity: ProjectMaturity
+  builtWith: string[]
+  customToolsInput: string
+  vibeCoded: boolean
   config: MarketConfig
   accessMode: ProjectAccessMode
   protectionNoticeAccepted: boolean
@@ -47,6 +62,12 @@ export function SubmitProjectModal({
   onClose: () => void
   onTitleChange: (value: string) => void
   onCategoryChange: (value: string) => void
+  onMaturityChange: (value: ProjectMaturity) => void
+  stack: ProjectStack | ''
+  onStackChange: (value: ProjectStack | '') => void
+  onToggleBuildTool: (id: string) => void
+  onCustomToolsInputChange: (value: string) => void
+  onVibeCodedChange: (value: boolean) => void
   onAccessModeChange: (value: ProjectAccessMode) => void
   onProtectionNoticeChange: (value: boolean) => void
   onDescriptionChange: (value: string) => void
@@ -91,6 +112,52 @@ export function SubmitProjectModal({
               {config.categories.map((item) => (
                 <option key={item} value={item}>
                   {item}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="rounded-lg border border-stone-700 bg-stone-950/45 p-3">
+          <p className="mb-2 text-xs font-black text-stone-300">진행 단계</p>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {(Object.keys(maturityCopy) as ProjectMaturity[]).map((id) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => onMaturityChange(id)}
+                aria-pressed={maturity === id}
+                className={`min-h-16 rounded-lg border p-3 text-left transition ${
+                  maturity === id
+                    ? 'border-lime-300/60 bg-lime-300 text-slate-950'
+                    : 'border-stone-700 bg-stone-950/55 text-stone-300 hover:border-cyan-300/40'
+                }`}
+              >
+                <span className="block text-sm font-black">{maturityCopy[id].label}</span>
+                <span
+                  className={`mt-1 block text-xs leading-5 ${maturity === id ? 'text-slate-800' : 'text-stone-500'}`}
+                >
+                  {maturityCopy[id].helper}
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-[11px] leading-5 text-stone-500">
+            데모·프로토타입·갓 시작한 거친 초기물도 환영합니다. 단, 실제로 열리는 라이브 URL은
+            필요해요.
+          </p>
+          <label className="mt-3 block">
+            <span className="mb-1 block text-xs font-black text-stone-300">
+              빌드 유형 <span className="font-medium text-stone-500">(선택)</span>
+            </span>
+            <select
+              value={stack}
+              onChange={(event) => onStackChange(event.target.value as ProjectStack | '')}
+              className="min-h-11 w-full rounded-lg border border-stone-700 bg-stone-950 px-3 text-sm text-stone-100 outline-none focus:border-lime-300/60"
+            >
+              <option value="">선택 안 함</option>
+              {(Object.keys(stackCopy) as ProjectStack[]).map((id) => (
+                <option key={id} value={id}>
+                  {stackCopy[id]}
                 </option>
               ))}
             </select>
@@ -194,6 +261,50 @@ export function SubmitProjectModal({
             </div>
           )}
         </label>
+        <div className="rounded-lg border border-stone-700 bg-stone-950/45 p-3">
+          <p className="mb-2 text-xs font-black text-stone-300">
+            제작 도구
+            <span className="ml-2 font-medium text-stone-500">
+              바이브코딩에 쓴 도구를 알려주세요 (선택)
+            </span>
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {BUILD_TOOLS.map((tool) => {
+              const active = builtWith.includes(tool.id)
+              return (
+                <button
+                  key={tool.id}
+                  type="button"
+                  onClick={() => onToggleBuildTool(tool.id)}
+                  aria-pressed={active}
+                  className={`rounded-full border px-3 py-1 text-xs font-black transition ${
+                    active
+                      ? 'border-lime-300/60 bg-lime-300 text-slate-950'
+                      : 'border-stone-700 bg-stone-950/55 text-stone-300 hover:border-cyan-300/40'
+                  }`}
+                >
+                  {tool.label}
+                </button>
+              )
+            })}
+          </div>
+          <input
+            type="text"
+            value={customToolsInput}
+            onChange={(event) => onCustomToolsInputChange(event.target.value)}
+            placeholder="기타 도구 (쉼표로 구분, 최대 3개)"
+            className="mt-2 min-h-11 w-full rounded-lg border border-stone-700 bg-stone-950 px-3 text-sm text-stone-100 outline-none placeholder:text-stone-500 focus:border-lime-300/60"
+          />
+          <label className="mt-3 flex items-center gap-2 text-xs font-black text-stone-300">
+            <input
+              type="checkbox"
+              checked={vibeCoded}
+              onChange={(event) => onVibeCodedChange(event.target.checked)}
+              className="h-4 w-4 rounded border-stone-600 bg-stone-950 accent-lime-300"
+            />
+            AI(바이브코딩)로 만들었어요
+          </label>
+        </div>
         <label className="block">
           <span className="mb-2 flex items-center justify-between gap-3 text-xs font-black text-stone-300">
             <span>라이브 데모 URL</span>

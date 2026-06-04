@@ -17,6 +17,7 @@ import {
   ProjectReview,
   ProjectReviewReport,
   ProjectsState,
+  ProjectUpvote,
 } from './project.models'
 
 interface SerializedProject extends Omit<Project, 'createdAt'> {
@@ -32,6 +33,10 @@ interface SerializedMatchProposal extends Omit<
 }
 
 interface SerializedProjectEvent extends Omit<ProjectEvent, 'createdAt'> {
+  createdAt: string
+}
+
+interface SerializedProjectUpvote extends Omit<ProjectUpvote, 'createdAt'> {
   createdAt: string
 }
 
@@ -55,12 +60,13 @@ interface SerializedAuditLog extends Omit<AuditLog, 'createdAt'> {
 
 interface SerializedProjectsState extends Omit<
   ProjectsState,
-  'projects' | 'proposals' | 'events' | 'reviews' | 'auditLogs'
+  'projects' | 'proposals' | 'events' | 'reviews' | 'upvotes' | 'auditLogs'
 > {
   projects: SerializedProject[]
   proposals: SerializedMatchProposal[]
   events: SerializedProjectEvent[]
   reviews: SerializedProjectReview[]
+  upvotes: SerializedProjectUpvote[]
   auditLogs: SerializedAuditLog[]
 }
 
@@ -83,6 +89,10 @@ function serializeState(state: ProjectsState): SerializedProjectsState {
     events: state.events.map((event) => ({
       ...event,
       createdAt: event.createdAt.toISOString(),
+    })),
+    upvotes: state.upvotes.map((upvote) => ({
+      ...upvote,
+      createdAt: upvote.createdAt.toISOString(),
     })),
     reviews: state.reviews.map((review) => ({
       ...review,
@@ -108,6 +118,8 @@ function deserializeState(state: SerializedProjectsState): ProjectsState {
       ? state.projects.map((project) => ({
           ...project,
           accessMode: project.accessMode ?? 'open',
+          // 레거시 레코드는 이미 라이브 검증을 통과한 운영 단계로 백필한다.
+          maturity: project.maturity ?? 'live',
           protectionNoticeAccepted: project.protectionNoticeAccepted ?? true,
           createdAt: new Date(project.createdAt),
         }))
@@ -130,6 +142,12 @@ function deserializeState(state: SerializedProjectsState): ProjectsState {
       ? state.events.map((event) => ({
           ...event,
           createdAt: new Date(event.createdAt),
+        }))
+      : [],
+    upvotes: Array.isArray(state.upvotes)
+      ? state.upvotes.map((upvote) => ({
+          ...upvote,
+          createdAt: new Date(upvote.createdAt),
         }))
       : [],
     reviews: Array.isArray(state.reviews)
@@ -162,6 +180,7 @@ function deserializeState(state: SerializedProjectsState): ProjectsState {
     nextProjectId: Number.isInteger(state.nextProjectId) ? state.nextProjectId : 1,
     nextProposalId: Number.isInteger(state.nextProposalId) ? state.nextProposalId : 1,
     nextEventId: Number.isInteger(state.nextEventId) ? state.nextEventId : 1,
+    nextUpvoteId: Number.isInteger(state.nextUpvoteId) ? state.nextUpvoteId : 1,
     nextReviewId: Number.isInteger(state.nextReviewId) ? state.nextReviewId : 1,
     nextAuditLogId: Number.isInteger(state.nextAuditLogId) ? state.nextAuditLogId : 1,
   }

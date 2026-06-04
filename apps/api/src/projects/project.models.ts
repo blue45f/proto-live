@@ -1,4 +1,10 @@
-import { FundingRangeId, ProjectAccessMode, ProjectCategory } from './project.constants'
+import {
+  FundingRangeId,
+  ProjectAccessMode,
+  ProjectCategory,
+  ProjectMaturity,
+  ProjectStack,
+} from './project.constants'
 
 export interface ValidationSnapshot {
   success: boolean
@@ -16,6 +22,18 @@ export interface Project {
   description: string
   liveUrl: string
   category: ProjectCategory
+  // 런타임에서는 항상 채워진다(deserialize 백필 · createProject · hydrate 기본값).
+  // 인터페이스는 레거시/테스트 리터럴 호환을 위해 옵셔널로 둔다.
+  maturity?: ProjectMaturity
+  // 빌드 유형 축(category=시장과 직교): 무엇을 만들었나.
+  stack?: ProjectStack
+  // 바이브코딩 표식: 메이커가 자가 신고한 제작 도구와 AI 제작 여부.
+  builtWith?: string[]
+  customTools?: string[]
+  vibeCoded?: boolean
+  upvoteCount?: number
+  // 투자 사다리: 운영자가 검증된 상위 프로젝트를 투자 검토 대상으로 큐레이션한다.
+  featured?: boolean
   tags?: string[]
   accessMode: ProjectAccessMode
   protectionNoticeAccepted: boolean
@@ -129,6 +147,17 @@ export interface ProjectEvent {
   id: number
   projectId: number
   type: ProjectEventType
+  createdAt: Date
+}
+
+/**
+ * 업보트는 project_events와 분리해 저장한다(이벤트 타입 union을 건드리지 않아
+ * admin 퍼널/시그널/트렌드 Record에 새지 않는다). 1인 1표는 (projectId,email) 유일성으로 보장.
+ */
+export interface ProjectUpvote {
+  id: number
+  projectId: number
+  email: string
   createdAt: Date
 }
 
@@ -331,12 +360,14 @@ export interface ProjectsState {
   proposals: MatchProposal[]
   events: ProjectEvent[]
   reviews: ProjectReview[]
+  upvotes: ProjectUpvote[]
   auditLogs: AuditLog[]
   nextUserId: number
   nextProjectId: number
   nextProposalId: number
   nextEventId: number
   nextReviewId: number
+  nextUpvoteId: number
   nextAuditLogId: number
 }
 
@@ -347,12 +378,14 @@ export function createEmptyProjectsState(): ProjectsState {
     proposals: [],
     events: [],
     reviews: [],
+    upvotes: [],
     auditLogs: [],
     nextUserId: 1,
     nextProjectId: 1,
     nextProposalId: 1,
     nextEventId: 1,
     nextReviewId: 1,
+    nextUpvoteId: 1,
     nextAuditLogId: 1,
   }
 }
