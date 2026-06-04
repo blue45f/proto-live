@@ -63,7 +63,7 @@ interface SerializedAuditLog extends Omit<AuditLog, 'createdAt'> {
   createdAt: string
 }
 
-interface SerializedProjectsState extends Omit<
+export interface SerializedProjectsState extends Omit<
   ProjectsState,
   'projects' | 'proposals' | 'events' | 'reviews' | 'upvotes' | 'logEntries' | 'auditLogs'
 > {
@@ -80,7 +80,7 @@ function defaultStorePath(): string {
   return process.env.PROJECT_STORE_PATH ?? join(process.cwd(), 'data', 'protolive-store.json')
 }
 
-function serializeState(state: ProjectsState): SerializedProjectsState {
+export function serializeState(state: ProjectsState): SerializedProjectsState {
   return {
     ...state,
     projects: state.projects.map((project) => ({
@@ -121,7 +121,7 @@ function serializeState(state: ProjectsState): SerializedProjectsState {
   }
 }
 
-function deserializeState(state: SerializedProjectsState): ProjectsState {
+export function deserializeState(state: SerializedProjectsState): ProjectsState {
   return {
     users: Array.isArray(state.users) ? state.users : [],
     projects: Array.isArray(state.projects)
