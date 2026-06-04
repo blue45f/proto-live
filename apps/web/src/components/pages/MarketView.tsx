@@ -42,6 +42,7 @@ import { ProofKpiRail } from '../ProofKpiRail'
 import { ProjectDetailRoute } from '../ProjectDetailRoute'
 import { ProjectCard } from '../ProjectCard'
 import { EmptyState } from '../EmptyState'
+import { OnboardingTip } from '../OnboardingTip'
 import { ProjectSkeleton } from '../ProjectSkeleton'
 import { DifferentiationPanel } from '../DifferentiationPanel'
 
@@ -156,6 +157,7 @@ export function MarketView(props: {
   onNextPage: () => void
   // handlers (list)
   onCreate: () => void
+  onOpenAbout: () => void
   onOpenDetail: (project: Project) => void
   onOpenMaker: (makerId: number) => void
   onToggleFavorite: (projectId: number) => void
@@ -257,6 +259,7 @@ export function MarketView(props: {
     onPrevPage,
     onNextPage,
     onCreate,
+    onOpenAbout,
     onOpenDetail,
     onOpenMaker,
     onToggleFavorite,
@@ -268,6 +271,7 @@ export function MarketView(props: {
   return (
     <>
       <section className="min-w-0 space-y-6">
+        {!detailProjectId && <OnboardingTip onOpenAbout={onOpenAbout} onCreate={onCreate} />}
         {!detailProjectId && config.challenge && (
           <section className="rounded-xl border border-lime-300/30 bg-lime-300/10 p-4">
             <p className="text-xs font-black uppercase tracking-[0.14em] text-lime-200">

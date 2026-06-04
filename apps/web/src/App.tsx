@@ -618,6 +618,7 @@ export default function App() {
             onPrevPage={() => setPage((value) => Math.max(1, value - 1))}
             onNextPage={() => setPage((value) => (projectMeta.hasNext ? value + 1 : value))}
             onCreate={openSubmitDialog}
+            onOpenAbout={openAbout}
             onOpenDetail={openProjectDetail}
             onOpenMaker={openMakerProfile}
             onToggleFavorite={toggleFavorite}
