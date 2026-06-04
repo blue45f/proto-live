@@ -15,6 +15,10 @@
       "destination": "https://protolive-api.onrender.com/api/:path*"
     },
     {
+      "source": "/sitemap.xml",
+      "destination": "https://protolive-api.onrender.com/api/sitemap.xml"
+    },
+    {
       "source": "/:path*",
       "destination": "/index.html"
     }

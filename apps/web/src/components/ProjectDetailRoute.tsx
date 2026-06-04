@@ -98,6 +98,43 @@ export function ProjectDetailRoute({
       ? `${window.location.origin}/projects/${project.id}`
       : `/projects/${project.id}`
 
+  // 프로젝트 상세에 JSON-LD 구조화 데이터를 주입한다(검색 리치 결과 + 공유 미리보기 보강).
+  // 크롤러가 JS를 실행하는 경우(Google)에 인식된다. 언마운트/프로젝트 변경 시 정리.
+  React.useEffect(() => {
+    if (typeof document === 'undefined') {
+      return
+    }
+    const rating = reviewSummary?.averageRating ?? null
+    const ratingCount = reviewSummary?.reviewCount ?? 0
+    const jsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      name: project.title,
+      description: project.description,
+      url: shareUrl,
+      applicationCategory: project.category,
+      operatingSystem: 'Web',
+      offers: { '@type': 'Offer', price: '0', priceCurrency: 'KRW' },
+      ...(rating !== null && ratingCount > 0
+        ? {
+            aggregateRating: {
+              '@type': 'AggregateRating',
+              ratingValue: rating,
+              reviewCount: ratingCount,
+              bestRating: 5,
+            },
+          }
+        : {}),
+    }
+    const script = document.createElement('script')
+    script.type = 'application/ld+json'
+    script.id = 'protolive-project-jsonld'
+    script.textContent = JSON.stringify(jsonLd)
+    document.getElementById('protolive-project-jsonld')?.remove()
+    document.head.appendChild(script)
+    return () => script.remove()
+  }, [project.id, project.title, project.description, project.category, shareUrl, reviewSummary])
+
   return (
     <div className="space-y-5 rounded-2xl border border-lime-300/20 bg-stone-950/55 p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">

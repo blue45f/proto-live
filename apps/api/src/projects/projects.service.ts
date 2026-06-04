@@ -891,6 +891,25 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
     return { id: user.id, name: user.name ?? '익명 메이커', projects }
   }
 
+  /**
+   * 사이트맵용 공개 URL 데이터. 보호형(screened) 프로젝트는 색인 대상이 아니므로 제외하고,
+   * 공개(open) 프로젝트와 그 메이커만 노출한다.
+   */
+  getSitemapData(): {
+    projects: Array<{ id: number; updatedAt: string }>
+    makerIds: number[]
+  } {
+    const open = this.projects.filter((project) => project.accessMode === 'open')
+    const makerIds = Array.from(new Set(open.map((project) => project.userId)))
+    return {
+      projects: open.map((project) => ({
+        id: project.id,
+        updatedAt: project.createdAt.toISOString(),
+      })),
+      makerIds,
+    }
+  }
+
   private buildFilteredProjects(query: ProjectQueryInput): Project[] {
     const searchText = (query.q ?? '').trim().toLowerCase()
     const selectedTag = (query.tag ?? '').trim().toLowerCase()
