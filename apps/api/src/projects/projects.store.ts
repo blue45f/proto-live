@@ -192,6 +192,7 @@ function deserializeState(state: SerializedProjectsState): ProjectsState {
           createdAt: new Date(entry.createdAt),
         }))
       : [],
+    challenge: state.challenge ?? null,
     nextUserId: Number.isInteger(state.nextUserId) ? state.nextUserId : 1,
     nextProjectId: Number.isInteger(state.nextProjectId) ? state.nextProjectId : 1,
     nextProposalId: Number.isInteger(state.nextProposalId) ? state.nextProposalId : 1,

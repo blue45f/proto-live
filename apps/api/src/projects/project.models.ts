@@ -365,6 +365,13 @@ export interface ProjectEventSummary {
   counts: Record<ProjectEventType, number>
 }
 
+/** 시즌 챌린지: 운영자가 정한 테마. 피드 배너로 노출해 그 주제의 제출을 유도한다. 단일 활성. */
+export interface SeasonChallenge {
+  title: string
+  description: string
+  updatedAt: string
+}
+
 export interface ProjectsState {
   users: User[]
   projects: Project[]
@@ -374,6 +381,7 @@ export interface ProjectsState {
   upvotes: ProjectUpvote[]
   logEntries: ProjectLogEntry[]
   auditLogs: AuditLog[]
+  challenge: SeasonChallenge | null
   nextUserId: number
   nextProjectId: number
   nextProposalId: number
@@ -394,6 +402,7 @@ export function createEmptyProjectsState(): ProjectsState {
     upvotes: [],
     logEntries: [],
     auditLogs: [],
+    challenge: null,
     nextUserId: 1,
     nextProjectId: 1,
     nextProposalId: 1,

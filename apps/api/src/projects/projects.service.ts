@@ -26,6 +26,7 @@ import {
   ProjectReviewSummary,
   ProjectUpvote,
   ProjectLogEntry,
+  SeasonChallenge,
   AuthSession,
   AdminDashboardMetrics,
   AdminEventTrendPoint,
@@ -123,6 +124,7 @@ export class ProjectsService {
   private events: ProjectEvent[]
   private upvotes: ProjectUpvote[]
   private logEntries: ProjectLogEntry[]
+  private challenge: SeasonChallenge | null
   private reviews: ProjectReview[]
   private auditLogs: AuditLog[]
   private nextUserId: number
@@ -142,6 +144,7 @@ export class ProjectsService {
     this.events = state.events
     this.upvotes = state.upvotes
     this.logEntries = state.logEntries
+    this.challenge = state.challenge
     this.reviews = state.reviews
     this.auditLogs = state.auditLogs
     this.nextUserId = state.nextUserId
@@ -460,7 +463,25 @@ export class ProjectsService {
         'investor_intent_capture',
         'real_attention_scoring',
       ],
+      challenge: this.challenge,
     }
+  }
+
+  /** 운영자가 시즌 챌린지를 설정/해제한다. 제목·설명이 비면 해제(null). */
+  setChallenge(title: string, description: string): SeasonChallenge | null {
+    const trimmedTitle = title.trim()
+    const trimmedDescription = description.trim()
+    if (!trimmedTitle && !trimmedDescription) {
+      this.challenge = null
+    } else {
+      this.challenge = {
+        title: trimmedTitle,
+        description: trimmedDescription,
+        updatedAt: new Date().toISOString(),
+      }
+    }
+    this.persist()
+    return this.challenge
   }
 
   getMarketStats() {
@@ -1501,6 +1522,7 @@ export class ProjectsService {
       logEntries: this.logEntries,
       reviews: this.reviews,
       auditLogs: this.auditLogs,
+      challenge: this.challenge,
       nextUserId: this.nextUserId,
       nextProjectId: this.nextProjectId,
       nextProposalId: this.nextProposalId,

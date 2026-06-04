@@ -47,6 +47,7 @@ export default function App() {
     closeProjectDetail,
     closeReviewDialog,
     config,
+    handleSetChallenge,
     copyAdminRevenueSnapshot,
     copyFilterLink,
     description,
@@ -417,6 +418,8 @@ export default function App() {
             onScenarioMultiplierChange={updateScenarioMultiplier}
             onRevenueTargetChange={updateRevenueTargetInput}
             onRevenueInputChange={updateRevenueInput}
+            challenge={config.challenge ?? null}
+            onSetChallenge={(title, description) => void handleSetChallenge(title, description)}
           />
         ) : (
           <MarketView

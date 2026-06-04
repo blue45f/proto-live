@@ -43,6 +43,7 @@ import {
   recordProjectEvent,
   toggleProjectUpvote,
   setProjectFeatured,
+  setSeasonChallenge,
   refreshAllProjects,
   refreshProject,
   moderateProjectReview,
@@ -1873,6 +1874,24 @@ export function useProtoLiveApp() {
     }
   }
 
+  async function handleSetChallenge(title: string, description: string) {
+    if (!canAccessAdmin) {
+      return
+    }
+
+    try {
+      const challenge = await setSeasonChallenge(title, description)
+      setConfig((current) => ({ ...current, challenge }))
+      toast(
+        'success',
+        '시즌 챌린지 업데이트',
+        challenge ? '챌린지를 게시했습니다.' : '챌린지를 해제했습니다.'
+      )
+    } catch (error) {
+      toast('error', '업데이트 실패', getApiErrorMessage(error, '챌린지를 변경하지 못했습니다.'))
+    }
+  }
+
   async function handleToggleFeatured(project: Project) {
     if (!canAccessAdmin) {
       return
@@ -2476,6 +2495,7 @@ export function useProtoLiveApp() {
     upvotedProjectIds,
     handleToggleUpvote,
     handleToggleFeatured,
+    handleSetChallenge,
     publicProjectCount,
     recommendationSummary,
     replyToReview,

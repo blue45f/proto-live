@@ -149,6 +149,12 @@ export interface FundingRange {
   maxAmount: number
 }
 
+export interface SeasonChallenge {
+  title: string
+  description: string
+  updatedAt: string
+}
+
 export interface MarketConfig {
   categories: string[]
   accessModes: Array<{
@@ -159,6 +165,7 @@ export interface MarketConfig {
   fundingRanges: FundingRange[]
   refreshIntervalMs: number
   benchmarkSignals: string[]
+  challenge?: SeasonChallenge | null
 }
 
 export interface MarketStats {
@@ -601,6 +608,14 @@ export async function toggleProjectUpvote(id: number) {
 
 export async function setProjectFeatured(id: number, featured: boolean) {
   const response = await client.post<Project>(`/projects/${id}/featured`, { featured })
+  return response.data
+}
+
+export async function setSeasonChallenge(title: string, description: string) {
+  const response = await client.post<SeasonChallenge | null>(`/projects/challenge`, {
+    title,
+    description,
+  })
   return response.data
 }
 
