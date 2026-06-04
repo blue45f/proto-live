@@ -1,12 +1,19 @@
-import { Global, Module } from '@nestjs/common'
+import { Global, Logger, Module } from '@nestjs/common'
 import { PROJECTS_STORE, type ProjectsStore } from './projects-store'
 import { FileProjectsStore } from './file-projects-store'
+import { PostgresProjectsStore } from './postgres-projects-store'
 
 /**
- * DATABASE_URL이 있으면 Postgres 드라이버를, 없으면 파일 드라이버를 만든다.
- * (Postgres 드라이버는 후속 PR에서 추가 — 그 전까지는 항상 파일.)
+ * DATABASE_URL이 있으면 Postgres 드라이버를, 없으면 파일(JSON) 드라이버를 만든다.
+ * 테스트·로컬은 보통 파일, prod/OCI는 Postgres.
  */
 export function createProjectsStore(): ProjectsStore {
+  const connectionString = process.env.DATABASE_URL?.trim()
+  if (connectionString) {
+    new Logger('StoreModule').log('영속 드라이버: Postgres (DATABASE_URL 감지)')
+    return new PostgresProjectsStore(connectionString)
+  }
+  new Logger('StoreModule').log('영속 드라이버: 파일(JSON) — DATABASE_URL 미설정')
   return new FileProjectsStore()
 }
 
