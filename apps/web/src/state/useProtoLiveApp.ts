@@ -107,6 +107,7 @@ import {
 import { matchRoute, navigate, routePath } from '../router/route'
 import { useFavorites } from './useFavorites'
 import { useReviewComposer } from './useReviewComposer'
+import { useUpvotedProjects } from './useUpvotedProjects'
 
 export function useProtoLiveApp() {
   const filterPreset = useMemo(() => readFilterPreset(), [])
@@ -267,7 +268,7 @@ export function useProtoLiveApp() {
   const [builtWith, setBuiltWith] = useState<string[]>([])
   const [customToolsInput, setCustomToolsInput] = useState('')
   const [vibeCoded, setVibeCoded] = useState(false)
-  const [upvotedProjectIds, setUpvotedProjectIds] = useState<Set<number>>(new Set())
+  const { upvotedProjectIds, applyUpvoteResult } = useUpvotedProjects()
   const [urlCheckStatus, setUrlCheckStatus] = useState<'idle' | 'checking' | 'success' | 'error'>(
     'idle'
   )
@@ -1864,15 +1865,7 @@ export function useProtoLiveApp() {
     try {
       const { project: updated, viewerUpvoted } = await toggleProjectUpvote(project.id)
       setProjects((current) => upsertProject(current, updated))
-      setUpvotedProjectIds((current) => {
-        const next = new Set(current)
-        if (viewerUpvoted) {
-          next.add(project.id)
-        } else {
-          next.delete(project.id)
-        }
-        return next
-      })
+      applyUpvoteResult(project.id, viewerUpvoted)
     } catch (error) {
       toast('error', '추천 실패', getApiErrorMessage(error, '추천을 처리하지 못했습니다.'))
     }
