@@ -10,3 +10,4 @@ apps/web/dist
 apps/api/dist
 apps/api/dist-test
 .vercel
+apps/web/og-card.html
