@@ -161,6 +161,15 @@ export interface ProjectUpvote {
   createdAt: Date
 }
 
+/** 메이커로그: 프로젝트 작성자(메이커)가 남기는 제작 과정 기록. 작성=메이커 본인만, 열람=전원. */
+export interface ProjectLogEntry {
+  id: number
+  projectId: number
+  authorEmail: string
+  body: string
+  createdAt: Date
+}
+
 export interface AdminEventTrendPoint {
   date: string
   total: number
@@ -361,6 +370,7 @@ export interface ProjectsState {
   events: ProjectEvent[]
   reviews: ProjectReview[]
   upvotes: ProjectUpvote[]
+  logEntries: ProjectLogEntry[]
   auditLogs: AuditLog[]
   nextUserId: number
   nextProjectId: number
@@ -368,6 +378,7 @@ export interface ProjectsState {
   nextEventId: number
   nextReviewId: number
   nextUpvoteId: number
+  nextLogEntryId: number
   nextAuditLogId: number
 }
 
@@ -379,6 +390,7 @@ export function createEmptyProjectsState(): ProjectsState {
     events: [],
     reviews: [],
     upvotes: [],
+    logEntries: [],
     auditLogs: [],
     nextUserId: 1,
     nextProjectId: 1,
@@ -386,6 +398,7 @@ export function createEmptyProjectsState(): ProjectsState {
     nextEventId: 1,
     nextReviewId: 1,
     nextUpvoteId: 1,
+    nextLogEntryId: 1,
     nextAuditLogId: 1,
   }
 }

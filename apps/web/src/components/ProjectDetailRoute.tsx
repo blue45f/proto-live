@@ -1,7 +1,13 @@
 import React from 'react'
-import { Briefcase, ExternalLink, Globe2, RefreshCw, Sparkles } from 'lucide-react'
+import { Briefcase, ExternalLink, Globe2, Loader2, RefreshCw, Send, Sparkles } from 'lucide-react'
 import type { AuthSession } from '../local-auth'
-import type { Project, ProjectEvent, ProjectReview, ProjectReviewType } from '../api'
+import type {
+  Project,
+  ProjectEvent,
+  ProjectLogEntry,
+  ProjectReview,
+  ProjectReviewType,
+} from '../api'
 import { eventCopy, reviewTypeCopy } from '../lib/constants'
 import {
   formatRelativeTime,
@@ -38,6 +44,12 @@ export function ProjectDetailRoute({
   onReportReview,
   reportingReviewId,
   onLogin,
+  projectLog,
+  isProjectLogLoading,
+  logBody,
+  onLogBodyChange,
+  onSubmitLog,
+  isSubmittingLog,
 }: {
   project: Project
   events: ProjectEvent[]
@@ -65,7 +77,14 @@ export function ProjectDetailRoute({
   onReportReview: (review: ProjectReview) => void
   reportingReviewId: number | null
   onLogin: () => void
+  projectLog: ProjectLogEntry[]
+  isProjectLogLoading: boolean
+  logBody: string
+  onLogBodyChange: (body: string) => void
+  onSubmitLog: (event: React.FormEvent) => void
+  isSubmittingLog: boolean
 }) {
+  const canPostLog = !!session && session.id === project.userId
   const isProtected = project.accessMode === 'screened'
   const responseTone = getResponseTimeTone(project.validation.responseTimeMs)
   const reviewSummary = project.reviewSummary
@@ -271,6 +290,74 @@ export function ProjectDetailRoute({
           </div>
         </div>
       </div>
+
+      <section className="rounded-2xl border border-stone-800 bg-stone-950/45 p-4 sm:p-5">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-violet-200">
+              Maker log
+            </p>
+            <h3 className="mt-1 text-xl font-black tracking-tight text-stone-50">메이커로그</h3>
+            <p className="mt-1 text-sm leading-6 text-stone-400">
+              메이커가 바이브코딩으로 어떻게 만들었는지 기록을 시간순으로 남깁니다.
+            </p>
+          </div>
+        </div>
+
+        {canPostLog && (
+          <form onSubmit={onSubmitLog} className="mt-4">
+            <textarea
+              required
+              maxLength={700}
+              rows={3}
+              value={logBody}
+              onChange={(event) => onLogBodyChange(event.target.value)}
+              placeholder="예: Cursor로 초안을 만들고, v0로 랜딩을 다듬고, Claude Code로 API를 붙였어요."
+              className="w-full resize-none rounded-lg border border-stone-700 bg-stone-950 px-3 py-3 text-sm leading-6 text-stone-100 outline-none placeholder:text-stone-500 focus:border-lime-300/60"
+            />
+            <div className="mt-2 flex justify-end">
+              <button
+                type="submit"
+                disabled={isSubmittingLog || !logBody.trim()}
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-lime-300 px-4 text-sm font-black text-slate-950 disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-stone-400"
+              >
+                {isSubmittingLog ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+                기록 추가
+              </button>
+            </div>
+          </form>
+        )}
+
+        <div className="mt-4 space-y-2">
+          {isProjectLogLoading ? (
+            <p className="rounded-lg border border-stone-800 bg-stone-950/45 p-3 text-sm text-stone-400">
+              메이커로그를 불러오는 중입니다.
+            </p>
+          ) : projectLog.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-stone-700 bg-stone-950/45 p-3 text-sm text-stone-400">
+              아직 기록이 없습니다. {canPostLog ? '첫 제작 기록을 남겨보세요.' : ''}
+            </p>
+          ) : (
+            projectLog.map((entry) => (
+              <div
+                key={entry.id}
+                className="rounded-lg border border-stone-800 bg-stone-950/55 p-3"
+              >
+                <p className="overflow-wrap-anywhere text-sm leading-6 text-stone-200">
+                  {entry.body}
+                </p>
+                <p className="mt-2 text-xs text-stone-500">
+                  {maskEmail(entry.authorEmail)} · {formatRelativeTime(entry.createdAt)}
+                </p>
+              </div>
+            ))
+          )}
+        </div>
+      </section>
 
       <ProjectReviewWorkspace
         project={project}

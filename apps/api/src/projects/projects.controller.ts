@@ -22,6 +22,7 @@ import { ModerateProjectReviewDto } from './dto/moderate-project-review.dto'
 import { ReportProjectReviewDto } from './dto/report-project-review.dto'
 import { RecordProjectEventDto } from './dto/record-project-event.dto'
 import { SetProjectFeaturedDto } from './dto/set-project-featured.dto'
+import { CreateProjectLogDto } from './dto/create-project-log.dto'
 import { GetProjectsQueryDto, ProjectQueryInput } from './dto/get-projects-query.dto'
 import { AdminRevenueProjectionQueryDto } from './dto/admin-revenue-projection-query.dto'
 
@@ -167,6 +168,27 @@ export class ProjectsController {
    * GET /api/projects/:id/reviews
    * 로그인 회원이 남긴 평가, 리뷰, 성장 지원 의견과 대댓글을 반환합니다.
    */
+  /**
+   * GET /api/projects/:id/log — 메이커로그(제작 과정) 공개 열람.
+   */
+  @Get(':id/log')
+  getProjectLog(@Param('id', ParseIntPipe) id: number) {
+    return this.projectsService.getProjectLog(id)
+  }
+
+  /**
+   * POST /api/projects/:id/log — 메이커 본인만 제작 과정 기록을 추가합니다.
+   */
+  @Post(':id/log')
+  addProjectLogEntry(
+    @Req() request: Request,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: CreateProjectLogDto
+  ) {
+    const session = this.projectsService.requireSession(request.headers.cookie)
+    return this.projectsService.addProjectLogEntry(id, session.email, body.body)
+  }
+
   @Get(':id/reviews')
   getProjectReviews(@Param('id', ParseIntPipe) id: number) {
     return this.projectsService.getProjectReviews(id)

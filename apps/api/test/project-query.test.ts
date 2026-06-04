@@ -236,6 +236,62 @@ test('toggleUpvote enforces one vote per member and blocks self-upvote', async (
   )
 })
 
+test('maker log accepts entries only from the project maker and reads back in order', async () => {
+  await withSeededService(
+    (state) => {
+      state.users.push(
+        { id: 1, email: 'maker@protolive.local', role: 'maker' },
+        { id: 2, email: 'member@protolive.local', role: 'member' }
+      )
+      state.projects.push({
+        id: 1,
+        userId: 1,
+        title: 'Logged Build',
+        description: 'A project with a maker log',
+        liveUrl: 'https://logged.example.com',
+        category: 'AI & SaaS' as ProjectCategory,
+        maturity: 'building' as const,
+        accessMode: 'open' as ProjectAccessMode,
+        protectionNoticeAccepted: true,
+        investorCount: 0,
+        matchCount: 0,
+        committedAmountMin: 0,
+        committedAmountMax: 0,
+        validation: {
+          success: true,
+          status: 200,
+          message: 'ok',
+          checkedAt: '2026-06-01T00:00:00.000Z',
+          finalUrl: 'https://logged.example.com',
+          responseTimeMs: 120,
+        },
+        createdAt: new Date('2026-06-01T12:00:00.000Z'),
+      })
+    },
+    (service) => {
+      const afterFirst = service.addProjectLogEntry(
+        1,
+        'maker@protolive.local',
+        'Cursor로 초안 생성'
+      )
+      assert.equal(afterFirst.length, 1)
+      assert.equal(afterFirst[0].body, 'Cursor로 초안 생성')
+
+      service.addProjectLogEntry(1, 'maker@protolive.local', 'v0로 UI 다듬음')
+      const log = service.getProjectLog(1)
+      assert.equal(log.length, 2)
+      assert.equal(log[0].body, 'Cursor로 초안 생성')
+      assert.equal(log[1].body, 'v0로 UI 다듬음')
+
+      // Non-maker members cannot write to the log.
+      assert.throws(
+        () => service.addProjectLogEntry(1, 'member@protolive.local', '나도 적을래'),
+        /메이커만/
+      )
+    }
+  )
+})
+
 test('getAllProjects supports category/search/access mode query filters', async () => {
   await withSeededService(
     (state) => {

@@ -24,6 +24,7 @@ import {
   ProjectReviewAuthorRole,
   ProjectReviewSummary,
   ProjectUpvote,
+  ProjectLogEntry,
   AuthSession,
   AdminDashboardMetrics,
   AdminEventTrendPoint,
@@ -120,6 +121,7 @@ export class ProjectsService {
   private proposals: MatchProposal[]
   private events: ProjectEvent[]
   private upvotes: ProjectUpvote[]
+  private logEntries: ProjectLogEntry[]
   private reviews: ProjectReview[]
   private auditLogs: AuditLog[]
   private nextUserId: number
@@ -127,6 +129,7 @@ export class ProjectsService {
   private nextProposalId: number
   private nextEventId: number
   private nextUpvoteId: number
+  private nextLogEntryId: number
   private nextReviewId: number
   private nextAuditLogId: number
 
@@ -137,6 +140,7 @@ export class ProjectsService {
     this.proposals = state.proposals
     this.events = state.events
     this.upvotes = state.upvotes
+    this.logEntries = state.logEntries
     this.reviews = state.reviews
     this.auditLogs = state.auditLogs
     this.nextUserId = state.nextUserId
@@ -144,6 +148,7 @@ export class ProjectsService {
     this.nextProposalId = state.nextProposalId
     this.nextEventId = state.nextEventId
     this.nextUpvoteId = state.nextUpvoteId
+    this.nextLogEntryId = state.nextLogEntryId
     this.nextReviewId = state.nextReviewId
     this.nextAuditLogId = state.nextAuditLogId
   }
@@ -1466,6 +1471,7 @@ export class ProjectsService {
       proposals: this.proposals,
       events: this.events,
       upvotes: this.upvotes,
+      logEntries: this.logEntries,
       reviews: this.reviews,
       auditLogs: this.auditLogs,
       nextUserId: this.nextUserId,
@@ -1473,6 +1479,7 @@ export class ProjectsService {
       nextProposalId: this.nextProposalId,
       nextEventId: this.nextEventId,
       nextUpvoteId: this.nextUpvoteId,
+      nextLogEntryId: this.nextLogEntryId,
       nextReviewId: this.nextReviewId,
       nextAuditLogId: this.nextAuditLogId,
     }
@@ -1594,6 +1601,41 @@ export class ProjectsService {
 
     this.persist()
     return { project: this.hydrateProject(project), viewerUpvoted }
+  }
+
+  /** 프로젝트의 메이커로그를 시간순(오래된→최신)으로 반환한다. 공개 열람. */
+  getProjectLog(projectId: number): ProjectLogEntry[] {
+    this.findProject(projectId)
+    return this.logEntries
+      .filter((entry) => entry.projectId === projectId)
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+  }
+
+  /** 메이커로그 작성은 프로젝트 작성자(메이커) 본인만 가능하다. */
+  addProjectLogEntry(projectId: number, email: string, body: string): ProjectLogEntry[] {
+    const project = this.findProject(projectId)
+    const normalizedEmail = email.trim().toLowerCase()
+
+    const owner = this.users.find((user) => user.id === project.userId)
+    if (!owner || owner.email !== normalizedEmail) {
+      throw new ForbiddenException('메이커로그는 해당 프로젝트의 메이커만 작성할 수 있습니다.')
+    }
+
+    const trimmed = body.trim()
+    if (!trimmed) {
+      throw new BadRequestException('메이커로그 내용을 입력해주세요.')
+    }
+
+    this.logEntries.push({
+      id: this.nextLogEntryId++,
+      projectId,
+      authorEmail: normalizedEmail,
+      body: trimmed,
+      createdAt: new Date(),
+    })
+    this.persist()
+
+    return this.getProjectLog(projectId)
   }
 
   private addProjectEvent(projectId: number, type: ProjectEventType): ProjectEvent {

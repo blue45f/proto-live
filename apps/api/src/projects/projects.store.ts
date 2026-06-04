@@ -18,6 +18,7 @@ import {
   ProjectReviewReport,
   ProjectsState,
   ProjectUpvote,
+  ProjectLogEntry,
 } from './project.models'
 
 interface SerializedProject extends Omit<Project, 'createdAt'> {
@@ -37,6 +38,10 @@ interface SerializedProjectEvent extends Omit<ProjectEvent, 'createdAt'> {
 }
 
 interface SerializedProjectUpvote extends Omit<ProjectUpvote, 'createdAt'> {
+  createdAt: string
+}
+
+interface SerializedProjectLogEntry extends Omit<ProjectLogEntry, 'createdAt'> {
   createdAt: string
 }
 
@@ -60,13 +65,14 @@ interface SerializedAuditLog extends Omit<AuditLog, 'createdAt'> {
 
 interface SerializedProjectsState extends Omit<
   ProjectsState,
-  'projects' | 'proposals' | 'events' | 'reviews' | 'upvotes' | 'auditLogs'
+  'projects' | 'proposals' | 'events' | 'reviews' | 'upvotes' | 'logEntries' | 'auditLogs'
 > {
   projects: SerializedProject[]
   proposals: SerializedMatchProposal[]
   events: SerializedProjectEvent[]
   reviews: SerializedProjectReview[]
   upvotes: SerializedProjectUpvote[]
+  logEntries: SerializedProjectLogEntry[]
   auditLogs: SerializedAuditLog[]
 }
 
@@ -93,6 +99,10 @@ function serializeState(state: ProjectsState): SerializedProjectsState {
     upvotes: state.upvotes.map((upvote) => ({
       ...upvote,
       createdAt: upvote.createdAt.toISOString(),
+    })),
+    logEntries: state.logEntries.map((entry) => ({
+      ...entry,
+      createdAt: entry.createdAt.toISOString(),
     })),
     reviews: state.reviews.map((review) => ({
       ...review,
@@ -150,6 +160,12 @@ function deserializeState(state: SerializedProjectsState): ProjectsState {
           createdAt: new Date(upvote.createdAt),
         }))
       : [],
+    logEntries: Array.isArray(state.logEntries)
+      ? state.logEntries.map((entry) => ({
+          ...entry,
+          createdAt: new Date(entry.createdAt),
+        }))
+      : [],
     reviews: Array.isArray(state.reviews)
       ? state.reviews.map((review) => ({
           ...review,
@@ -181,6 +197,7 @@ function deserializeState(state: SerializedProjectsState): ProjectsState {
     nextProposalId: Number.isInteger(state.nextProposalId) ? state.nextProposalId : 1,
     nextEventId: Number.isInteger(state.nextEventId) ? state.nextEventId : 1,
     nextUpvoteId: Number.isInteger(state.nextUpvoteId) ? state.nextUpvoteId : 1,
+    nextLogEntryId: Number.isInteger(state.nextLogEntryId) ? state.nextLogEntryId : 1,
     nextReviewId: Number.isInteger(state.nextReviewId) ? state.nextReviewId : 1,
     nextAuditLogId: Number.isInteger(state.nextAuditLogId) ? state.nextAuditLogId : 1,
   }
