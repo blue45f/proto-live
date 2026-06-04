@@ -1,7 +1,5 @@
 import type { ProjectListQuery } from '../api'
 import {
-  ADMIN_PATH_SEGMENT,
-  type AppView,
   FILTER_PRESET_STORAGE_KEY,
   FUNDING_SORT_OPTIONS,
   LIST_VIEW_STORAGE_KEY,
@@ -300,30 +298,4 @@ export function readProjectListViewMode(): ProjectListViewMode {
 
   const raw = localStorage.getItem(LIST_VIEW_STORAGE_KEY)
   return raw === 'cards' || raw === 'reviews' || raw === 'compact' ? raw : 'compact'
-}
-
-export function readInitialProjectId(): number | null {
-  if (typeof window === 'undefined') {
-    return null
-  }
-
-  const match = window.location.pathname.match(/\/projects\/(\d+)\/?$/)
-  if (!match) {
-    return null
-  }
-
-  const id = Number.parseInt(match[1], 10)
-  return Number.isFinite(id) ? id : null
-}
-
-export function readInitialView(): AppView {
-  if (typeof window === 'undefined') {
-    return 'market'
-  }
-
-  const url = new URL(window.location.href)
-  const pathParts = url.pathname.replace(/\/+$/, '').split('/').filter(Boolean).slice(-1)[0]
-  const isAdminPath = pathParts === ADMIN_PATH_SEGMENT
-
-  return url.searchParams.get('view') === 'admin' || isAdminPath ? 'admin' : 'market'
 }

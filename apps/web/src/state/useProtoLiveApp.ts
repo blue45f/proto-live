@@ -94,10 +94,9 @@ import {
   readAdminRevenueTarget,
   readAdminScenarioMultipliers,
   readFilterPreset,
-  readInitialProjectId,
-  readInitialView,
   readProjectListViewMode,
 } from './storage'
+import { matchRoute, navigate, routePath } from '../router/route'
 
 export function useProtoLiveApp() {
   const filterPreset = useMemo(() => readFilterPreset(), [])
@@ -113,8 +112,10 @@ export function useProtoLiveApp() {
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isApplyingAllAdminRecommendations, setIsApplyingAllAdminRecommendations] = useState(false)
   const [loadError, setLoadError] = useState('')
-  const [view, setView] = useState<AppView>(readInitialView())
-  const [detailProjectId, setDetailProjectId] = useState<number | null>(readInitialProjectId)
+  const [view, setView] = useState<AppView>(() => matchRoute().view)
+  const [detailProjectId, setDetailProjectId] = useState<number | null>(
+    () => matchRoute().projectId
+  )
   const [session, setSession] = useState<AuthSession | null>(() => readSession())
   const [isSessionHydrating, setIsSessionHydrating] = useState(true)
   const [isLoginOpen, setIsLoginOpen] = useState(false)
@@ -343,8 +344,9 @@ export function useProtoLiveApp() {
     }
 
     const onPopState = () => {
-      setDetailProjectId(readInitialProjectId())
-      setView(readInitialView())
+      const route = matchRoute()
+      setDetailProjectId(route.projectId)
+      setView(route.view)
     }
 
     window.addEventListener('popstate', onPopState)
@@ -2230,7 +2232,7 @@ export function useProtoLiveApp() {
     setDetailProjectId(project.id)
     setView('market')
     if (typeof window !== 'undefined') {
-      window.history.pushState({ projectId: project.id }, '', '/projects/' + project.id)
+      navigate(routePath.detail(project.id), { projectId: project.id })
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [])
@@ -2241,7 +2243,7 @@ export function useProtoLiveApp() {
     setDiligenceEvents([])
     setReplyToReview(null)
     if (typeof window !== 'undefined') {
-      window.history.pushState({}, '', '/')
+      navigate(routePath.market())
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [])
