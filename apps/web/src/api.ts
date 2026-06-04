@@ -23,6 +23,7 @@ export interface Project {
   vibeCoded?: boolean
   upvoteCount?: number
   featured?: boolean
+  ladderEligible?: boolean
   tags?: string[]
   accessMode: ProjectAccessMode
   protectionNoticeAccepted?: boolean

@@ -72,6 +72,15 @@ export type BuildToolId = (typeof BUILD_TOOLS)[number]['id']
 export const MAX_BUILD_TOOLS = 5
 export const MAX_CUSTOM_TOOLS = 3
 
+/**
+ * 투자 사다리 자동 임계: 커뮤니티 신호가 이 기준을 넘으면 "투자 검토 근접(eligible)"으로 표시한다.
+ * featured는 여전히 운영자가 수동으로 올린다 — eligible은 판단을 돕는 파생 신호일 뿐 자동 승급이 아니다.
+ */
+export const LADDER_THRESHOLD = {
+  minUpvotes: 5,
+  minReviewers: 3,
+} as const
+
 export const FUNDING_RANGES = [
   {
     id: 'pre-seed-10-30',

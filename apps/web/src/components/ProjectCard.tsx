@@ -123,6 +123,11 @@ export function ProjectCard({
                 투자 검토 대상
               </span>
             )}
+            {!project.featured && project.ladderEligible && (
+              <span className="rounded-full border border-lime-300/40 bg-lime-300/10 px-2.5 py-1 text-[11px] font-black text-lime-100">
+                사다리 충족
+              </span>
+            )}
             {canFeature && (
               <button
                 type="button"

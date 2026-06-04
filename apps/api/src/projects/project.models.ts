@@ -34,6 +34,8 @@ export interface Project {
   upvoteCount?: number
   // 투자 사다리: 운영자가 검증된 상위 프로젝트를 투자 검토 대상으로 큐레이션한다.
   featured?: boolean
+  // 커뮤니티 신호(업보트+리뷰어+검증)가 임계를 넘으면 true. 파생 신호이며 자동 승급은 아님.
+  ladderEligible?: boolean
   tags?: string[]
   accessMode: ProjectAccessMode
   protectionNoticeAccepted: boolean
