@@ -1,0 +1,47 @@
+name: Deploy to Vercel
+
+# 프론트(Vite SPA)를 Vercel 프로덕션에 배포한다. VERCEL_TOKEN 시크릿이 없으면 건너뛴다
+# (최초 1회는 로컬에서 `vercel` 로 프로젝트를 링크한 뒤 토큰을 등록하는 것을 권장).
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'vercel.json'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/deploy-vercel.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Skip deployment when Vercel token is not configured
+        if: env.VERCEL_TOKEN == ''
+        run: echo "VERCEL_TOKEN is not configured; skipping Vercel deployment."
+
+      - uses: actions/setup-node@v6
+        if: env.VERCEL_TOKEN != ''
+        with:
+          node-version: 22
+
+      - name: Install Vercel CLI
+        if: env.VERCEL_TOKEN != ''
+        run: npm i -g vercel@latest
+
+      - name: Deploy frontend to Vercel production
+        if: env.VERCEL_TOKEN != ''
+        run: vercel deploy --prod --yes --token "$VERCEL_TOKEN"
