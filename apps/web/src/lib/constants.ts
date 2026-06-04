@@ -341,6 +341,13 @@ export function buildToolLabel(id: string): string {
   return BUILD_TOOLS.find((tool) => tool.id === id)?.label ?? id
 }
 
+export const maturityReviewHint: Record<ProjectMaturity, string> = {
+  early:
+    '아직 초기 단계예요. 완성도보다 방향과 가능성, 다음에 뭘 더 만들면 좋을지 위주로 의견을 남겨주세요.',
+  building: '만드는 중이에요. 핵심 흐름이 잘 작동하는지, 더 다듬을 부분 위주로 봐주세요.',
+  live: '운영 중인 서비스예요. 완성도와 실사용 경험, 시장성 관점에서 평가해주세요.',
+}
+
 export const reviewTypeCopy: Record<
   ProjectReviewType,
   { label: string; helper: string; tone: string }

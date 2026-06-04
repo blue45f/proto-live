@@ -2,7 +2,7 @@ import React from 'react'
 import { AlertTriangle, Loader2, Send } from 'lucide-react'
 import type { AuthSession } from '../local-auth'
 import type { Project, ProjectReview, ProjectReviewType } from '../api'
-import { reviewTypeCopy } from '../lib/constants'
+import { maturityReviewHint, maturityCopy, reviewTypeCopy } from '../lib/constants'
 import {
   formatRelativeTime,
   getRepliesByParent,
@@ -100,6 +100,13 @@ export function ProjectReviewWorkspace({
         </div>
       </div>
 
+      <div
+        className={`rounded-lg border px-3 py-2 text-xs leading-5 ${maturityCopy[project.maturity].tone}`}
+      >
+        <span className="font-black">[{maturityCopy[project.maturity].label}] </span>
+        {maturityReviewHint[project.maturity]}
+      </div>
+
       <form
         onSubmit={onSubmit}
         className="protolive-review-composer rounded-xl border border-stone-800 bg-stone-950/45 p-4"
@@ -160,7 +167,7 @@ export function ProjectReviewWorkspace({
           </div>
         )}
 
-        {!replyToReview && reviewType === 'review' && (
+        {!replyToReview && reviewType === 'review' && project.maturity !== 'early' && (
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <span className="text-xs font-black text-stone-400">별점</span>
             {[1, 2, 3, 4, 5].map((rating) => (
