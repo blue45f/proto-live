@@ -13,3 +13,4 @@ apps/api/data/
 # build is reproducible — the broad data/ rule above is for runtime stores only.
 !apps/web/src/data/
 .idea/
+.vercel/

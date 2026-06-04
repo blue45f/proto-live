@@ -18,7 +18,6 @@ import {
   ProjectReview,
   ProjectLogEntry,
   MakerProfile,
-  ProjectReviewType,
   hasPagination,
   createMatchProposal,
   createProject,
@@ -107,6 +106,7 @@ import {
 } from './storage'
 import { matchRoute, navigate, routePath } from '../router/route'
 import { useFavorites } from './useFavorites'
+import { useReviewComposer } from './useReviewComposer'
 
 export function useProtoLiveApp() {
   const filterPreset = useMemo(() => readFilterPreset(), [])
@@ -297,10 +297,17 @@ export function useProtoLiveApp() {
   const [isProjectLogLoading, setIsProjectLogLoading] = useState(false)
   const [logBody, setLogBody] = useState('')
   const [isSubmittingLog, setIsSubmittingLog] = useState(false)
-  const [reviewType, setReviewType] = useState<ProjectReviewType>('review')
-  const [reviewRating, setReviewRating] = useState(5)
-  const [reviewBody, setReviewBody] = useState('')
-  const [replyToReview, setReplyToReview] = useState<ProjectReview | null>(null)
+  const {
+    reviewType,
+    setReviewType,
+    reviewRating,
+    setReviewRating,
+    reviewBody,
+    setReviewBody,
+    replyToReview,
+    setReplyToReview,
+    resetReviewComposer,
+  } = useReviewComposer()
   const [isSendingReview, setIsSendingReview] = useState(false)
   const [reportingReviewId, setReportingReviewId] = useState<number | null>(null)
   const detailProject = useMemo(
@@ -1772,10 +1779,7 @@ export function useProtoLiveApp() {
         if (reviewProject) {
           setReviewProject(null)
           setProjectReviews([])
-          setReviewType('review')
-          setReviewRating(5)
-          setReviewBody('')
-          setReplyToReview(null)
+          resetReviewComposer()
           return
         }
 
@@ -2041,10 +2045,7 @@ export function useProtoLiveApp() {
   function closeReviewDialog() {
     setReviewProject(null)
     setProjectReviews([])
-    setReviewType('review')
-    setReviewRating(5)
-    setReviewBody('')
-    setReplyToReview(null)
+    resetReviewComposer()
   }
 
   async function handleSubmitLog(event: React.FormEvent) {
