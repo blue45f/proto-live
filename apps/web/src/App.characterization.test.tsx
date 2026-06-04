@@ -48,9 +48,16 @@ describe('App characterization: initial market render', () => {
   it('renders the ProtoLive shell header and brand', async () => {
     render(<App />)
     expect(await screen.findByRole('heading', { name: 'ProtoLive', level: 1 })).toBeInTheDocument()
-    // The two top-level view tabs are present.
-    expect(screen.getByRole('button', { name: '프로토타입 둘러보기' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '운영 현황' })).toBeInTheDocument()
+  })
+
+  it('hides the operator navigation for logged-out visitors', async () => {
+    await renderAppLoaded()
+    // 권한별 메뉴 숨김: 비운영자에게는 운영 콘솔 토글과 전체 갱신 버튼이 보이지 않는다.
+    expect(screen.queryByRole('button', { name: '운영 현황' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '프로토타입 둘러보기' })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: '전체 사이트 상태 새로고침' })
+    ).not.toBeInTheDocument()
   })
 
   it('shows the project list fetched from the API once loading resolves', async () => {
@@ -216,5 +223,9 @@ describe('App characterization: admin route guard', () => {
     expect(api.fetchAdminDashboard).toHaveBeenCalled()
     // The admin role chip is shown for the operator.
     expect(screen.getByText('운영자')).toBeInTheDocument()
+    // 운영자에게는 운영 콘솔 토글과 전체 갱신 버튼이 노출된다.
+    expect(screen.getByRole('button', { name: '운영 현황' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '프로토타입 둘러보기' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '전체 사이트 상태 새로고침' })).toBeInTheDocument()
   })
 })

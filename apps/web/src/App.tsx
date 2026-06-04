@@ -39,6 +39,7 @@ export default function App() {
     applyRevenueModelPreset,
     averageSignalDensity,
     canAccessAdmin,
+    canSubmitProject,
     canRefreshProject,
     category,
     categoryOptions,
@@ -277,26 +278,32 @@ export default function App() {
           </div>
 
           <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-2 sm:flex-1 sm:justify-end lg:flex-nowrap">
-            <div className="protolive-pill-group order-last flex w-full min-w-0 shrink-0 items-center gap-2 overflow-x-auto rounded-lg border border-stone-700/80 bg-stone-900/70 px-2 py-2 text-xs font-bold sm:order-none sm:w-auto sm:rounded-full sm:px-3">
-              <button
-                type="button"
-                onClick={() => switchView('market')}
-                className={`protolive-pill shrink-0 whitespace-nowrap rounded-full px-3 py-1 transition ${
-                  isAdminView ? 'text-stone-400 hover:text-stone-100' : 'bg-cyan-300 text-slate-950'
-                }`}
-              >
-                프로토타입 둘러보기
-              </button>
-              <button
-                type="button"
-                onClick={() => switchView('admin')}
-                className={`protolive-pill shrink-0 whitespace-nowrap rounded-full px-3 py-1 transition ${
-                  isAdminView ? 'bg-cyan-300 text-slate-950' : 'text-stone-400 hover:text-stone-100'
-                }`}
-              >
-                운영 현황
-              </button>
-            </div>
+            {canAccessAdmin ? (
+              <div className="protolive-pill-group order-last flex w-full min-w-0 shrink-0 items-center gap-2 overflow-x-auto rounded-lg border border-stone-700/80 bg-stone-900/70 px-2 py-2 text-xs font-bold sm:order-none sm:w-auto sm:rounded-full sm:px-3">
+                <button
+                  type="button"
+                  onClick={() => switchView('market')}
+                  className={`protolive-pill shrink-0 whitespace-nowrap rounded-full px-3 py-1 transition ${
+                    isAdminView
+                      ? 'text-stone-400 hover:text-stone-100'
+                      : 'bg-cyan-300 text-slate-950'
+                  }`}
+                >
+                  프로토타입 둘러보기
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchView('admin')}
+                  className={`protolive-pill shrink-0 whitespace-nowrap rounded-full px-3 py-1 transition ${
+                    isAdminView
+                      ? 'bg-cyan-300 text-slate-950'
+                      : 'text-stone-400 hover:text-stone-100'
+                  }`}
+                >
+                  운영 현황
+                </button>
+              </div>
+            ) : null}
             <div
               className={`protolive-status hidden shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold xl:flex ${
                 apiOnline
@@ -342,33 +349,34 @@ export default function App() {
                 <span className="sr-only">로그인</span>
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => void handleRefreshAll()}
-              disabled={isRefreshing || !apiOnline || projects.length === 0 || !canAccessAdmin}
-              className="protolive-btn-grid grid min-h-11 min-w-11 place-items-center rounded-lg border border-stone-700/80 bg-stone-900/70 text-stone-300 transition hover:border-cyan-300/40 hover:text-cyan-100 disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label="전체 사이트 상태 새로고침"
-              title={
-                canAccessAdmin
-                  ? '전체 사이트 상태 새로고침 (⌘/Ctrl + R)'
-                  : '운영자 계정에서만 전체 갱신 가능'
-              }
-            >
-              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            </button>
-            <button
-              type="button"
-              onClick={openSubmitDialog}
-              disabled={!apiOnline || config.categories.length === 0}
-              aria-label="프로토타입 등록"
-              title="프로토타입 등록 (⌘/Ctrl + N)"
-              className="protolive-btn protolive-btn-primary inline-flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-lime-300 px-3 text-sm font-black text-slate-950 transition hover:bg-lime-200 active:translate-y-px disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-stone-400 sm:px-4"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="hidden lg:inline">프로토타입 등록</span>
-            </button>
+            {canAccessAdmin ? (
+              <button
+                type="button"
+                onClick={() => void handleRefreshAll()}
+                disabled={isRefreshing || !apiOnline || projects.length === 0}
+                className="protolive-btn-grid grid min-h-11 min-w-11 place-items-center rounded-lg border border-stone-700/80 bg-stone-900/70 text-stone-300 transition hover:border-cyan-300/40 hover:text-cyan-100 disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="전체 사이트 상태 새로고침"
+                title="전체 사이트 상태 새로고침 (⌘/Ctrl + R)"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </button>
+            ) : null}
+            {!isAuthenticated || canSubmitProject ? (
+              <button
+                type="button"
+                onClick={openSubmitDialog}
+                disabled={!apiOnline || config.categories.length === 0}
+                aria-label="프로토타입 등록"
+                title="프로토타입 등록 (⌘/Ctrl + N)"
+                className="protolive-btn protolive-btn-primary inline-flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-lime-300 px-3 text-sm font-black text-slate-950 transition hover:bg-lime-200 active:translate-y-px disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-stone-400 sm:px-4"
+              >
+                <Plus className="h-4 w-4" />
+                <span className="hidden lg:inline">프로토타입 등록</span>
+              </button>
+            ) : null}
             <span className="hidden shrink-0 text-[10px] text-stone-500 2xl:block">
-              단축키: / 검색 · ⌘/Ctrl + N 등록 · ⌘/Ctrl + R 갱신
+              단축키: / 검색{canSubmitProject ? ' · ⌘/Ctrl + N 등록' : ''}
+              {canAccessAdmin ? ' · ⌘/Ctrl + R 갱신' : ''}
             </span>
           </div>
         </div>
