@@ -60,6 +60,7 @@ export default function App() {
     favoriteProjectIds,
     upvotedProjectIds,
     handleToggleUpvote,
+    handleToggleFeatured,
     fundingRangeId,
     handleLogin,
     handleLogout,
@@ -555,6 +556,8 @@ export default function App() {
             onOpenDetail={openProjectDetail}
             onToggleFavorite={toggleFavorite}
             onToggleUpvote={(project) => void handleToggleUpvote(project)}
+            canFeature={canAccessAdmin}
+            onToggleFeatured={(project) => void handleToggleFeatured(project)}
           />
         )}
       </main>

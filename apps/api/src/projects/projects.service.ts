@@ -837,6 +837,10 @@ export class ProjectsService {
           return false
         }
 
+        if (query.featured && !project.featured) {
+          return false
+        }
+
         if (query.accessMode && project.accessMode !== query.accessMode) {
           return false
         }
@@ -1544,6 +1548,14 @@ export class ProjectsService {
       byProject.set(upvote.projectId, (byProject.get(upvote.projectId) ?? 0) + 1)
     }
     return byProject
+  }
+
+  /** 운영자가 검증된 프로젝트를 투자 검토 대상으로 올리거나 내린다(투자 사다리 수동 게이트). */
+  setProjectFeatured(id: number, featured: boolean): Project {
+    const project = this.findProject(id)
+    project.featured = featured
+    this.persist()
+    return this.hydrateProject(project)
   }
 
   /** 로그인 회원의 업보트를 토글한다. 1인 1표(projectId+email 유일) + 본인 프로젝트 추천 차단. */

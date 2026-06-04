@@ -22,6 +22,8 @@ export function ProjectCard({
   isFavorite,
   onToggleUpvote,
   isUpvoted,
+  canFeature,
+  onToggleFeatured,
 }: {
   project: Project
   viewMode: ProjectListViewMode
@@ -31,6 +33,8 @@ export function ProjectCard({
   isFavorite: boolean
   onToggleUpvote: () => void
   isUpvoted: boolean
+  canFeature: boolean
+  onToggleFeatured: () => void
 }) {
   const isProtected = project.accessMode === 'screened'
   const responseTone = getResponseTimeTone(project.validation.responseTimeMs)
@@ -108,6 +112,20 @@ export function ProjectCard({
             >
               {maturity.label}
             </span>
+            {project.featured && (
+              <span className="rounded-full border border-sky-300/40 bg-sky-300/10 px-2.5 py-1 text-[11px] font-black text-sky-100">
+                투자 검토 대상
+              </span>
+            )}
+            {canFeature && (
+              <button
+                type="button"
+                onClick={onToggleFeatured}
+                className="rounded-full border border-sky-300/40 px-2.5 py-1 text-[11px] font-black text-sky-100 transition hover:bg-sky-300/10"
+              >
+                {project.featured ? '투자검토 해제' : '투자검토 지정'}
+              </button>
+            )}
             <span
               className={
                 'rounded-full border px-2.5 py-1 text-[11px] font-black ' +

@@ -21,6 +21,7 @@ export interface Project {
   customTools?: string[]
   vibeCoded?: boolean
   upvoteCount?: number
+  featured?: boolean
   tags?: string[]
   accessMode: ProjectAccessMode
   protectionNoticeAccepted?: boolean
@@ -582,6 +583,11 @@ export async function toggleProjectUpvote(id: number) {
     `/projects/${id}/upvote`,
     {}
   )
+  return response.data
+}
+
+export async function setProjectFeatured(id: number, featured: boolean) {
+  const response = await client.post<Project>(`/projects/${id}/featured`, { featured })
   return response.data
 }
 

@@ -33,6 +33,7 @@ export interface ProjectQueryInput {
   sort?: ProjectSortKey
   page?: number
   limit?: number
+  featured?: boolean
 }
 
 function parseNumberIfPossible(value: unknown): unknown {
@@ -137,4 +138,9 @@ export class GetProjectsQueryDto {
   @IsBooleanString({ message: '검증된 프로젝트만 보기 값은 true 또는 false 입니다.' })
   @IsOptional()
   onlyVerified?: 'true' | 'false'
+
+  @Transform(({ value }) => parseBooleanString(value))
+  @IsBooleanString({ message: '투자 검토 대상만 보기 값은 true 또는 false 입니다.' })
+  @IsOptional()
+  featured?: 'true' | 'false'
 }

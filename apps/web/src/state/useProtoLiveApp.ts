@@ -36,6 +36,7 @@ import {
   logoutUser,
   recordProjectEvent,
   toggleProjectUpvote,
+  setProjectFeatured,
   refreshAllProjects,
   refreshProject,
   moderateProjectReview,
@@ -1868,6 +1869,24 @@ export function useProtoLiveApp() {
     }
   }
 
+  async function handleToggleFeatured(project: Project) {
+    if (!canAccessAdmin) {
+      return
+    }
+
+    try {
+      const updated = await setProjectFeatured(project.id, !project.featured)
+      setProjects((current) => upsertProject(current, updated))
+      toast(
+        'success',
+        updated.featured ? '투자 검토 대상 등록' : '투자 검토 대상 해제',
+        `${updated.title} 상태를 업데이트했습니다.`
+      )
+    } catch (error) {
+      toast('error', '처리 실패', getApiErrorMessage(error, '투자 검토 상태를 바꾸지 못했습니다.'))
+    }
+  }
+
   function toggleBuildTool(id: string) {
     setBuiltWith((current) =>
       current.includes(id)
@@ -2390,6 +2409,7 @@ export function useProtoLiveApp() {
     setVibeCoded,
     upvotedProjectIds,
     handleToggleUpvote,
+    handleToggleFeatured,
     publicProjectCount,
     recommendationSummary,
     replyToReview,

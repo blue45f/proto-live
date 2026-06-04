@@ -29,6 +29,8 @@ export interface Project {
   customTools?: string[]
   vibeCoded?: boolean
   upvoteCount?: number
+  // 투자 사다리: 운영자가 검증된 상위 프로젝트를 투자 검토 대상으로 큐레이션한다.
+  featured?: boolean
   tags?: string[]
   accessMode: ProjectAccessMode
   protectionNoticeAccepted: boolean

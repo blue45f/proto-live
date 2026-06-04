@@ -152,6 +152,8 @@ export function MarketView(props: {
   onOpenDetail: (project: Project) => void
   onToggleFavorite: (projectId: number) => void
   onToggleUpvote: (project: Project) => void
+  onToggleFeatured: (project: Project) => void
+  canFeature: boolean
 }) {
   const {
     apiOnline,
@@ -244,6 +246,8 @@ export function MarketView(props: {
     onOpenDetail,
     onToggleFavorite,
     onToggleUpvote,
+    onToggleFeatured,
+    canFeature,
   } = props
 
   return (
@@ -821,6 +825,8 @@ export function MarketView(props: {
                     onToggleFavorite={() => onToggleFavorite(project.id)}
                     isUpvoted={upvotedProjectIds.has(project.id)}
                     onToggleUpvote={() => onToggleUpvote(project)}
+                    canFeature={canFeature}
+                    onToggleFeatured={() => onToggleFeatured(project)}
                   />
                 ))}
               </div>
