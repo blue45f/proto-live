@@ -1,4 +1,9 @@
-import { ADMIN_PATH_SEGMENT, SUBMIT_PATH_SEGMENT, type AppView } from '../lib/constants'
+import {
+  ABOUT_PATH_SEGMENT,
+  ADMIN_PATH_SEGMENT,
+  SUBMIT_PATH_SEGMENT,
+  type AppView,
+} from '../lib/constants'
 
 /**
  * 핸드롤 라우터. 의존성 추가 없이(boilerplate 의존성은 react/axios/lucide만) 현재
@@ -38,6 +43,8 @@ const MATCHERS: ReadonlyArray<(path: string, query: URLSearchParams) => AppRoute
   // 등록 딥링크: /submit (피드 위에 등록 모달을 연다)
   (path) =>
     lastSegment(path) === SUBMIT_PATH_SEGMENT ? { ...MARKET_ROUTE, intent: 'submit' } : null,
+  // 소개: /about (공개 페이지)
+  (path) => (lastSegment(path) === ABOUT_PATH_SEGMENT ? { ...MARKET_ROUTE, view: 'about' } : null),
   // 운영 콘솔: /admin 또는 ?view=admin (별칭 보존)
   (path, query) =>
     lastSegment(path) === ADMIN_PATH_SEGMENT || query.get('view') === 'admin'
@@ -82,6 +89,7 @@ export const routePath = {
   detail: (id: number): string => `/projects/${id}`,
   maker: (id: number): string => `/makers/${id}`,
   submit: (): string => `/${SUBMIT_PATH_SEGMENT}`,
+  about: (): string => `/${ABOUT_PATH_SEGMENT}`,
 }
 
 /** history.pushState 래퍼. 한 곳에서만 URL을 바꿔 popstate 재해석과 일관성을 유지한다. */
