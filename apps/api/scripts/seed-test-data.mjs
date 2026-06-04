@@ -2,7 +2,7 @@
 
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const args = new Set(process.argv.slice(2))
 const isDryRun = args.has('--dry-run')
@@ -310,6 +310,16 @@ function normalizeProjects(projects) {
             : {}),
         },
         createdAt: safeDateIso(entry?.createdAt, now),
+        // 바이브코딩 피벗 필드 — 있으면 통과(deserializeState가 maturity 미설정 시 'live' 백필).
+        ...(entry?.maturity ? { maturity: safeString(entry.maturity) } : {}),
+        ...(Array.isArray(entry?.builtWith)
+          ? { builtWith: entry.builtWith.map((tool) => safeString(tool)).filter(Boolean) }
+          : {}),
+        ...(Array.isArray(entry?.customTools)
+          ? { customTools: entry.customTools.map((tool) => safeString(tool)).filter(Boolean) }
+          : {}),
+        ...(typeof entry?.vibeCoded === 'boolean' ? { vibeCoded: entry.vibeCoded } : {}),
+        ...(entry?.stack ? { stack: safeString(entry.stack) } : {}),
       }
     })
     .filter(Boolean)
@@ -738,7 +748,34 @@ function seed(state, fixtureState) {
   return summary
 }
 
-function main() {
+/**
+ * DATABASE_URL이 설정돼 있으면 컴파일된 PostgresProjectsStore로 적재한다(OCI 등 DB 배포).
+ * dist 빌드가 필요하다(없으면 안내 후 종료). 미설정이면 기존 파일 스토어로 기록.
+ */
+async function persistToPostgres(state) {
+  const distStore = join(
+    BACKEND_DIR,
+    'dist',
+    'src',
+    'projects',
+    'store',
+    'postgres-projects-store.js'
+  )
+  const distSerialize = join(BACKEND_DIR, 'dist', 'src', 'projects', 'projects.store.js')
+  if (!existsSync(distStore) || !existsSync(distSerialize)) {
+    throw new Error(
+      'dist 빌드가 없습니다. 먼저 `pnpm --filter protolive-backend build` 후 다시 시도하세요.'
+    )
+  }
+  const { PostgresProjectsStore } = await import(pathToFileURL(distStore).href)
+  const { deserializeState } = await import(pathToFileURL(distSerialize).href)
+  const store = new PostgresProjectsStore(process.env.DATABASE_URL)
+  // 시드 state는 직렬화(ISO 문자열) 형태 → deserializeState로 Date 복원 후 저장(store가 다시 직렬화).
+  store.save(deserializeState(state))
+  await store.flush()
+}
+
+async function main() {
   const fixtureState = loadFixture(FIXTURE_PATH)
   const beforeState = isReset ? createDefaultState() : loadStoreState()
   const summary = seed(beforeState, fixtureState)
@@ -768,10 +805,18 @@ function main() {
     return
   }
 
-  writeStoreState(beforeState)
+  const target = process.env.DATABASE_URL ? 'Postgres' : '파일 스토어'
+  if (process.env.DATABASE_URL) {
+    await persistToPostgres(beforeState)
+  } else {
+    writeStoreState(beforeState)
+  }
   console.log(
-    `${isReset ? '테스트 데이터 리셋 완료' : '테스트 데이터 시드 완료'}: 사용자 ${summary.users}개, 프로젝트 ${summary.projects}개, 제안 ${summary.proposals}개, 이벤트 ${summary.events}개, 리뷰 ${summary.reviews}개, 감사 로그 ${summary.auditLogs}개 동기화`
+    `${isReset ? '테스트 데이터 리셋 완료' : '테스트 데이터 시드 완료'}(${target}): 사용자 ${summary.users}개, 프로젝트 ${summary.projects}개, 제안 ${summary.proposals}개, 이벤트 ${summary.events}개, 리뷰 ${summary.reviews}개, 감사 로그 ${summary.auditLogs}개 동기화`
   )
 }
 
-main()
+main().catch((error) => {
+  console.error(`시드 실패: ${error.message}`)
+  process.exit(1)
+})
