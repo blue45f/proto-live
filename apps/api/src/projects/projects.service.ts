@@ -300,15 +300,12 @@ export class ProjectsService {
       params.totalInvestors * assumption.investorMonthlyFee * investorMonthlyPlanConversionRate
     )
     const monthlyLeadRevenue = Math.round(params.totalSignals * assumption.leadCaptureFee)
-    const projectedTransactionPool =
-      params.totalInvestors * averageCommittedPerInvestor * leadCloseRate
-    const monthlyTransactionRevenue = Math.round(projectedTransactionPool * transactionRate)
+    // 자금이동 없음 원칙: 투자 "의향"은 비구속 관심이라 실현 거래수익으로 환산하지 않는다.
+    // 공개 지표가 의향을 수익처럼 보이지 않도록 0으로 고정하고 총수익에서도 제외한다.
+    const monthlyTransactionRevenue = 0
 
     const totalMonthlyRevenue = Math.round(
-      monthlyMakerPlanRevenue +
-        monthlyInvestorPlanRevenue +
-        monthlyLeadRevenue +
-        monthlyTransactionRevenue
+      monthlyMakerPlanRevenue + monthlyInvestorPlanRevenue + monthlyLeadRevenue
     )
     const annualRevenue = totalMonthlyRevenue * 12
 
