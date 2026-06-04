@@ -9,6 +9,7 @@ import { ADMIN_PATH_SEGMENT, type AppView } from '../lib/constants'
 export interface AppRoute {
   view: AppView
   projectId: number | null
+  makerId: number | null
 }
 
 /**
@@ -17,19 +18,22 @@ export interface AppRoute {
  */
 export function matchRoute(): AppRoute {
   if (typeof window === 'undefined') {
-    return { view: 'market', projectId: null }
+    return { view: 'market', projectId: null, makerId: null }
   }
 
   const { pathname, search } = window.location
   const detailMatch = pathname.match(/\/projects\/(\d+)\/?$/)
   const projectId = detailMatch ? toFiniteId(detailMatch[1]) : null
 
+  const makerMatch = pathname.match(/\/makers\/(\d+)\/?$/)
+  const makerId = makerMatch ? toFiniteId(makerMatch[1]) : null
+
   const lastSegment = pathname.replace(/\/+$/, '').split('/').filter(Boolean).slice(-1)[0]
   const isAdminPath = lastSegment === ADMIN_PATH_SEGMENT
   const view: AppView =
     new URLSearchParams(search).get('view') === 'admin' || isAdminPath ? 'admin' : 'market'
 
-  return { view, projectId }
+  return { view, projectId, makerId }
 }
 
 function toFiniteId(raw: string): number | null {
@@ -40,6 +44,7 @@ function toFiniteId(raw: string): number | null {
 export const routePath = {
   market: (): string => '/',
   detail: (id: number): string => `/projects/${id}`,
+  maker: (id: number): string => `/makers/${id}`,
 }
 
 /** history.pushState 래퍼. 한 곳에서만 URL을 바꿔 popstate 재해석과 일관성을 유지한다. */

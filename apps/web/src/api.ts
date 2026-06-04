@@ -614,6 +614,17 @@ export async function fetchProjectLog(id: number) {
   return response.data
 }
 
+export interface MakerProfile {
+  id: number
+  name: string
+  projects: Project[]
+}
+
+export async function fetchMakerProfile(id: number) {
+  const response = await client.get<MakerProfile>(`/projects/makers/${id}`)
+  return response.data
+}
+
 export async function addProjectLogEntry(id: number, body: string) {
   const response = await client.post<ProjectLogEntry[]>(`/projects/${id}/log`, { body })
   return response.data

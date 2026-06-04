@@ -177,6 +177,14 @@ export class ProjectsController {
   }
 
   /**
+   * GET /api/projects/makers/:makerId — 메이커 공개 프로필(표시명 + 프로젝트 목록).
+   */
+  @Get('makers/:makerId')
+  getMakerProfile(@Param('makerId', ParseIntPipe) makerId: number) {
+    return this.projectsService.getMakerProfile(makerId)
+  }
+
+  /**
    * POST /api/projects/:id/log — 메이커 본인만 제작 과정 기록을 추가합니다.
    */
   @Post(':id/log')

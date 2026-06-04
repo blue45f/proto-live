@@ -5,6 +5,7 @@ import ToastContainer from './components/ToastContainer'
 import { ProjectDiligencePanel } from './components/ProjectDiligencePanel'
 import { AdminDashboardView } from './components/pages/AdminDashboardView'
 import { MarketView } from './components/pages/MarketView'
+import { MakerProfileView } from './components/pages/MakerProfileView'
 import { LoginModal } from './components/modals/LoginModal'
 import { MatchModal } from './components/modals/MatchModal'
 import { SubmitProjectModal } from './components/modals/SubmitProjectModal'
@@ -111,6 +112,11 @@ export default function App() {
     moderatingReviewId,
     onlyVerified,
     openProjectDetail,
+    makerProfileId,
+    makerProfile,
+    isMakerProfileLoading,
+    openMakerProfile,
+    closeMakerProfile,
     openSubmitDialog,
     orderedAdminRecommendations,
     pageSize,
@@ -372,7 +378,14 @@ export default function App() {
         tabIndex={-1}
         className="protolive-main mx-auto grid max-w-7xl gap-6 px-4 py-6 outline-none sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8"
       >
-        {isAdminView ? (
+        {makerProfileId ? (
+          <MakerProfileView
+            profile={makerProfile}
+            isLoading={isMakerProfileLoading}
+            onBack={closeMakerProfile}
+            onOpenProject={openProjectDetail}
+          />
+        ) : isAdminView ? (
           <AdminDashboardView
             adminDashboard={adminDashboard}
             adminDashboardError={adminDashboardError}
@@ -568,6 +581,7 @@ export default function App() {
             onNextPage={() => setPage((value) => (projectMeta.hasNext ? value + 1 : value))}
             onCreate={openSubmitDialog}
             onOpenDetail={openProjectDetail}
+            onOpenMaker={openMakerProfile}
             onToggleFavorite={toggleFavorite}
             onToggleUpvote={(project) => void handleToggleUpvote(project)}
             canFeature={canAccessAdmin}

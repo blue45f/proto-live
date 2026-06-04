@@ -823,6 +823,32 @@ export class ProjectsService {
     }
   }
 
+  /**
+   * 메이커 공개 프로필: 표시명 + 해당 메이커의 프로젝트 목록. 이미 공개된 데이터만 모은다(이메일 비노출).
+   */
+  getMakerProfile(makerId: number): { id: number; name: string; projects: Project[] } {
+    const user = this.users.find((item) => item.id === makerId)
+    if (!user) {
+      throw new NotFoundException('메이커를 찾을 수 없습니다.')
+    }
+
+    const eventsByProject = this.groupEventsByProject()
+    const reviewsByProject = this.groupVisibleReviewsByProject()
+    const upvoteCountByProject = this.groupUpvoteCountsByProject()
+    const projects = this.projects
+      .filter((project) => project.userId === makerId)
+      .map((project) =>
+        this.hydrateProject(project, {
+          events: eventsByProject.get(project.id) ?? [],
+          reviews: reviewsByProject.get(project.id) ?? [],
+          upvoteCount: upvoteCountByProject.get(project.id) ?? 0,
+        })
+      )
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+    return { id: user.id, name: user.name ?? '익명 메이커', projects }
+  }
+
   private buildFilteredProjects(query: ProjectQueryInput): Project[] {
     const searchText = (query.q ?? '').trim().toLowerCase()
     const selectedTag = (query.tag ?? '').trim().toLowerCase()
