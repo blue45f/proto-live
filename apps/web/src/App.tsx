@@ -120,6 +120,12 @@ export default function App() {
     projectListView,
     projectMeta,
     projectReviews,
+    projectLog,
+    isProjectLogLoading,
+    logBody,
+    setLogBody,
+    handleSubmitLog,
+    isSubmittingLog,
     projects,
     protectedProjectCount,
     protectionNoticeAccepted,
@@ -414,6 +420,12 @@ export default function App() {
             detailProject={detailProject}
             diligenceEvents={diligenceEvents}
             projectReviews={projectReviews}
+            projectLog={projectLog}
+            isProjectLogLoading={isProjectLogLoading}
+            logBody={logBody}
+            onLogBodyChange={setLogBody}
+            onSubmitLog={handleSubmitLog}
+            isSubmittingLog={isSubmittingLog}
             session={session}
             isDiligenceEventsLoading={isDiligenceEventsLoading}
             isProjectReviewsLoading={isProjectReviewsLoading}

@@ -68,6 +68,14 @@ export interface ProjectEvent {
   createdAt: string
 }
 
+export interface ProjectLogEntry {
+  id: number
+  projectId: number
+  authorEmail: string
+  body: string
+  createdAt: string
+}
+
 export interface ProjectReview {
   id: number
   projectId: number
@@ -597,6 +605,16 @@ export async function setProjectFeatured(id: number, featured: boolean) {
 
 export async function fetchProjectEvents(id: number) {
   const response = await client.get<ProjectEvent[]>(`/projects/${id}/events`)
+  return response.data
+}
+
+export async function fetchProjectLog(id: number) {
+  const response = await client.get<ProjectLogEntry[]>(`/projects/${id}/log`)
+  return response.data
+}
+
+export async function addProjectLogEntry(id: number, body: string) {
+  const response = await client.post<ProjectLogEntry[]>(`/projects/${id}/log`, { body })
   return response.data
 }
 

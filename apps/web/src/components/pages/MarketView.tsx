@@ -28,6 +28,7 @@ import type {
   Project,
   ProjectAccessMode,
   ProjectEvent,
+  ProjectLogEntry,
   ProjectReview,
   ProjectReviewType,
 } from '../../api'
@@ -71,6 +72,12 @@ export function MarketView(props: {
   detailProject: Project | null
   diligenceEvents: ProjectEvent[]
   projectReviews: ProjectReview[]
+  projectLog: ProjectLogEntry[]
+  isProjectLogLoading: boolean
+  logBody: string
+  onLogBodyChange: (body: string) => void
+  onSubmitLog: (event: React.FormEvent) => void
+  isSubmittingLog: boolean
   session: AuthSession | null
   isDiligenceEventsLoading: boolean
   isProjectReviewsLoading: boolean
@@ -169,6 +176,12 @@ export function MarketView(props: {
     detailProject,
     diligenceEvents,
     projectReviews,
+    projectLog,
+    isProjectLogLoading,
+    logBody,
+    onLogBodyChange,
+    onSubmitLog,
+    isSubmittingLog,
     session,
     isDiligenceEventsLoading,
     isProjectReviewsLoading,
@@ -380,6 +393,12 @@ export function MarketView(props: {
               onReportReview={onReportReview}
               reportingReviewId={reportingReviewId}
               onLogin={onDetailLogin}
+              projectLog={projectLog}
+              isProjectLogLoading={isProjectLogLoading}
+              logBody={logBody}
+              onLogBodyChange={onLogBodyChange}
+              onSubmitLog={onSubmitLog}
+              isSubmittingLog={isSubmittingLog}
             />
           ) : (
             <div className="rounded-xl border border-stone-800 bg-stone-950/60 p-6 text-sm text-stone-300">

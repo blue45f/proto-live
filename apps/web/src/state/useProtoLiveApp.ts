@@ -16,6 +16,7 @@ import {
   ProjectStack,
   ProjectEvent,
   ProjectReview,
+  ProjectLogEntry,
   ProjectReviewType,
   hasPagination,
   createMatchProposal,
@@ -31,6 +32,8 @@ import {
   extractProjects,
   fetchProjects,
   fetchProjectEvents,
+  fetchProjectLog,
+  addProjectLogEntry,
   fetchProjectReviews,
   getApiErrorMessage,
   loginUser,
@@ -284,6 +287,10 @@ export function useProtoLiveApp() {
   const [reviewProject, setReviewProject] = useState<Project | null>(null)
   const [projectReviews, setProjectReviews] = useState<ProjectReview[]>([])
   const [isProjectReviewsLoading, setIsProjectReviewsLoading] = useState(false)
+  const [projectLog, setProjectLog] = useState<ProjectLogEntry[]>([])
+  const [isProjectLogLoading, setIsProjectLogLoading] = useState(false)
+  const [logBody, setLogBody] = useState('')
+  const [isSubmittingLog, setIsSubmittingLog] = useState(false)
   const [reviewType, setReviewType] = useState<ProjectReviewType>('review')
   const [reviewRating, setReviewRating] = useState(5)
   const [reviewBody, setReviewBody] = useState('')
@@ -363,6 +370,12 @@ export function useProtoLiveApp() {
       .then((events) => setDiligenceEvents(events))
       .catch(() => setDiligenceEvents([]))
       .finally(() => setIsDiligenceEventsLoading(false))
+
+    setIsProjectLogLoading(true)
+    fetchProjectLog(detailProjectId)
+      .then((entries) => setProjectLog(entries))
+      .catch(() => setProjectLog([]))
+      .finally(() => setIsProjectLogLoading(false))
   }, [detailProjectId])
 
   useEffect(() => {
@@ -1995,6 +2008,34 @@ export function useProtoLiveApp() {
     setReplyToReview(null)
   }
 
+  async function handleSubmitLog(event: React.FormEvent) {
+    event.preventDefault()
+    if (!detailProject) {
+      return
+    }
+    if (!session) {
+      setIsLoginOpen(true)
+      return
+    }
+
+    const body = logBody.trim()
+    if (!body) {
+      return
+    }
+
+    setIsSubmittingLog(true)
+    try {
+      const entries = await addProjectLogEntry(detailProject.id, body)
+      setProjectLog(entries)
+      setLogBody('')
+      toast('success', '메이커로그 등록', '제작 과정 기록을 추가했습니다.')
+    } catch (error) {
+      toast('error', '등록 실패', getApiErrorMessage(error, '메이커로그를 추가하지 못했습니다.'))
+    } finally {
+      setIsSubmittingLog(false)
+    }
+  }
+
   async function handleSubmitReview(event: React.FormEvent) {
     event.preventDefault()
 
@@ -2336,6 +2377,12 @@ export function useProtoLiveApp() {
     isMobileProjectTimelineOpen,
     isPreviewEventsLoading,
     isProjectReviewsLoading,
+    projectLog,
+    isProjectLogLoading,
+    logBody,
+    setLogBody,
+    handleSubmitLog,
+    isSubmittingLog,
     isRefreshing,
     isSendingMatch,
     isSendingReview,
