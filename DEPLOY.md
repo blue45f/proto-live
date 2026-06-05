@@ -1,13 +1,13 @@
 # ProtoLive 상용 배포 가이드
 
-웹 + API를 분리 배포하는 2-tier 구성이다. ProtoLive는 외부 DB 없이 원자적 JSON 파일 스토어를
-쓰므로 webtoon-index 대비 DB/OAuth 레이어가 없어 더 단순하다.
+웹 + API를 분리 배포하는 2-tier 구성이다. API는 `DATABASE_URL`이 있으면 **Postgres**, 없으면
+**JSON 파일 스토어**로 동작한다(드라이버 자동 선택). 비용 최소 운영은 아래 "비용 구조" 참고.
 
-| 레이어 | 스택             | 호스트               | 산출물                                         |
-| ------ | ---------------- | -------------------- | ---------------------------------------------- |
-| 프론트 | Vite + React SPA | **Vercel**           | `apps/web/dist` (정적) + `/api` 프록시 rewrite |
-| API    | NestJS           | **Render**(상시구동) | `node apps/api/dist/src/main.js`               |
-| 저장소 | 원자적 JSON 파일 | API 디스크           | `PROJECT_STORE_PATH`                           |
+| 레이어 | 스택             | 호스트(비용 최소)              | 산출물                                         |
+| ------ | ---------------- | ------------------------------ | ---------------------------------------------- |
+| 프론트 | Vite + React SPA | **Vercel**(무료)               | `apps/web/dist` (정적) + `/api` 프록시 rewrite |
+| API    | NestJS           | **단일 VM**(AWS Free Tier/OCI) | `node apps/api/dist/src/main.js` (Docker)      |
+| DB     | Postgres / 파일  | **컨테이너 Postgres**(같은 VM) | `DATABASE_URL` / `PROJECT_STORE_PATH`          |
 
 > **왜 `/api` 프록시인가** — 프론트는 `VITE_API_BASE_URL=/api`(상대경로)로 빌드된다. `vercel.json`의
 > rewrite가 `/api/*`를 Render API로 프록시하면 브라우저는 단일 오리진 → **CORS·교차도메인 쿠키 문제 없음**.
@@ -26,6 +26,26 @@
 >
 > 둘 다 프로비저닝 후 §2의 `vercel.json` `/api`(및 `/sitemap.xml`) rewrite 대상을 그 백엔드 도메인으로
 > 바꾸면 프론트와 연결된다.
+
+---
+
+## 비용 구조 — 백엔드를 프론트만큼(또는 더) 싸게
+
+목표: **프론트 ≤ 백엔드 비용 역전 없이, 백엔드를 프론트(무료)와 동급 $0** 으로. 핵심은 **관리형 서비스를 안 쓰는 것**.
+
+| 레이어     | 선택                                                      | 월 비용                            |
+| ---------- | --------------------------------------------------------- | ---------------------------------- |
+| 프론트     | **Vercel Hobby**(정적 CDN)                                | **$0**                             |
+| 백엔드 VM  | **OCI Always-Free ARM**                                   | **$0 (영구)** ← 권장               |
+| 백엔드 VM  | **AWS EC2 Free Tier** t3.micro/t2.micro 750h              | **$0 (12개월)** → 이후 ≈$7~8 + EBS |
+| DB         | **컨테이너 Postgres(`postgres:16-alpine`, 같은 VM 볼륨)** | **$0** (관리형 DB 미사용)          |
+| TLS/도메인 | **Caddy 자동 HTTPS + `<공인IP>.sslip.io`**                | **$0** (도메인 구매 불필요)        |
+
+**비용 최소화 원칙(반드시 회피):** 관리형 DB(RDS·Neon 유료·Render 유료 PG), 로드밸런서(ALB/NLB), NAT Gateway, Fargate·App Runner·ECS(시간당 과금). → 백엔드는 **단일 VM 한 대에 API+Postgres+Caddy를 Docker로** 올려 고정·최소 비용으로 운영한다(현 `deploy/aws`·`deploy/oci`가 이 구조).
+
+- **$0 영구**를 원하면 OCI Always-Free(권장). 지금 당장은 **AWS Free Tier(12개월 $0)** 로 시작.
+- DB는 절대 관리형으로 빼지 말 것 — 컨테이너 Postgres가 VM에 함께 떠서 별도 과금이 없다.
+- Render 무료 API + 파일스토어(`render.yaml`)는 **데모/임시용**(유휴 시 슬립·재시작 시 데이터 휘발). 영속·저비용 운영은 위 VM 경로를 쓴다.
 
 ---
 
