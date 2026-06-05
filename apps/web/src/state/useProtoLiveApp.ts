@@ -18,6 +18,7 @@ import {
   ProjectReview,
   ProjectLogEntry,
   MakerProfile,
+  AppNotification,
   hasPagination,
   createMatchProposal,
   createProject,
@@ -35,6 +36,8 @@ import {
   fetchProjectLog,
   addProjectLogEntry,
   fetchMakerProfile,
+  fetchNotifications,
+  markNotificationsRead,
   fetchProjectReviews,
   getApiErrorMessage,
   loginUser,
@@ -268,6 +271,7 @@ export function useProtoLiveApp() {
   const [customToolsInput, setCustomToolsInput] = useState('')
   const [vibeCoded, setVibeCoded] = useState(false)
   const { upvotedProjectIds, applyUpvoteResult } = useUpvotedProjects()
+  const [notifications, setNotifications] = useState<AppNotification[]>([])
   const [urlCheckStatus, setUrlCheckStatus] = useState<'idle' | 'checking' | 'success' | 'error'>(
     'idle'
   )
@@ -2432,6 +2436,54 @@ export function useProtoLiveApp() {
     }
   }, [closeModalStack])
 
+  // 인앱 알림: 로그인 시 즉시 + 60초 주기로 받아오고, 로그아웃하면 비운다.
+  useEffect(() => {
+    if (!session) {
+      setNotifications([])
+      return
+    }
+    let active = true
+    const load = () => {
+      fetchNotifications()
+        .then((list) => {
+          if (active) setNotifications(list)
+        })
+        .catch(() => {
+          /* 알림 조회 실패는 조용히 무시(핵심 흐름 비차단) */
+        })
+    }
+    load()
+    const timer = window.setInterval(load, 60000)
+    return () => {
+      active = false
+      window.clearInterval(timer)
+    }
+  }, [session])
+
+  const unreadNotificationCount = notifications.filter((notification) => !notification.read).length
+
+  const markAllNotificationsRead = useCallback(async () => {
+    if (notifications.every((notification) => notification.read)) {
+      return
+    }
+    setNotifications((current) => current.map((notification) => ({ ...notification, read: true })))
+    try {
+      await markNotificationsRead()
+    } catch {
+      /* 읽음 처리 실패는 무시(다음 폴링에서 보정) */
+    }
+  }, [notifications])
+
+  const openNotification = useCallback(
+    (notification: AppNotification) => {
+      const project = projects.find((item) => item.id === notification.projectId)
+      if (project) {
+        openProjectDetail(project)
+      }
+    },
+    [projects, openProjectDetail]
+  )
+
   return {
     accessMode,
     accessModeOptions,
@@ -2444,6 +2496,10 @@ export function useProtoLiveApp() {
     openAbout,
     goHome,
     isAboutView,
+    notifications,
+    unreadNotificationCount,
+    markAllNotificationsRead,
+    openNotification,
     activeFilters,
     adminAuditLogs,
     adminDashboard,

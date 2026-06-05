@@ -48,6 +48,8 @@ import {
   AdminRevenueTargetGap,
   AdminReportedReview,
   AuditLog,
+  AppNotification,
+  NotificationType,
   ProjectsState,
   User,
   ValidationSnapshot,
@@ -139,6 +141,7 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
   private events: ProjectEvent[]
   private upvotes: ProjectUpvote[]
   private logEntries: ProjectLogEntry[]
+  private notifications: AppNotification[]
   private challenge: SeasonChallenge | null
   private reviews: ProjectReview[]
   private auditLogs: AuditLog[]
@@ -148,6 +151,7 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
   private nextEventId: number
   private nextUpvoteId: number
   private nextLogEntryId: number
+  private nextNotificationId: number
   private nextReviewId: number
   private nextAuditLogId: number
 
@@ -174,6 +178,7 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
     this.events = state.events
     this.upvotes = state.upvotes
     this.logEntries = state.logEntries
+    this.notifications = state.notifications
     this.challenge = state.challenge
     this.reviews = state.reviews
     this.auditLogs = state.auditLogs
@@ -183,6 +188,7 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
     this.nextEventId = state.nextEventId
     this.nextUpvoteId = state.nextUpvoteId
     this.nextLogEntryId = state.nextLogEntryId
+    this.nextNotificationId = state.nextNotificationId
     this.nextReviewId = state.nextReviewId
     this.nextAuditLogId = state.nextAuditLogId
   }
@@ -1265,6 +1271,13 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
         projectId: context.projectId,
         message: `${context.fundingRangeLabel} 투자 관심 제출 전 고지·연락 동의 확인(약관 v${context.terms.version}, hash ${context.terms.hash.slice(0, 12)}…).`,
       }),
+    (context) =>
+      this.notifyMaker(
+        context.projectId,
+        'match',
+        `${context.fundingRangeLabel} 구간의 투자 관심이 도착했습니다.`,
+        context.investorEmail
+      ),
   ]
 
   createProjectReview(
@@ -1311,6 +1324,14 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
     }
 
     this.reviews.push(review)
+    this.notifyMaker(
+      id,
+      'review',
+      parentId
+        ? '내 프로젝트 리뷰에 답글이 달렸습니다.'
+        : '내 프로젝트에 새 피드백이 도착했습니다.',
+      review.authorEmail
+    )
     this.persist()
     this.logger.log(`Project review recorded for project ${id}`)
 
@@ -1612,6 +1633,7 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
       events: this.events,
       upvotes: this.upvotes,
       logEntries: this.logEntries,
+      notifications: this.notifications,
       reviews: this.reviews,
       auditLogs: this.auditLogs,
       challenge: this.challenge,
@@ -1621,6 +1643,7 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
       nextEventId: this.nextEventId,
       nextUpvoteId: this.nextUpvoteId,
       nextLogEntryId: this.nextLogEntryId,
+      nextNotificationId: this.nextNotificationId,
       nextReviewId: this.nextReviewId,
       nextAuditLogId: this.nextAuditLogId,
     }
@@ -1636,6 +1659,67 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
     }
     this.auditLogs.push(entry)
     return entry
+  }
+
+  /**
+   * 메이커에게 인앱 알림을 남긴다. 프로젝트 소유자(메이커)의 이메일을 수신자로 한다.
+   * 행위자(actorEmail)가 메이커 자신이면(자기 활동) 알림을 만들지 않는다. persist는 호출부가 담당.
+   */
+  private notifyMaker(
+    projectId: number,
+    type: NotificationType,
+    body: string,
+    actorEmail?: string
+  ): void {
+    const project = this.projects.find((item) => item.id === projectId)
+    if (!project) {
+      return
+    }
+    const maker = this.users.find((user) => user.id === project.userId)
+    const makerEmail = maker?.email
+    if (!makerEmail) {
+      return
+    }
+    if (actorEmail && actorEmail.trim().toLowerCase() === makerEmail.toLowerCase()) {
+      return
+    }
+    this.notifications.push({
+      id: this.nextNotificationId++,
+      userEmail: makerEmail,
+      type,
+      projectId,
+      projectTitle: project.title,
+      body,
+      read: false,
+      createdAt: new Date(),
+    })
+  }
+
+  /** 특정 사용자의 알림(최신순). 세션 이메일 기준. */
+  getNotifications(email: string): AppNotification[] {
+    const normalized = email.trim().toLowerCase()
+    return this.notifications
+      .filter((notification) => notification.userEmail.toLowerCase() === normalized)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+  }
+
+  /** 사용자의 알림을 읽음 처리한다(ids 미지정 시 전체). 변경 수 반환. */
+  markNotificationsRead(email: string, ids?: number[]): number {
+    const normalized = email.trim().toLowerCase()
+    const idSet = ids && ids.length > 0 ? new Set(ids) : null
+    let changed = 0
+    for (const notification of this.notifications) {
+      if (notification.userEmail.toLowerCase() !== normalized) continue
+      if (idSet && !idSet.has(notification.id)) continue
+      if (!notification.read) {
+        notification.read = true
+        changed += 1
+      }
+    }
+    if (changed > 0) {
+      this.persist()
+    }
+    return changed
   }
 
   private normalizeTags(tags: string[] | undefined): string[] {
@@ -1707,7 +1791,11 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
   /** 운영자가 검증된 프로젝트를 투자 검토 대상으로 올리거나 내린다(투자 사다리 수동 게이트). */
   setProjectFeatured(id: number, featured: boolean): Project {
     const project = this.findProject(id)
+    const wasFeatured = project.featured === true
     project.featured = featured
+    if (featured && !wasFeatured) {
+      this.notifyMaker(id, 'featured', '내 프로젝트가 운영자 추천(featured)으로 선정되었습니다.')
+    }
     this.persist()
     return this.hydrateProject(project)
   }
@@ -1738,6 +1826,12 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
         createdAt: new Date(),
       })
       viewerUpvoted = true
+      this.notifyMaker(
+        projectId,
+        'upvote',
+        '내 프로젝트가 추천(업보트)을 받았습니다.',
+        normalizedEmail
+      )
     }
 
     this.persist()

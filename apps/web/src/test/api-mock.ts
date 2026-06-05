@@ -68,6 +68,8 @@ function buildApiMock() {
       name: '밀맵 팀',
       projects,
     })),
+    fetchNotifications: vi.fn(async () => []),
+    markNotificationsRead: vi.fn(async () => ({ read: 0 })),
     validateLiveUrl: vi.fn(async () => projects[0].validation),
   }
 }

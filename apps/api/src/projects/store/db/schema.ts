@@ -102,6 +102,21 @@ export const auditLogsTable = pgTable(
   (t) => [index('audit_logs_created_at_idx').on(t.createdAt)]
 )
 
+export const notificationsTable = pgTable(
+  'notifications',
+  {
+    id: integer('id').primaryKey(),
+    userEmail: text('user_email').notNull(),
+    projectId: integer('project_id').notNull(),
+    createdAt: timestamp('created_at', { mode: 'date', withTimezone: true }).notNull(),
+    data: jsonb('data').notNull(),
+  },
+  (t) => [
+    index('notifications_user_email_idx').on(t.userEmail),
+    index('notifications_created_at_idx').on(t.createdAt),
+  ]
+)
+
 /** 단일 행(id=1): 시즌 챌린지 + 모든 next* 카운터를 담는다. */
 export const appMetaTable = pgTable('app_meta', {
   id: integer('id').primaryKey(),

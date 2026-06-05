@@ -655,6 +655,32 @@ export async function fetchMakerProfile(id: number) {
   return response.data
 }
 
+export type NotificationType = 'review' | 'upvote' | 'featured' | 'match'
+
+export interface AppNotification {
+  id: number
+  userEmail: string
+  type: NotificationType
+  projectId: number
+  projectTitle: string
+  body: string
+  read: boolean
+  createdAt: string
+}
+
+export async function fetchNotifications() {
+  const response = await client.get<AppNotification[]>('/notifications')
+  return response.data
+}
+
+export async function markNotificationsRead(ids?: number[]) {
+  const response = await client.post<{ read: number }>(
+    '/notifications/read',
+    ids && ids.length > 0 ? { ids } : {}
+  )
+  return response.data
+}
+
 export async function addProjectLogEntry(id: number, body: string) {
   const response = await client.post<ProjectLogEntry[]>(`/projects/${id}/log`, { body })
   return response.data
