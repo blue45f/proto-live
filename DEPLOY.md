@@ -16,11 +16,16 @@
 > **도커 자체 호스팅 대안** — 클라우드 대신 직접 호스팅하려면 `docs/DEPLOYMENT.md`(web nginx + api 컨테이너 +
 > `docker-compose.yml`)를 따른다. 아래는 Vercel + Render 매니지드 경로다.
 
-> **권장: OCI Always-Free 백엔드(API + Postgres + Caddy)** — webtoon-index(툰스펙트럼)와 동일하게
-> OCI ARM VM 한 대에 NestJS API + Postgres + Caddy(자동 HTTPS)를 올리는 경로를 추가했다. API는 이제
-> `DATABASE_URL`이 있으면 **Postgres**로, 없으면 JSON 파일로 영속한다(드라이버 자동 선택).
-> 절차는 [`deploy/oci/README.md`](./deploy/oci/README.md) 참고. 프로비저닝 후 §2의 `vercel.json`
-> `/api` rewrite 대상을 OCI 도메인(`https://{DOMAIN}/api/:path*`)으로 바꾸면 된다.
+> **권장: 단일 VM 백엔드(API + Postgres + Caddy 자동 HTTPS).** API는 `DATABASE_URL`이 있으면
+> **Postgres**로, 없으면 JSON 파일로 영속한다(드라이버 자동 선택). 두 가지 클라우드 패키지를 제공한다:
+>
+> - **AWS EC2** — [`deploy/aws/README.md`](./deploy/aws/README.md). EC2 user-data가 부팅 시 전부 자동배포
+>   (Docker·스왑·클론·`.env`/시크릿 생성·`docker compose up`·쇼케이스 시드)하고 `<공인IP>.sslip.io`로
+>   Caddy 자동 TLS를 받는다. 별도 도메인 불필요. (ap-southeast-2 기준)
+> - **OCI Always-Free ARM** — [`deploy/oci/README.md`](./deploy/oci/README.md). webtoon-index 패턴.
+>
+> 둘 다 프로비저닝 후 §2의 `vercel.json` `/api`(및 `/sitemap.xml`) rewrite 대상을 그 백엔드 도메인으로
+> 바꾸면 프론트와 연결된다.
 
 ---
 
