@@ -15,7 +15,7 @@ OCI 대신 **AWS EC2 한 대**에 **NestJS API + Postgres + Caddy(자동 HTTPS)*
 EC2 → **Launch instance**:
 
 - **AMI**: Ubuntu Server 24.04 LTS (또는 22.04)
-- **Instance type**: `t3.small` 권장(2GB). Free Tier만 쓰려면 `t3.micro`(1GB) — user-data가 2GB 스왑을 만들어 빌드 OOM을 막는다.
+- **Instance type**: **`t3.micro`(Free Tier, 12개월 $0)** 권장 — user-data가 2GB 스왑을 만들어 1GB에서도 빌드 OOM을 막는다. 빌드를 더 빠르고 여유 있게 하려면 `t3.small`(2GB, 유료). 비용 최소가 목적이면 t3.micro.
 - **Key pair**: 디버깅용 SSH 키 하나 선택(없으면 생성).
 - **Network / 보안 그룹 인바운드**: **HTTP 80**, **HTTPS 443** 를 `0.0.0.0/0` 허용 (SSH 22는 본인 IP만 권장).
 - **고급 세부 정보 → 사용자 데이터(User data)**: [`user-data.sh`](./user-data.sh) 내용 전체 붙여넣기.
