@@ -1,0 +1,78 @@
+# ProtoLive 백엔드 스택 — AWS EC2 한 대에 API + Postgres + Caddy(자동 HTTPS).
+# 컨테이너 스택은 OCI 패키지와 동일하다(호스트 무관). Dockerfile은 deploy/oci/Dockerfile을 재사용
+# (node:22 멀티아치라 EC2 x86/arm 모두 동작). 프론트는 Vercel 유지, /api는 이 서버로 프록시.
+#
+#   cd /opt/protolive/deploy/aws && cp .env.example .env && vi .env
+#   docker compose up -d --build
+# (EC2 user-data.sh가 위 과정을 부팅 시 자동 수행한다.)
+
+name: protolive
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    command:
+      - postgres
+      - -c
+      - shared_buffers=${PG_SHARED_BUFFERS:-256MB}
+      - -c
+      - effective_cache_size=${PG_EFFECTIVE_CACHE:-1GB}
+      - -c
+      - work_mem=${PG_WORK_MEM:-16MB}
+      - -c
+      - max_connections=${PG_MAX_CONN:-50}
+      - -c
+      - jit=off
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-protolive}
+      POSTGRES_PASSWORD: '${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}'
+      POSTGRES_DB: ${POSTGRES_DB:-protolive}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - '127.0.0.1:5432:5432'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-protolive} -d ${POSTGRES_DB:-protolive}']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  api:
+    build:
+      context: ../..
+      dockerfile: deploy/oci/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: '3003'
+      TZ: Asia/Seoul
+      DATABASE_URL: 'postgres://${POSTGRES_USER:-protolive}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-protolive}'
+    expose:
+      - '3003'
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      DOMAIN: '${DOMAIN:?set DOMAIN (e.g. <public-ip>.sslip.io) in .env}'
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
