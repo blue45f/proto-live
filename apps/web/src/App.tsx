@@ -144,7 +144,6 @@ export default function App() {
     handleSubmitLog,
     isSubmittingLog,
     projects,
-    protectedProjectCount,
     protectionNoticeAccepted,
     maturity,
     setMaturity,
@@ -156,7 +155,6 @@ export default function App() {
     setCustomToolsInput,
     vibeCoded,
     setVibeCoded,
-    publicProjectCount,
     recommendationSummary,
     replyToReview,
     reportingReviewId,
@@ -476,8 +474,6 @@ export default function App() {
             config={config}
             isInitialLoading={isInitialLoading}
             loadError={loadError}
-            protectedProjectCount={protectedProjectCount}
-            publicProjectCount={publicProjectCount}
             fastestResponseProject={fastestResponseProject}
             averageSignalDensity={averageSignalDensity}
             detailProjectId={detailProjectId}
