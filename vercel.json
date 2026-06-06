@@ -12,11 +12,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://protolive-api.onrender.com/api/:path*"
+      "destination": "https://protolive.3.107.235.143.nip.io/api/:path*"
     },
     {
       "source": "/sitemap.xml",
-      "destination": "https://protolive-api.onrender.com/api/sitemap.xml"
+      "destination": "https://protolive.3.107.235.143.nip.io/api/sitemap.xml"
     },
     {
       "source": "/:path*",
