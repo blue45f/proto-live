@@ -64,8 +64,6 @@ export function MarketView(props: {
   config: MarketConfig
   isInitialLoading: boolean
   loadError: string
-  protectedProjectCount: number
-  publicProjectCount: number
   fastestResponseProject: Project | null
   averageSignalDensity: number
   // detail route
@@ -171,8 +169,6 @@ export function MarketView(props: {
     config,
     isInitialLoading,
     loadError,
-    protectedProjectCount,
-    publicProjectCount,
     fastestResponseProject,
     averageSignalDensity,
     detailProjectId,
@@ -376,12 +372,7 @@ export function MarketView(props: {
           </section>
         </div>
 
-        <ProofKpiRail
-          stats={stats}
-          protectedProjectCount={protectedProjectCount}
-          publicProjectCount={publicProjectCount}
-          fastestResponseProject={fastestResponseProject}
-        />
+        <ProofKpiRail stats={stats} fastestResponseProject={fastestResponseProject} />
 
         {detailProjectId &&
           (detailProject ? (

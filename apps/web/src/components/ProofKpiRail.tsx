@@ -1,33 +1,30 @@
-import { Gauge, Globe2, ShieldCheck, TimerReset, Zap } from 'lucide-react'
+import { ShieldCheck, TimerReset, Zap } from 'lucide-react'
 import type { MarketStats, Project } from '../api'
 import { Metric } from './Metric'
 
+/**
+ * 피드 상단 "라이브 증명" 요약. 히어로에 이미 진행 상황 패널이 있으므로, 여기서는 커뮤니티가
+ * 한눈에 신뢰할 3가지(검증된 빌드 수 · 평균 열림 속도 · 최고 응답)만 보여 과밀을 줄인다.
+ */
 export function ProofKpiRail({
   stats,
-  protectedProjectCount,
-  publicProjectCount,
   fastestResponseProject,
 }: {
   stats: MarketStats
-  protectedProjectCount: number
-  publicProjectCount: number
   fastestResponseProject: Project | null
 }) {
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
       <Metric
         icon={ShieldCheck}
-        label="확인된 사이트"
+        label="확인된 라이브 빌드"
         value={`${stats.verifiedProjects}/${stats.totalProjects}`}
       />
-      <Metric icon={Gauge} label="확인 완료율" value={`${stats.verificationRate}%`} />
       <Metric
         icon={TimerReset}
         label="평균 열림 속도"
         value={stats.averageResponseMs === null ? 'N/A' : `${stats.averageResponseMs}ms`}
       />
-      <Metric icon={ShieldCheck} label="요청 후 공개" value={`${protectedProjectCount}`} />
-      <Metric icon={Globe2} label="바로 보기 가능" value={`${publicProjectCount}`} />
       <Metric
         icon={Zap}
         label="가장 빠른 응답"
