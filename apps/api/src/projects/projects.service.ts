@@ -218,6 +218,42 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  /** Google 로그인 사용 가능 여부(클라이언트 ID 설정 시). */
+  googleClientId(): string | null {
+    return process.env.GOOGLE_CLIENT_ID?.trim() || null
+  }
+
+  /** Google ID 토큰(GIS) 검증 → 이메일로 회원 find-or-create → 세션 발급. */
+  async loginWithGoogle(credential: string): Promise<{ session: AuthSession; cookie: string }> {
+    const clientId = this.googleClientId()
+    if (!clientId) {
+      throw new BadRequestException('Google 로그인이 설정되지 않았습니다.')
+    }
+    const { OAuth2Client } = await import('google-auth-library')
+    const client = new OAuth2Client(clientId)
+    let payload: import('google-auth-library').TokenPayload | undefined
+    try {
+      const ticket = await client.verifyIdToken({ idToken: credential, audience: clientId })
+      payload = ticket.getPayload()
+    } catch {
+      throw new ForbiddenException('Google 인증에 실패했습니다.')
+    }
+    if (!payload?.email) {
+      throw new ForbiddenException('Google 계정 정보를 읽을 수 없습니다.')
+    }
+    const user = this.upsertGoogleUser(payload.email, payload.name)
+    const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000)
+    const session = this.toAuthSession(user, expiresAt)
+    const token = this.signSessionToken({
+      id: session.id,
+      email: session.email,
+      role: session.role,
+      name: session.name,
+      exp: expiresAt.getTime(),
+    })
+    return { session, cookie: this.createSessionCookie(token, SESSION_MAX_AGE_SECONDS) }
+  }
+
   createLogoutCookie(): string {
     return this.createSessionCookie('', 0)
   }
@@ -502,6 +538,8 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
       challenge: this.challenge,
       // 투자 관심 동의의 정본 약관(version+hash+sections) — 프론트가 그대로 보여주고 제출 시 되돌려보낸다.
       consentTerms: getCurrentConsentTerms(),
+      // Google 로그인 공개 클라이언트 ID(없으면 버튼 숨김).
+      googleClientId: this.googleClientId(),
     }
   }
 
@@ -1622,6 +1660,26 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
     }
 
     user.role = 'maker'
+    return user
+  }
+
+  /** Google 계정 이메일로 회원을 find-or-create(신규는 member). 변경 시 persist. */
+  private upsertGoogleUser(email: string, name?: string): User {
+    const normalizedEmail = email.trim().toLowerCase()
+    let user = this.users.find((item) => item.email === normalizedEmail)
+    if (!user) {
+      user = {
+        id: this.nextUserId++,
+        email: normalizedEmail,
+        role: 'member',
+        name: name?.trim() || undefined,
+      }
+      this.users.push(user)
+      this.persist()
+    } else if (name && !user.name) {
+      user.name = name.trim()
+      this.persist()
+    }
     return user
   }
 

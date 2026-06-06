@@ -41,6 +41,7 @@ import {
   fetchProjectReviews,
   getApiErrorMessage,
   loginUser,
+  googleLoginUser,
   logoutUser,
   recordProjectEvent,
   toggleProjectUpvote,
@@ -1258,6 +1259,21 @@ export function useProtoLiveApp() {
     },
     [loginEmail, loginPassword]
   )
+
+  const handleGoogleLogin = useCallback(async (credential: string) => {
+    try {
+      const authenticated = await googleLoginUser(credential)
+      setSession(authenticated)
+      setIsLoginOpen(false)
+      toast(
+        'success',
+        '로그인 성공',
+        `${authenticated.name}님, ${resolveRoleLabel(authenticated.role)}로 입장했습니다.`
+      )
+    } catch (error) {
+      toast('error', 'Google 로그인 실패', getApiErrorMessage(error, 'Google 인증에 실패했습니다.'))
+    }
+  }, [])
 
   const handleLogout = useCallback(async () => {
     try {
@@ -2544,6 +2560,7 @@ export function useProtoLiveApp() {
     favoriteProjectIds,
     fundingRangeId,
     handleLogin,
+    handleGoogleLogin,
     handleLogout,
     handleModerateReview,
     handleOpenMatchDialog,

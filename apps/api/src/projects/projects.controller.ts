@@ -43,6 +43,20 @@ export class ProjectsController {
   }
 
   /**
+   * POST /api/projects/auth/google
+   * Google ID 토큰(GIS)을 검증해 회원을 로그인/생성하고 세션 쿠키를 발급합니다.
+   */
+  @Post('auth/google')
+  async loginWithGoogle(
+    @Body('credential') credential: string,
+    @Res({ passthrough: true }) response: Response
+  ) {
+    const result = await this.projectsService.loginWithGoogle(credential ?? '')
+    response.setHeader('Set-Cookie', result.cookie)
+    return result.session
+  }
+
+  /**
    * GET /api/projects/auth/session
    * 현재 httpOnly 세션 쿠키에서 로그인 상태를 복원합니다.
    */

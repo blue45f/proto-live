@@ -2,6 +2,7 @@ import React from 'react'
 import { Users } from 'lucide-react'
 import type { TestAccount } from '../../local-auth'
 import { Modal } from '../Modal'
+import { GoogleSignInButton } from '../GoogleSignInButton'
 
 type TestAccountsByRole = {
   maker: TestAccount[]
@@ -20,6 +21,8 @@ export function LoginModal({
   onPasswordChange,
   onQuickFill,
   onSubmit,
+  googleClientId,
+  onGoogleCredential,
 }: {
   loginEmail: string
   loginPassword: string
@@ -30,6 +33,8 @@ export function LoginModal({
   onPasswordChange: (value: string) => void
   onQuickFill: (account: TestAccount) => void
   onSubmit: (event: React.FormEvent) => void
+  googleClientId?: string | null
+  onGoogleCredential: (credential: string) => void
 }) {
   return (
     <Modal
@@ -141,6 +146,21 @@ export function LoginModal({
           </button>
         </div>
       </form>
+
+      {googleClientId ? (
+        <div className="mt-4">
+          <div className="mb-3 flex items-center gap-3 text-[11px] font-bold text-stone-500">
+            <span className="h-px flex-1 bg-stone-800" />
+            또는
+            <span className="h-px flex-1 bg-stone-800" />
+          </div>
+          <GoogleSignInButton
+            clientId={googleClientId}
+            text="signin_with"
+            onCredential={onGoogleCredential}
+          />
+        </div>
+      ) : null}
     </Modal>
   )
 }

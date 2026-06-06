@@ -167,6 +167,8 @@ export interface MarketConfig {
   benchmarkSignals: string[]
   challenge?: SeasonChallenge | null
   consentTerms?: ConsentTerms
+  /** Google 로그인 공개 클라이언트 ID(없으면 버튼 숨김). */
+  googleClientId?: string | null
 }
 
 export interface ConsentSection {
@@ -497,6 +499,11 @@ const client = axios.create({
 
 export async function loginUser(email: string, password: string) {
   const response = await client.post<AuthSession>('/projects/auth/login', { email, password })
+  return response.data
+}
+
+export async function googleLoginUser(credential: string) {
+  const response = await client.post<AuthSession>('/projects/auth/google', { credential })
   return response.data
 }
 

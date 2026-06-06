@@ -68,6 +68,7 @@ export default function App() {
     handleToggleFeatured,
     fundingRangeId,
     handleLogin,
+    handleGoogleLogin,
     handleLogout,
     handleModerateReview,
     handleOpenMatchDialog,
@@ -804,6 +805,8 @@ export default function App() {
             setLoginPassword(account.password)
           }}
           onSubmit={handleLogin}
+          googleClientId={config.googleClientId ?? null}
+          onGoogleCredential={handleGoogleLogin}
         />
       )}
     </div>
