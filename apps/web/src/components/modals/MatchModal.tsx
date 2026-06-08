@@ -3,6 +3,58 @@ import { Loader2, Send } from 'lucide-react'
 import type { FundingRange, MarketConfig, Project } from '../../api'
 import { Modal } from '../Modal'
 
+const MATCH_DEMO_LOG_KEY = 'protolive-match-demo-log-v1'
+const MATCH_DEMO_LOG_LIMIT = 40
+
+type MatchDemoAction = 'funding-range' | 'message' | 'legal' | 'privacy' | 'risk' | 'submit'
+type MatchDemoLog = {
+  id: string
+  at: number
+  action: MatchDemoAction
+  label: string
+  detail?: string
+}
+
+const makeMatchDemoLogId = () => `pl-match-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+
+const readMatchDemoLogs = (): MatchDemoLog[] => {
+  if (typeof window === 'undefined') return []
+
+  try {
+    const raw = window.localStorage.getItem(MATCH_DEMO_LOG_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed
+      .filter((item): item is MatchDemoLog => {
+        const candidate = item as Partial<MatchDemoLog>
+        return (
+          typeof candidate.id === 'string' &&
+          typeof candidate.at === 'number' &&
+          typeof candidate.action === 'string' &&
+          typeof candidate.label === 'string'
+        )
+      })
+      .slice(-MATCH_DEMO_LOG_LIMIT)
+  } catch {
+    return []
+  }
+}
+
+const appendMatchDemoLog = (action: MatchDemoAction, label: string, detail?: string) => {
+  if (typeof window === 'undefined') return
+
+  try {
+    const next = [
+      ...readMatchDemoLogs(),
+      { id: makeMatchDemoLogId(), at: Date.now(), action, label, detail },
+    ].slice(-MATCH_DEMO_LOG_LIMIT)
+    window.localStorage.setItem(MATCH_DEMO_LOG_KEY, JSON.stringify(next))
+  } catch {
+    // Local rehearsal log is best-effort.
+  }
+}
+
 export function MatchModal({
   project,
   config,
@@ -38,9 +90,30 @@ export function MatchModal({
   onRiskNoticeChange: (value: boolean) => void
   onSubmit: (event: React.FormEvent) => void
 }) {
+  const matchReadinessChecks = [
+    { label: '투자 구간 선택', done: Boolean(fundingRangeId) },
+    { label: '메시지 작성', done: matchMessage.trim().length >= 10 },
+    { label: '법적 성격 확인', done: matchLegalNoticeAccepted },
+    { label: '연락처 전달 동의', done: matchPrivacyConsentAccepted },
+    { label: '초기 검토 리스크 확인', done: matchRiskNoticeAccepted },
+  ]
+  const matchReadinessRate = Math.round(
+    (matchReadinessChecks.filter((check) => check.done).length / matchReadinessChecks.length) * 100
+  )
+
+  const recordMatchDemo = (action: MatchDemoAction, label: string, detail?: string) => {
+    appendMatchDemoLog(action, `${project.title} · ${label}`, detail)
+  }
+
   return (
     <Modal title="투자 관심 기록" subtitle={project.title} onClose={onClose} dialogRef={dialogRef}>
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form
+        onSubmit={(event) => {
+          recordMatchDemo('submit', '투자 관심 제출')
+          onSubmit(event)
+        }}
+        className="space-y-4"
+      >
         <div className="rounded-lg border border-stone-800 bg-stone-950/50 p-3">
           <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-200">
             투자자 확인 포인트
@@ -51,7 +124,10 @@ export function MatchModal({
           <span className="mb-2 block text-xs font-black text-stone-300">투자 희망 구간</span>
           <select
             value={fundingRangeId}
-            onChange={(event) => onFundingRangeChange(event.target.value)}
+            onChange={(event) => {
+              onFundingRangeChange(event.target.value)
+              recordMatchDemo('funding-range', '투자 구간 변경', event.target.value)
+            }}
             className="min-h-11 w-full rounded-lg border border-stone-700 bg-stone-950 px-3 text-sm text-stone-100 outline-none focus:border-lime-300/60"
           >
             {config.fundingRanges.map((range: FundingRange) => (
@@ -71,6 +147,11 @@ export function MatchModal({
             rows={4}
             value={matchMessage}
             onChange={(event) => onMessageChange(event.target.value)}
+            onBlur={() => {
+              if (matchMessage.trim()) {
+                recordMatchDemo('message', '창업자 메시지 작성', `${matchMessage.trim().length}자`)
+              }
+            }}
             placeholder="리뷰 요청, 미팅 가능 일정, 관심 있는 지표를 남겨주세요."
             className="w-full resize-none rounded-lg border border-stone-700 bg-stone-950 px-3 py-3 text-sm leading-6 text-stone-100 outline-none placeholder:text-stone-500 focus:border-lime-300/60"
           />
@@ -90,13 +171,54 @@ export function MatchModal({
             ))}
           </div>
         ) : null}
+        <div className="rounded-xl border border-cyan-300/25 bg-cyan-300/10 p-3 text-xs leading-5 text-stone-300">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="font-black text-cyan-100">매칭 리허설 체크</p>
+              <p className="text-stone-400">
+                약관·개인정보·리스크 확인 상태를 제출 전에 한눈에 점검합니다.
+              </p>
+            </div>
+            <span className="rounded-full border border-cyan-300/35 px-2 py-1 font-black text-cyan-100">
+              {matchReadinessRate}%
+            </span>
+          </div>
+          <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-stone-800">
+            <span
+              className="block h-full rounded-full bg-cyan-300"
+              style={{ width: `${matchReadinessRate}%` }}
+            />
+          </div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {matchReadinessChecks.map((check) => (
+              <div
+                key={check.label}
+                className="rounded-lg border border-stone-800 bg-stone-950/50 px-3 py-2"
+              >
+                <span
+                  className={check.done ? 'font-black text-lime-200' : 'font-black text-stone-500'}
+                >
+                  {check.done ? '완료' : '대기'}
+                </span>
+                <p className="text-stone-300">{check.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="protolive-compliance-box space-y-2 rounded-xl border border-amber-300/35 bg-amber-300/10 p-3 text-xs leading-5 text-amber-50">
           <p className="font-black text-amber-100">기록 전 필수 확인</p>
           <label className="flex gap-2">
             <input
               type="checkbox"
               checked={matchLegalNoticeAccepted}
-              onChange={(event) => onLegalNoticeChange(event.target.checked)}
+              onChange={(event) => {
+                onLegalNoticeChange(event.target.checked)
+                recordMatchDemo(
+                  'legal',
+                  event.target.checked ? '법적 성격 확인' : '법적 성격 확인 해제'
+                )
+              }}
               className="mt-1 h-4 w-4 rounded border-stone-600"
             />
             <span>이 기록은 투자 권유나 계약이 아니라 창업자에게 전달되는 관심 의향입니다.</span>
@@ -105,7 +227,13 @@ export function MatchModal({
             <input
               type="checkbox"
               checked={matchPrivacyConsentAccepted}
-              onChange={(event) => onPrivacyConsentChange(event.target.checked)}
+              onChange={(event) => {
+                onPrivacyConsentChange(event.target.checked)
+                recordMatchDemo(
+                  'privacy',
+                  event.target.checked ? '연락처 전달 동의' : '연락처 전달 동의 해제'
+                )
+              }}
               className="mt-1 h-4 w-4 rounded border-stone-600"
             />
             <span>
@@ -116,7 +244,13 @@ export function MatchModal({
             <input
               type="checkbox"
               checked={matchRiskNoticeAccepted}
-              onChange={(event) => onRiskNoticeChange(event.target.checked)}
+              onChange={(event) => {
+                onRiskNoticeChange(event.target.checked)
+                recordMatchDemo(
+                  'risk',
+                  event.target.checked ? '초기 검토 리스크 확인' : '초기 검토 리스크 해제'
+                )
+              }}
               className="mt-1 h-4 w-4 rounded border-stone-600"
             />
             <span>초기 프로토타입 검토에는 실패, 지연, 정보 부족 위험이 있음을 확인했습니다.</span>
