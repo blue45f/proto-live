@@ -44,6 +44,11 @@ function buildApiMock() {
     fetchMarketConfig: vi.fn(async () => marketConfig),
     fetchMarketStats: vi.fn(async () => marketStats),
     fetchProjects: vi.fn(async () => projects),
+    fetchProjectById: vi.fn(async (id: number) => {
+      const project = projects.find((item) => item.id === id)
+      if (!project) throw new Error(`fetchProjectById: no fixture project ${id}`)
+      return project
+    }),
     fetchProjectReviews: vi.fn(async () => projectReviews),
     fetchProjectEvents: vi.fn(async () => projectEvents),
     fetchAdminDashboard: vi.fn(async () => adminDashboard),

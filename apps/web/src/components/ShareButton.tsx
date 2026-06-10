@@ -1,13 +1,16 @@
 import { useState } from 'react'
 import { Check, Link2, Share2 } from 'lucide-react'
+import { useDismissableDetails } from '../lib/use-dismissable-details'
 
 /**
  * 프로젝트 공유 버튼. 네이티브 <details> 팝오버라 외부 의존성·상태관리 없이 동작한다.
  * - Web Share API(모바일/지원 브라우저)가 있으면 시스템 공유
  * - 링크 복사(clipboard) + X·LinkedIn 공유 인텐트(외부 키 불필요)
+ * - 바깥 클릭·Esc 로 닫힘(useDismissableDetails)
  */
 export function ShareButton({ url, title }: { url: string; title: string }) {
   const [copied, setCopied] = useState(false)
+  const detailsRef = useDismissableDetails()
 
   const canSystemShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
   const encodedUrl = encodeURIComponent(url)
@@ -30,7 +33,7 @@ export function ShareButton({ url, title }: { url: string; title: string }) {
   }
 
   return (
-    <details className="protolive-share group relative">
+    <details ref={detailsRef} className="protolive-share group relative">
       <summary className="inline-flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-lg border border-stone-700 px-3 text-xs font-black text-stone-300 transition hover:border-lime-300/50 hover:text-lime-100 [&::-webkit-details-marker]:hidden">
         <Share2 className="h-3.5 w-3.5" />
         공유

@@ -19,6 +19,17 @@
       "destination": "https://protolive.3.107.235.143.nip.io/api/sitemap.xml"
     },
     {
+      "source": "/projects/:id",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(facebookexternalhit|Twitterbot|Slackbot|kakaotalk-scrap|Discordbot|LinkedInBot|TelegramBot|WhatsApp|Googlebot).*"
+        }
+      ],
+      "destination": "https://protolive.3.107.235.143.nip.io/api/seo/projects/:id/og"
+    },
+    {
       "source": "/:path*",
       "destination": "/index.html"
     }

@@ -12,8 +12,10 @@ import {
   Gauge,
   Globe2,
   Link2,
+  Loader2,
   Radar,
   Search,
+  SearchX,
   Signal,
   Star,
   TrendingUp,
@@ -69,6 +71,7 @@ export function MarketView(props: {
   // detail route
   detailProjectId: number | null
   detailProject: Project | null
+  isDetailUnavailable: boolean
   diligenceEvents: ProjectEvent[]
   projectReviews: ProjectReview[]
   projectLog: ProjectLogEntry[]
@@ -173,6 +176,7 @@ export function MarketView(props: {
     averageSignalDensity,
     detailProjectId,
     detailProject,
+    isDetailUnavailable,
     diligenceEvents,
     projectReviews,
     projectLog,
@@ -411,8 +415,32 @@ export function MarketView(props: {
               isSubmittingLog={isSubmittingLog}
               onOpenMaker={onOpenMaker}
             />
+          ) : isDetailUnavailable ? (
+            <div className="rounded-xl border border-amber-400/30 bg-amber-300/10 p-6">
+              <div className="flex items-start gap-3">
+                <SearchX className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-200" />
+                <div className="min-w-0">
+                  <p className="font-black text-amber-100">프로젝트를 찾을 수 없어요.</p>
+                  <p className="mt-1 text-sm leading-6 text-amber-100/80">
+                    삭제되었거나 주소가 잘못되었을 수 있습니다. 피드에서 살아있는 빌드들을
+                    둘러보세요.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={onBack}
+                    className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-lg bg-lime-300 px-4 text-sm font-black text-slate-950 transition hover:bg-lime-200"
+                  >
+                    피드로 돌아가기
+                  </button>
+                </div>
+              </div>
+            </div>
           ) : (
-            <div className="rounded-xl border border-stone-800 bg-stone-950/60 p-6 text-sm text-stone-300">
+            <div
+              role="status"
+              className="flex items-center gap-3 rounded-xl border border-stone-800 bg-stone-950/60 p-6 text-sm text-stone-300"
+            >
+              <Loader2 className="h-4 w-4 flex-shrink-0 animate-spin text-lime-200" />
               사이트 상세 정보를 불러오는 중입니다. 잠시만 기다려주세요.
             </div>
           ))}
