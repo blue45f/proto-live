@@ -290,11 +290,13 @@ export default function App() {
                 <h1 className="protolive-title text-xl font-black tracking-tight text-stone-50">
                   ProtoLive
                 </h1>
-                <span className="protolive-badge rounded-full border border-lime-400/30 bg-lime-300/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-lime-200">
+                <span className="protolive-badge whitespace-nowrap rounded-full border border-lime-400/30 bg-lime-300/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-lime-200">
                   공유·피드백·투자
                 </span>
               </div>
-              <p className="protolive-subtitle truncate text-xs font-medium text-stone-400">
+              {/* 640~1023px: nowrap 부제가 max-content로 브랜드 존을 키워 우측 액션 존을
+                  짓누르지 않게 중간 구간도 16rem으로 캡(<768은 CSS가 동일 값 적용). */}
+              <p className="protolive-subtitle max-w-64 truncate text-xs font-medium text-stone-400 lg:max-w-none">
                 {isAdminView
                   ? '바이브코딩 커뮤니티의 수익·운영 지표를 관리하는 관리자 대시보드'
                   : isAboutView
@@ -308,7 +310,9 @@ export default function App() {
 
           <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-2 sm:flex-1 sm:justify-end lg:flex-nowrap">
             {canAccessAdmin ? (
-              <div className="protolive-pill-group order-last flex w-full min-w-0 shrink-0 items-center gap-2 overflow-x-auto rounded-lg border border-stone-700/80 bg-stone-900/70 px-2 py-2 text-xs font-bold sm:order-none sm:w-auto sm:rounded-full sm:px-3">
+              // shrink 허용: 중간 폭에서 액션 존보다 길어지면 밀어내는 대신
+              // min-w-0 + overflow-x-auto로 내부 스크롤된다.
+              <div className="protolive-pill-group order-last flex w-full min-w-0 items-center gap-2 overflow-x-auto rounded-lg border border-stone-700/80 bg-stone-900/70 px-2 py-2 text-xs font-bold sm:order-none sm:w-auto sm:rounded-full sm:px-3">
                 <button
                   type="button"
                   onClick={() => switchView('market')}

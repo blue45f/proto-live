@@ -31,7 +31,10 @@ export function NotificationBell({
   return (
     <details
       ref={detailsRef}
-      className="protolive-bell relative shrink-0"
+      // <sm에서는 벨이 줄 중간(justify-between)에 와서 right-0 팝오버가 좌측으로
+      // 화면 밖에 잘린다. static으로 두면 팝오버가 가장 가까운 포지션 조상인
+      // sticky 헤더 우측 모서리에 정렬되어 항상 화면 안에 머문다.
+      className="protolive-bell static shrink-0 sm:relative"
       onToggle={(event) => {
         if (event.currentTarget.open) {
           onMarkAllRead()
@@ -49,7 +52,7 @@ export function NotificationBell({
           </span>
         ) : null}
       </summary>
-      <div className="absolute right-0 z-30 mt-2 max-h-96 w-80 overflow-y-auto rounded-xl border border-stone-700 bg-stone-950/95 p-1 shadow-[0_16px_40px_oklch(20%_0.02_250/0.2)] backdrop-blur">
+      <div className="absolute right-2 z-30 mt-2 max-h-96 w-80 max-w-[calc(100vw-1rem)] overflow-y-auto rounded-xl border border-stone-700 bg-stone-950/95 p-1 shadow-[0_16px_40px_oklch(20%_0.02_250/0.2)] backdrop-blur sm:right-0 sm:max-w-none">
         <p className="px-3 py-2 text-xs font-black uppercase tracking-[0.14em] text-stone-400">
           알림
         </p>

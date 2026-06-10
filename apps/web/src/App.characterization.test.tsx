@@ -376,3 +376,64 @@ describe('App characterization: legal policy pages', () => {
     expect(supportLink).toHaveAttribute('target', '_blank')
   })
 })
+
+describe('App characterization: header/footer mid-breakpoint contract', () => {
+  // jsdom은 레이아웃을 계산하지 않으므로, 600~1023px 중간 폭 깨짐을 고친
+  // 반응형 클래스 계약을 가드한다(클래스가 빠지면 같은 회귀가 재발한다).
+
+  it('caps the brand subtitle through tablet widths and releases it on desktop', async () => {
+    await renderAppLoaded()
+
+    // nowrap(truncate) 부제가 max-content로 브랜드 존을 키우면 768~1023px에서
+    // 우측 액션 존이 좁은 세로 기둥으로 무너진다 — 중간 구간 16rem 캡이 방지선.
+    const subtitle = screen.getByText(
+      '바이브코딩으로 만든 사이트를 올리고 커뮤니티 피드백과 투자 관심을 받으세요'
+    )
+    expect(subtitle).toHaveClass('truncate', 'max-w-64', 'lg:max-w-none')
+
+    // 브랜드 배지는 폭 압박에서 두 줄 알약으로 꺾이지 않는다(CJK 중간 개행 방지).
+    expect(screen.getByText('공유·피드백·투자')).toHaveClass('whitespace-nowrap')
+
+    // 헤더 줄바꿈 정의: 중간 폭은 graceful wrap, 데스크톱(lg+)만 한 줄 고정.
+    const header = screen
+      .getByRole('heading', { name: 'ProtoLive', level: 1 })
+      .closest('header') as HTMLElement
+    expect(header.firstElementChild).toHaveClass('flex-wrap', 'lg:flex-nowrap')
+  })
+
+  it('lets the operator pill group scroll instead of overflowing a narrow action zone', async () => {
+    vi.mocked(api.fetchAuthSession).mockResolvedValueOnce(adminSession)
+    await renderAppLoaded()
+
+    // shrink-0이 붙으면 min-w-0 + overflow-x-auto 탈출구가 무력화되어
+    // 768px 부근에서 필 그룹이 액션 존 밖으로 밀려난다.
+    const pillGroup = (await screen.findByRole('button', { name: '운영 현황' }))
+      .parentElement as HTMLElement
+    expect(pillGroup).toHaveClass('min-w-0', 'overflow-x-auto')
+    expect(pillGroup).not.toHaveClass('shrink-0')
+  })
+
+  it('keeps the notification popover inside the viewport below the sm breakpoint', async () => {
+    vi.mocked(api.fetchAuthSession).mockResolvedValueOnce(makerSession)
+    await renderAppLoaded()
+
+    // <sm에서 벨은 justify-between 줄 중간에 오므로 right-0 팝오버(w-80)가
+    // 좌측 화면 밖으로 잘렸다. details를 static으로 두면 팝오버가 가장 가까운
+    // 포지션 조상인 sticky 헤더 우측에 정렬되어 항상 화면 안에 머문다.
+    const bellSummary = await screen.findByLabelText('알림')
+    expect(bellSummary.closest('details')).toHaveClass('static', 'sm:relative')
+    expect(bellSummary.nextElementSibling).toHaveClass(
+      'right-2',
+      'max-w-[calc(100vw-1rem)]',
+      'sm:right-0'
+    )
+  })
+
+  it('keeps the footer row and legal nav wrap-safe at mid widths', async () => {
+    await renderAppLoaded()
+
+    const legalNav = screen.getByRole('navigation', { name: '법적 고지 링크' })
+    expect(legalNav).toHaveClass('flex-wrap')
+    expect(legalNav.parentElement).toHaveClass('flex-wrap')
+  })
+})
