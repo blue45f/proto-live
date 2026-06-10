@@ -576,6 +576,12 @@ export async function fetchProjects(query: ProjectListQuery = {}): Promise<Proje
   return response.data
 }
 
+/** 단건 조회 — 공유 링크/알림으로 진입한 상세가 현재 목록 페이지에 없을 때 보강용. */
+export async function fetchProjectById(id: number): Promise<Project> {
+  const response = await client.get<Project>(`/projects/${id}`)
+  return response.data
+}
+
 export async function fetchMarketSnapshot() {
   const [config, stats, projects] = await Promise.all([
     fetchMarketConfig(),

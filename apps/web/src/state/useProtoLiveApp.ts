@@ -32,6 +32,7 @@ import {
   fetchMarketStats,
   extractProjects,
   fetchProjects,
+  fetchProjectById,
   fetchProjectEvents,
   fetchProjectLog,
   addProjectLogEntry,
@@ -315,9 +316,14 @@ export function useProtoLiveApp() {
   } = useReviewComposer()
   const [isSendingReview, setIsSendingReview] = useState(false)
   const [reportingReviewId, setReportingReviewId] = useState<number | null>(null)
+  // 공유 링크/알림으로 진입한 상세가 현재 목록 페이지(필터·페이지네이션)에 없을 때의 단건 보강분.
+  const [detailFallbackProject, setDetailFallbackProject] = useState<Project | null>(null)
+  const [isDetailUnavailable, setIsDetailUnavailable] = useState(false)
   const detailProject = useMemo(
-    () => projects.find((project) => project.id === detailProjectId) ?? null,
-    [detailProjectId, projects]
+    () =>
+      projects.find((project) => project.id === detailProjectId) ??
+      (detailFallbackProject?.id === detailProjectId ? detailFallbackProject : null),
+    [detailProjectId, projects, detailFallbackProject]
   )
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(() => {
     const hasAdvancedFilterPreset =
@@ -415,6 +421,33 @@ export function useProtoLiveApp() {
       .then((entries) => setProjectLog(entries))
       .catch(() => setProjectLog([]))
       .finally(() => setIsProjectLogLoading(false))
+  }, [detailProjectId])
+
+  // 목록은 페이지네이션·필터가 걸린 부분집합이라, 딥링크(/projects/:id)·알림으로 연 상세가
+  // 거기 없으면 단건 조회로 보강한다. 실패(삭제·잘못된 주소)는 '찾을 수 없음' 상태로 노출해
+  // 무한 로딩 막다른 길을 없앤다. 목록 변경마다 재조회하지 않도록 ref 로 최신 목록만 참조한다.
+  const projectsRef = useRef(projects)
+  useEffect(() => {
+    projectsRef.current = projects
+  }, [projects])
+  useEffect(() => {
+    setDetailFallbackProject(null)
+    setIsDetailUnavailable(false)
+    if (!detailProjectId || projectsRef.current.some((item) => item.id === detailProjectId)) {
+      return
+    }
+
+    let active = true
+    fetchProjectById(detailProjectId)
+      .then((project) => {
+        if (active) setDetailFallbackProject(project)
+      })
+      .catch(() => {
+        if (active) setIsDetailUnavailable(true)
+      })
+    return () => {
+      active = false
+    }
   }, [detailProjectId])
 
   useEffect(() => {
@@ -2385,19 +2418,24 @@ export function useProtoLiveApp() {
     [handleRequireInvestorOnly]
   )
 
-  const openProjectDetail = useCallback((project: Project) => {
+  const openProjectDetailById = useCallback((projectId: number) => {
     setProjectReviews([])
     setDiligenceEvents([])
     setIsProjectReviewsLoading(true)
     setIsDiligenceEventsLoading(true)
     setMakerProfileId(null)
-    setDetailProjectId(project.id)
+    setDetailProjectId(projectId)
     setView('market')
     if (typeof window !== 'undefined') {
-      navigate(routePath.detail(project.id), { projectId: project.id })
+      navigate(routePath.detail(projectId), { projectId })
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [])
+
+  const openProjectDetail = useCallback(
+    (project: Project) => openProjectDetailById(project.id),
+    [openProjectDetailById]
+  )
 
   const closeProjectDetail = useCallback(() => {
     setDetailProjectId(null)
@@ -2490,14 +2528,12 @@ export function useProtoLiveApp() {
     }
   }, [notifications])
 
+  // 알림이 가리키는 프로젝트가 현재 목록 페이지에 없어도 id 로 상세를 연다(단건 보강이 처리).
   const openNotification = useCallback(
     (notification: AppNotification) => {
-      const project = projects.find((item) => item.id === notification.projectId)
-      if (project) {
-        openProjectDetail(project)
-      }
+      openProjectDetailById(notification.projectId)
     },
-    [projects, openProjectDetail]
+    [openProjectDetailById]
   )
 
   return {
@@ -2551,6 +2587,7 @@ export function useProtoLiveApp() {
     description,
     detailProject,
     detailProjectId,
+    isDetailUnavailable,
     diligenceDialogRef,
     diligenceEvents,
     diligenceProject,

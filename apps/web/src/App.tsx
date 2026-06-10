@@ -56,6 +56,7 @@ export default function App() {
     description,
     detailProject,
     detailProjectId,
+    isDetailUnavailable,
     diligenceDialogRef,
     diligenceEvents,
     diligenceProject,
@@ -401,8 +402,12 @@ export default function App() {
                 type="button"
                 onClick={openSubmitDialog}
                 disabled={!apiOnline || config.categories.length === 0}
-                aria-label="프로토타입 등록"
-                title="프로토타입 등록 (⌘/Ctrl + N)"
+                aria-label={isAuthenticated ? '프로토타입 등록' : '프로토타입 등록 (로그인 필요)'}
+                title={
+                  isAuthenticated
+                    ? '프로토타입 등록 (⌘/Ctrl + N)'
+                    : '로그인하면 바로 등록할 수 있어요'
+                }
                 className="protolive-btn protolive-btn-primary inline-flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-lime-300 px-3 text-sm font-black text-slate-950 transition hover:bg-lime-200 active:translate-y-px disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-stone-400 sm:px-4"
               >
                 <Plus className="h-4 w-4" />
@@ -479,6 +484,7 @@ export default function App() {
             averageSignalDensity={averageSignalDensity}
             detailProjectId={detailProjectId}
             detailProject={detailProject}
+            isDetailUnavailable={isDetailUnavailable}
             diligenceEvents={diligenceEvents}
             projectReviews={projectReviews}
             projectLog={projectLog}

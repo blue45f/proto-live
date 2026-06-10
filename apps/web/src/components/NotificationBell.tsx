@@ -1,6 +1,7 @@
 import { Bell, Briefcase, ChevronUp, MessageSquare, Star } from 'lucide-react'
 import type { AppNotification, NotificationType } from '../api'
 import { formatRelativeTime } from '../lib/format'
+import { useDismissableDetails } from '../lib/use-dismissable-details'
 
 const TYPE_ICON: Record<NotificationType, typeof Bell> = {
   review: MessageSquare,
@@ -12,6 +13,7 @@ const TYPE_ICON: Record<NotificationType, typeof Bell> = {
 /**
  * 헤더 알림 벨. 네이티브 <details> 드롭다운(무의존). 열면 전체 읽음 처리하고,
  * 항목 클릭 시 해당 프로젝트 상세로 이동한다. 미읽음 개수를 배지로 표시.
+ * 바깥 클릭·Esc 로 닫힌다(useDismissableDetails).
  */
 export function NotificationBell({
   notifications,
@@ -24,8 +26,11 @@ export function NotificationBell({
   onMarkAllRead: () => void
   onOpen: (notification: AppNotification) => void
 }) {
+  const detailsRef = useDismissableDetails()
+
   return (
     <details
+      ref={detailsRef}
       className="protolive-bell relative shrink-0"
       onToggle={(event) => {
         if (event.currentTarget.open) {
@@ -57,7 +62,11 @@ export function NotificationBell({
               <button
                 key={notification.id}
                 type="button"
-                onClick={() => onOpen(notification)}
+                onClick={() => {
+                  // 상세로 이동하므로 팝오버가 새 화면을 가리지 않게 닫는다.
+                  if (detailsRef.current) detailsRef.current.open = false
+                  onOpen(notification)
+                }}
                 className={`flex w-full items-start gap-2.5 rounded-lg px-3 py-2.5 text-left transition hover:bg-lime-300/10 ${
                   notification.read ? '' : 'bg-lime-300/[0.05]'
                 }`}
