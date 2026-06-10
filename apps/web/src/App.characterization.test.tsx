@@ -2,7 +2,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { makeApiMock, adminSession, makerSession } from './test/api-mock'
-import { projectCareloop, projectMealmap } from './test/fixtures'
+import {
+  projectCareloop,
+  projectMealmap,
+  publicPrivacyPolicy,
+  publicTermsPolicy,
+} from './test/fixtures'
+import type { PublicPolicy } from './lib/termsdesk'
 
 // Pure helpers (extractProjects/hasPagination/etc.) stay real via importActual
 // so App's derivation logic is still exercised; only the network functions are
@@ -313,5 +319,60 @@ describe('App characterization: market hero CTA', () => {
 
     await waitFor(() => expect(window.location.pathname).toBe('/about'))
     expect(await screen.findByText('커뮤니티가 먼저, 투자는 사다리 위에')).toBeInTheDocument()
+  })
+})
+
+describe('App characterization: legal policy pages', () => {
+  // PolicyView 는 ./api 가 아니라 TermsDesk 공개 API를 전역 fetch 로 직접 호출하므로
+  // 이 블록에서만 fetch 를 스텁한다(시장 데이터 경로와 분리된 외부 표면).
+  function stubPolicyFetch(policy: PublicPolicy) {
+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => policy }))
+    vi.stubGlobal('fetch', fetchMock)
+    return fetchMock
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('serves 이용약관 from the footer as an internal page instead of an external redirect', async () => {
+    const fetchMock = stubPolicyFetch(publicTermsPolicy)
+    const user = userEvent.setup()
+    await renderAppLoaded()
+
+    const termsLink = screen.getByRole('link', { name: '이용약관' })
+    // 내부 라우트 href — 새 탭 외부 이동이 아니다.
+    expect(termsLink).toHaveAttribute('href', '/terms')
+    expect(termsLink).not.toHaveAttribute('target')
+
+    await user.click(termsLink)
+
+    await waitFor(() => expect(window.location.pathname).toBe('/terms'))
+    expect(await screen.findByRole('heading', { name: '이용약관', level: 2 })).toBeInTheDocument()
+    // 신뢰 표면: 버전·해시 축약이 페이지 하단에 그대로 노출된다.
+    expect(await screen.findByText('12b390fde0d4')).toBeInTheDocument()
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://termsdesk.vercel.app/api/public/proto-live/policies/terms-of-service',
+      expect.anything()
+    )
+  })
+
+  it('renders the privacy policy internally on a /privacy deep link', async () => {
+    stubPolicyFetch(publicPrivacyPolicy)
+    setPath('/privacy')
+    render(<App />)
+
+    expect(
+      await screen.findByRole('heading', { name: '개인정보처리방침', level: 2 })
+    ).toBeInTheDocument()
+    expect(await screen.findByText('da889f525586')).toBeInTheDocument()
+  })
+
+  it('keeps the support board link external to TermsDesk', async () => {
+    await renderAppLoaded()
+
+    const supportLink = screen.getByRole('link', { name: '지원' })
+    expect(supportLink).toHaveAttribute('href', 'https://termsdesk.vercel.app/support/proto-live')
+    expect(supportLink).toHaveAttribute('target', '_blank')
   })
 })

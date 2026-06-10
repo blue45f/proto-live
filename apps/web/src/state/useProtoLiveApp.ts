@@ -73,6 +73,7 @@ import {
 } from '../lib/revenue-config'
 import {
   type AppView,
+  type PolicyView,
   type ProjectListViewMode,
   LOGIN_MODAL_KEY,
   ADMIN_PATH_SEGMENT,
@@ -687,6 +688,9 @@ export function useProtoLiveApp() {
 
   const isAdminView = effectiveView === 'admin'
   const isAboutView = effectiveView === 'about'
+  // 법적 고지 뷰(이용약관/개인정보처리방침). null 이면 정책 페이지가 아니다.
+  const activePolicyView: PolicyView | null =
+    effectiveView === 'terms' || effectiveView === 'privacy' ? effectiveView : null
   const isAdminDashboardAvailable =
     adminDashboard.lastUpdatedAt !== EMPTY_ADMIN_DASHBOARD.lastUpdatedAt
   const orderedAdminRecommendations = useMemo(
@@ -2478,6 +2482,21 @@ export function useProtoLiveApp() {
     }
   }, [closeModalStack])
 
+  // 약관/개인정보처리방침 내부 페이지(TermsDesk 게시본)로 이동. about과 같은 공개 페이지 패턴.
+  const openPolicy = useCallback(
+    (policyView: PolicyView) => {
+      setMakerProfileId(null)
+      setDetailProjectId(null)
+      setView(policyView)
+      closeModalStack()
+      if (typeof window !== 'undefined') {
+        navigate(routePath.policy(policyView))
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    },
+    [closeModalStack]
+  )
+
   // 브랜드/홈 클릭 시 피드로 복귀.
   const goHome = useCallback(() => {
     setMakerProfileId(null)
@@ -2546,8 +2565,10 @@ export function useProtoLiveApp() {
     openMakerProfile,
     closeMakerProfile,
     openAbout,
+    openPolicy,
     goHome,
     isAboutView,
+    activePolicyView,
     notifications,
     unreadNotificationCount,
     markAllNotificationsRead,

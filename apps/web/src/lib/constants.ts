@@ -12,12 +12,17 @@ import type {
 } from '../api'
 import { DEFAULT_REVENUE_CONFIG, DEFAULT_REVENUE_TARGET } from './revenue-config'
 
-export type AppView = 'market' | 'admin' | 'about'
+export type AppView = 'market' | 'admin' | 'about' | 'terms' | 'privacy'
+
+/** TermsDesk 게시 정본을 내부에서 렌더하는 법적 고지 뷰(이용약관·개인정보처리방침). */
+export type PolicyView = Extract<AppView, 'terms' | 'privacy'>
 
 export const LOGIN_MODAL_KEY = 'protolive:login-form:v1'
 export const ADMIN_PATH_SEGMENT = 'admin'
 export const SUBMIT_PATH_SEGMENT = 'submit'
 export const ABOUT_PATH_SEGMENT = 'about'
+export const TERMS_PATH_SEGMENT = 'terms'
+export const PRIVACY_PATH_SEGMENT = 'privacy'
 
 export const EMPTY_STATS: MarketStats = {
   totalProjects: 0,

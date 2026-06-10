@@ -1,8 +1,11 @@
 import {
   ABOUT_PATH_SEGMENT,
   ADMIN_PATH_SEGMENT,
+  PRIVACY_PATH_SEGMENT,
   SUBMIT_PATH_SEGMENT,
+  TERMS_PATH_SEGMENT,
   type AppView,
+  type PolicyView,
 } from '../lib/constants'
 
 /**
@@ -45,6 +48,10 @@ const MATCHERS: ReadonlyArray<(path: string, query: URLSearchParams) => AppRoute
     lastSegment(path) === SUBMIT_PATH_SEGMENT ? { ...MARKET_ROUTE, intent: 'submit' } : null,
   // 소개: /about (공개 페이지)
   (path) => (lastSegment(path) === ABOUT_PATH_SEGMENT ? { ...MARKET_ROUTE, view: 'about' } : null),
+  // 법적 고지: /terms · /privacy (TermsDesk 게시 정본을 내부 페이지로 렌더)
+  (path) => (lastSegment(path) === TERMS_PATH_SEGMENT ? { ...MARKET_ROUTE, view: 'terms' } : null),
+  (path) =>
+    lastSegment(path) === PRIVACY_PATH_SEGMENT ? { ...MARKET_ROUTE, view: 'privacy' } : null,
   // 운영 콘솔: /admin 또는 ?view=admin (별칭 보존)
   (path, query) =>
     lastSegment(path) === ADMIN_PATH_SEGMENT || query.get('view') === 'admin'
@@ -90,6 +97,8 @@ export const routePath = {
   maker: (id: number): string => `/makers/${id}`,
   submit: (): string => `/${SUBMIT_PATH_SEGMENT}`,
   about: (): string => `/${ABOUT_PATH_SEGMENT}`,
+  policy: (view: PolicyView): string =>
+    view === 'terms' ? `/${TERMS_PATH_SEGMENT}` : `/${PRIVACY_PATH_SEGMENT}`,
 }
 
 /** history.pushState 래퍼. 한 곳에서만 URL을 바꿔 popstate 재해석과 일관성을 유지한다. */

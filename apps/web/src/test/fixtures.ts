@@ -7,6 +7,7 @@ import type {
   ProjectReview,
   ValidationSnapshot,
 } from '../api'
+import type { PublicPolicy } from '../lib/termsdesk'
 
 // ---------------------------------------------------------------------------
 // Deterministic fixtures used by the App.tsx characterization tests. These are
@@ -267,4 +268,28 @@ export const adminDashboard: AdminDashboardSnapshot = {
     },
   },
   lastUpdatedAt: '2026-06-03T00:00:00.000Z',
+}
+
+// TermsDesk 공개 게시 API(GET /api/public/proto-live/policies/:slug)의 JSON 변형과
+// 같은 형태. PolicyView 단독 테스트와 App 특성화 테스트가 함께 쓴다.
+export const publicTermsPolicy: PublicPolicy = {
+  orgName: 'ProtoLive',
+  policySlug: 'terms-of-service',
+  name: '이용약관',
+  type: 'terms',
+  locale: 'ko',
+  versionLabel: 'v1',
+  contentHash: '12b390fde0d486e04b621aa7a56bd701456613fc1dc0ed80eb1f24c8dae61e8d',
+  body: '제1조 (목적)\n이 약관은 ProtoLive 이용 조건을 정합니다.\n\n제2조 (처리 항목)\n- 계정 정보\n- 이용 기록',
+  effectiveAt: '2026-06-08T00:00:00.000Z',
+  publishedAt: '2026-06-08T00:00:00.000Z',
+  changeSummary: 'TermsDesk 중앙 게시본으로 이전',
+}
+
+export const publicPrivacyPolicy: PublicPolicy = {
+  ...publicTermsPolicy,
+  policySlug: 'privacy-policy',
+  name: '개인정보처리방침',
+  type: 'privacy',
+  contentHash: 'da889f525586743018e79d04916b3b5e6e529de1419da108155603c490bff001',
 }

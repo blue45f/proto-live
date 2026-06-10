@@ -8,12 +8,15 @@ import { MarketView } from './components/pages/MarketView'
 import { MakerProfileView } from './components/pages/MakerProfileView'
 import { NotificationBell } from './components/NotificationBell'
 import { AboutView } from './components/pages/AboutView'
+import { PolicyView } from './components/pages/PolicyView'
 import { LoginModal } from './components/modals/LoginModal'
 import { MatchModal } from './components/modals/MatchModal'
 import { SubmitProjectModal } from './components/modals/SubmitProjectModal'
 import { ReviewModal } from './components/modals/ReviewModal'
 import { PreviewModal } from './components/modals/PreviewModal'
 import { useProtoLiveApp } from './state/useProtoLiveApp'
+import { POLICY_PAGES, TERMSDESK_SUPPORT_URL } from './lib/termsdesk'
+import { routePath } from './router/route'
 
 export default function App() {
   const {
@@ -88,7 +91,9 @@ export default function App() {
     isAdminDashboardAvailable,
     isAdminView,
     isAboutView,
+    activePolicyView,
     openAbout,
+    openPolicy,
     goHome,
     notifications,
     unreadNotificationCount,
@@ -240,14 +245,20 @@ export default function App() {
   const [viewAnnouncement, setViewAnnouncement] = useState('')
   const hasAnnouncedRef = useRef(false)
   useEffect(() => {
-    const label = isAdminView ? '운영 콘솔' : isAboutView ? '소개' : '프로토타입 마켓'
+    const label = isAdminView
+      ? '운영 콘솔'
+      : isAboutView
+        ? '소개'
+        : activePolicyView
+          ? POLICY_PAGES[activePolicyView].label
+          : '프로토타입 마켓'
     document.title = `${label} · ProtoLive`
     if (!hasAnnouncedRef.current) {
       hasAnnouncedRef.current = true
       return
     }
     setViewAnnouncement(`${label} 화면으로 전환했습니다`)
-  }, [isAdminView, isAboutView])
+  }, [isAdminView, isAboutView, activePolicyView])
 
   return (
     <div className="protolive-shell min-h-screen bg-base text-stone-100">
@@ -288,7 +299,9 @@ export default function App() {
                   ? '바이브코딩 커뮤니티의 수익·운영 지표를 관리하는 관리자 대시보드'
                   : isAboutView
                     ? '바이브코딩으로 만든 웹앱을 살아있는 채로 공유하고 피드백받는 커뮤니티'
-                    : '바이브코딩으로 만든 사이트를 올리고 커뮤니티 피드백과 투자 관심을 받으세요'}
+                    : activePolicyView
+                      ? 'TermsDesk에서 버전·해시로 관리되는 법적 고지 정본'
+                      : '바이브코딩으로 만든 사이트를 올리고 커뮤니티 피드백과 투자 관심을 받으세요'}
               </p>
             </div>
           </div>
@@ -437,6 +450,10 @@ export default function App() {
         ) : isAboutView ? (
           <div className="lg:col-span-2">
             <AboutView onCreate={openSubmitDialog} onBrowse={goHome} />
+          </div>
+        ) : activePolicyView ? (
+          <div className="lg:col-span-2">
+            <PolicyView view={activePolicyView} />
           </div>
         ) : isAdminView ? (
           <AdminDashboardView
@@ -822,24 +839,32 @@ export default function App() {
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-3 text-center sm:justify-between">
           <span>ProtoLive © TermsDesk 포트폴리오</span>
           <nav aria-label="법적 고지 링크" className="flex flex-wrap justify-center gap-4">
+            {/* 약관/개인정보처리방침은 내부 페이지(TermsDesk 게시본 렌더). 지원 보드만 외부 유지. */}
             <a
-              href="https://termsdesk.vercel.app/p/proto-live/terms-of-service"
-              target="_blank"
-              rel="noreferrer"
+              href={routePath.policy('terms')}
+              onClick={(event) => {
+                // cmd/ctrl/shift 클릭(새 탭·새 창)은 브라우저 기본 동작에 맡긴다.
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+                event.preventDefault()
+                openPolicy('terms')
+              }}
               className="hover:text-stone-100"
             >
               이용약관
             </a>
             <a
-              href="https://termsdesk.vercel.app/p/proto-live/privacy-policy"
-              target="_blank"
-              rel="noreferrer"
+              href={routePath.policy('privacy')}
+              onClick={(event) => {
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+                event.preventDefault()
+                openPolicy('privacy')
+              }}
               className="hover:text-stone-100"
             >
               개인정보처리방침
             </a>
             <a
-              href="https://termsdesk.vercel.app/support/proto-live"
+              href={TERMSDESK_SUPPORT_URL}
               target="_blank"
               rel="noreferrer"
               className="hover:text-stone-100"
