@@ -63,6 +63,25 @@ type AdminRevenueProjectionParams = RevenueModelConfig & {
   targetMonthlyRevenue: number
 }
 
+/** ISO 마감일을 date 입력값(YYYY-MM-DD, 로컬 기준)으로 되돌린다. 없거나 깨졌으면 빈 값. */
+function toDateInputValue(value?: string) {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const year = date.getFullYear().toString().padStart(4, '0')
+  const month = (date.getMonth() + 1).toString().padStart(2, '0')
+  const day = date.getDate().toString().padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+/** date 입력값(YYYY-MM-DD)을 그날 로컬 23:59:59 ISO 인스턴트로 변환한다. 비면 undefined. */
+function toEndOfDayIso(value: string) {
+  if (!value) return undefined
+  const date = new Date(`${value}T23:59:59`)
+  if (Number.isNaN(date.getTime())) return undefined
+  return date.toISOString()
+}
+
 export function AdminDashboardView({
   adminDashboard,
   adminDashboardError,
@@ -128,10 +147,11 @@ export function AdminDashboardView({
   onRevenueTargetChange: (rawValue: string) => void
   onRevenueInputChange: (key: keyof RevenueModelConfig, rawValue: string) => void
   challenge: SeasonChallenge | null
-  onSetChallenge: (title: string, description: string) => void
+  onSetChallenge: (title: string, description: string, endsAt?: string) => void
 }) {
   const [challengeTitle, setChallengeTitle] = useState(challenge?.title ?? '')
   const [challengeDescription, setChallengeDescription] = useState(challenge?.description ?? '')
+  const [challengeEndsAt, setChallengeEndsAt] = useState(toDateInputValue(challenge?.endsAt))
 
   return (
     <section className="col-span-full space-y-6">
@@ -155,12 +175,26 @@ export function AdminDashboardView({
             placeholder="설명 (제목·설명을 모두 비우고 해제하면 배너가 사라집니다)"
             className="w-full resize-none rounded-lg border border-stone-700 bg-stone-950 px-3 py-2 text-sm leading-6 text-stone-100 outline-none placeholder:text-stone-500 focus:border-lime-300/60"
           />
+          <label className="flex flex-wrap items-center gap-2 text-xs font-bold text-stone-400">
+            <CalendarClock className="h-4 w-4 text-lime-200" />
+            마감일 (선택)
+            <input
+              type="date"
+              value={challengeEndsAt}
+              onChange={(event) => setChallengeEndsAt(event.target.value)}
+              className="min-h-11 rounded-lg border border-stone-700 bg-stone-950 px-3 text-sm text-stone-100 outline-none focus:border-lime-300/60"
+            />
+            <span className="text-stone-500">
+              설정하면 피드 배너에 D-day와 캘린더 추가 버튼이 노출됩니다.
+            </span>
+          </label>
           <div className="flex justify-end gap-2">
             <button
               type="button"
               onClick={() => {
                 setChallengeTitle('')
                 setChallengeDescription('')
+                setChallengeEndsAt('')
                 onSetChallenge('', '')
               }}
               className="min-h-10 rounded-lg border border-stone-700 px-4 text-sm font-black text-stone-300 transition hover:text-stone-100"
@@ -169,7 +203,9 @@ export function AdminDashboardView({
             </button>
             <button
               type="button"
-              onClick={() => onSetChallenge(challengeTitle, challengeDescription)}
+              onClick={() =>
+                onSetChallenge(challengeTitle, challengeDescription, toEndOfDayIso(challengeEndsAt))
+              }
               className="min-h-10 rounded-lg bg-lime-300 px-4 text-sm font-black text-slate-950"
             >
               게시

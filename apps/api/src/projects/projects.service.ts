@@ -543,18 +543,23 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  /** 운영자가 시즌 챌린지를 설정/해제한다. 제목·설명이 비면 해제(null). */
-  setChallenge(title: string, description: string): SeasonChallenge | null {
+  /** 운영자가 시즌 챌린지를 설정/해제한다. 제목·설명이 비면 해제(null). 마감일은 유효한 날짜일 때만 ISO로 정규화해 저장. */
+  setChallenge(title: string, description: string, endsAt?: string): SeasonChallenge | null {
     const trimmedTitle = title.trim()
     const trimmedDescription = description.trim()
     if (!trimmedTitle && !trimmedDescription) {
       this.challenge = null
     } else {
-      this.challenge = {
+      const deadline = endsAt?.trim() ? new Date(endsAt) : null
+      const next: SeasonChallenge = {
         title: trimmedTitle,
         description: trimmedDescription,
         updatedAt: new Date().toISOString(),
       }
+      if (deadline && !Number.isNaN(deadline.getTime())) {
+        next.endsAt = deadline.toISOString()
+      }
+      this.challenge = next
     }
     this.persist()
     return this.challenge

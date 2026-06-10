@@ -2,6 +2,7 @@ import React from 'react'
 import {
   Activity,
   AlertTriangle,
+  ArrowRight,
   BarChart3,
   Briefcase,
   CalendarClock,
@@ -39,7 +40,8 @@ import {
   PROJECT_LIST_VIEW_OPTIONS,
   benchmarkCopy,
 } from '../../lib/constants'
-import { formatRelativeTime } from '../../lib/format'
+import { formatChallengeDday, formatRelativeTime } from '../../lib/format'
+import { downloadIcs } from '../../lib/ics'
 import { ProofKpiRail } from '../ProofKpiRail'
 import { ProjectDetailRoute } from '../ProjectDetailRoute'
 import { ProjectCard } from '../ProjectCard'
@@ -268,19 +270,57 @@ export function MarketView(props: {
     canFeature,
   } = props
 
+  const challenge = config.challenge ?? null
+  const challengeDday = challenge?.endsAt ? formatChallengeDday(challenge.endsAt) : null
+
+  /** 챌린지 마감 1시간 전~마감 시각을 리마인더 일정으로 캘린더 앱에 내려준다. */
+  function handleAddChallengeToCalendar() {
+    if (!challenge?.endsAt) return
+    const deadline = new Date(challenge.endsAt)
+    if (Number.isNaN(deadline.getTime())) return
+    downloadIcs({
+      uid: `protolive-challenge-${challenge.updatedAt}`,
+      title: `[ProtoLive] ${challenge.title} 마감`,
+      description: challenge.description,
+      startAt: new Date(deadline.getTime() - 60 * 60 * 1000),
+      endAt: deadline,
+      url: window.location.origin,
+    })
+  }
+
   return (
     <>
       <section className="min-w-0 space-y-6">
         {!detailProjectId && <OnboardingTip onOpenAbout={onOpenAbout} onCreate={onCreate} />}
-        {!detailProjectId && config.challenge && (
+        {!detailProjectId && challenge && (
           <section className="rounded-xl border border-lime-300/30 bg-lime-300/10 p-4">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-lime-200">
-              이번 시즌 챌린지
-            </p>
-            <h3 className="mt-1 text-lg font-black text-stone-50">{config.challenge.title}</h3>
-            <p className="mt-1 max-w-3xl text-sm leading-6 text-stone-300">
-              {config.challenge.description}
-            </p>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-black uppercase tracking-[0.14em] text-lime-200">
+                  이번 시즌 챌린지
+                  {challengeDday && (
+                    <span className="ml-2 inline-flex items-center gap-1 rounded-full border border-lime-300/40 bg-lime-300/15 px-2 py-0.5 text-[11px] font-black normal-case tracking-normal text-lime-100">
+                      <Clock3 className="h-3 w-3" />
+                      {challengeDday}
+                    </span>
+                  )}
+                </p>
+                <h3 className="mt-1 text-lg font-black text-stone-50">{challenge.title}</h3>
+                <p className="mt-1 max-w-3xl text-sm leading-6 text-stone-300">
+                  {challenge.description}
+                </p>
+              </div>
+              {challengeDday && (
+                <button
+                  type="button"
+                  onClick={handleAddChallengeToCalendar}
+                  className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg border border-lime-300/40 px-3 text-xs font-black text-lime-200 transition hover:bg-lime-300/10"
+                >
+                  <CalendarClock className="h-3.5 w-3.5" />
+                  캘린더에 추가
+                </button>
+              )}
+            </div>
           </section>
         )}
         <div className="grid gap-4">
@@ -331,6 +371,23 @@ export function MarketView(props: {
                       검증된 상위 빌드는 투자자에게 관심으로 이어집니다.
                     </p>
                   </div>
+                </div>
+                <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={onCreate}
+                    className="protolive-btn protolive-btn-primary inline-flex min-h-11 items-center gap-2 rounded-xl bg-lime-300 px-5 text-sm font-black text-slate-950 transition hover:bg-lime-200 active:translate-y-px"
+                  >
+                    내 사이트 등록하기
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onOpenAbout}
+                    className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-stone-700 px-5 text-sm font-black text-stone-200 transition hover:border-lime-300/50 hover:text-lime-100"
+                  >
+                    작동 방식 보기
+                  </button>
                 </div>
               </div>
               <div className="protolive-market-status rounded-lg border border-stone-700/70 bg-stone-950/60 p-4 text-xs text-stone-400">
@@ -470,6 +527,7 @@ export function MarketView(props: {
                       key={item}
                       type="button"
                       onClick={() => onSelectCategory(item)}
+                      aria-pressed={selectedCategory === item}
                       className={`min-h-10 rounded-lg border px-3 text-xs font-black transition ${
                         selectedCategory === item
                           ? 'border-lime-300/50 bg-lime-300 text-slate-950'
@@ -520,6 +578,7 @@ export function MarketView(props: {
                       value={searchQuery}
                       onChange={(event) => onSearchChange(event.target.value)}
                       placeholder="이름, 설명, URL, 카테고리, 태그 검색"
+                      aria-label="프로토타입 검색"
                       className="min-h-11 w-full rounded-lg border border-stone-700 bg-stone-950/70 pl-10 pr-3 text-sm text-stone-100 outline-none transition placeholder:text-stone-500 focus:border-cyan-300/60"
                     />
                   </div>
@@ -637,6 +696,7 @@ export function MarketView(props: {
                           key={item}
                           type="button"
                           onClick={() => onSelectAccessMode(item)}
+                          aria-pressed={selectedAccessMode === item}
                           className={`min-h-10 rounded-lg border px-3 text-xs font-black transition ${
                             selectedAccessMode === item
                               ? 'border-cyan-300/50 bg-cyan-300 text-slate-950'
@@ -655,6 +715,10 @@ export function MarketView(props: {
                             key={range.id}
                             type="button"
                             onClick={() => onApplyFundingRange(range)}
+                            aria-pressed={
+                              range.minAmount === minFundingAmount &&
+                              range.maxAmount === maxFundingAmount
+                            }
                             className={`min-h-8 rounded-full border px-3 py-1 text-[11px] font-black transition ${
                               range.minAmount === minFundingAmount &&
                               range.maxAmount === maxFundingAmount
@@ -734,6 +798,7 @@ export function MarketView(props: {
                       <button
                         type="button"
                         onClick={onToggleFavoritesOnlyAdvanced}
+                        aria-pressed={showFavoritesOnly}
                         className={`inline-flex min-h-10 items-center gap-2 rounded-lg border px-3 ${
                           showFavoritesOnly
                             ? 'border-amber-300/60 bg-amber-300/20 text-amber-100'

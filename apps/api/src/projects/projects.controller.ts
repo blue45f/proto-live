@@ -295,7 +295,7 @@ export class ProjectsController {
   @Post('challenge')
   setChallenge(@Req() request: Request, @Body() body: SetSeasonChallengeDto) {
     this.projectsService.requireAdminSession(request.headers.cookie)
-    return this.projectsService.setChallenge(body.title ?? '', body.description ?? '')
+    return this.projectsService.setChallenge(body.title ?? '', body.description ?? '', body.endsAt)
   }
 
   /**

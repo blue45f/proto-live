@@ -152,6 +152,8 @@ export interface FundingRange {
 export interface SeasonChallenge {
   title: string
   description: string
+  /** 마감일(ISO). 있으면 피드 배너에 D-day와 캘린더 추가 버튼이 노출된다. */
+  endsAt?: string
   updatedAt: string
 }
 
@@ -639,10 +641,12 @@ export async function setProjectFeatured(id: number, featured: boolean) {
   return response.data
 }
 
-export async function setSeasonChallenge(title: string, description: string) {
+export async function setSeasonChallenge(title: string, description: string, endsAt?: string) {
   const response = await client.post<SeasonChallenge | null>(`/projects/challenge`, {
     title,
     description,
+    // 빈 문자열은 서버 IsDateString 검증에 걸리므로 미설정(undefined)으로 보낸다.
+    endsAt: endsAt?.trim() ? endsAt : undefined,
   })
   return response.data
 }

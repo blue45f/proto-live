@@ -386,6 +386,8 @@ export interface ProjectEventSummary {
 export interface SeasonChallenge {
   title: string
   description: string
+  /** 마감일(ISO). 선택 — 있으면 피드 배너에 D-day와 캘린더 추가 버튼이 노출된다. */
+  endsAt?: string
   updatedAt: string
 }
 

@@ -1957,13 +1957,13 @@ export function useProtoLiveApp() {
     }
   }
 
-  async function handleSetChallenge(title: string, description: string) {
+  async function handleSetChallenge(title: string, description: string, endsAt?: string) {
     if (!canAccessAdmin) {
       return
     }
 
     try {
-      const challenge = await setSeasonChallenge(title, description)
+      const challenge = await setSeasonChallenge(title, description, endsAt)
       setConfig((current) => ({ ...current, challenge }))
       toast(
         'success',

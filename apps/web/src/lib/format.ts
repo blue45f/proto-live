@@ -198,6 +198,23 @@ export function formatRelativeTime(value?: string) {
   )
 }
 
+/** 시즌 챌린지 마감 D-day 라벨. 로컬 달력일 기준으로 계산하며 유효하지 않은 날짜면 null. */
+export function formatChallengeDday(endsAt: string) {
+  const ends = new Date(endsAt)
+  if (Number.isNaN(ends.getTime())) return null
+
+  const startOfToday = new Date()
+  startOfToday.setHours(0, 0, 0, 0)
+  const startOfEndDay = new Date(ends)
+  startOfEndDay.setHours(0, 0, 0, 0)
+
+  // DST로 하루가 23/25시간이어도 자정 정렬 + 반올림이면 달력일 차이가 안전하다.
+  const days = Math.round((startOfEndDay.getTime() - startOfToday.getTime()) / 86_400_000)
+  if (days > 0) return `마감 D-${days}`
+  if (days === 0) return '오늘 마감'
+  return '마감됨'
+}
+
 export function getValidationTone(validation?: ValidationSnapshot) {
   if (!validation) return 'text-stone-300 bg-stone-900/60 border-stone-700/60'
   if (validation.success) return 'text-lime-200 bg-lime-950/40 border-lime-500/30'
