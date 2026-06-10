@@ -471,7 +471,9 @@ export default function App() {
             onRevenueTargetChange={updateRevenueTargetInput}
             onRevenueInputChange={updateRevenueInput}
             challenge={config.challenge ?? null}
-            onSetChallenge={(title, description) => void handleSetChallenge(title, description)}
+            onSetChallenge={(title, description, endsAt) =>
+              void handleSetChallenge(title, description, endsAt)
+            }
           />
         ) : (
           <MarketView
@@ -815,6 +817,38 @@ export default function App() {
           onGoogleCredential={handleGoogleLogin}
         />
       )}
+
+      <footer className="protolive-footer border-t border-stone-800/70 bg-stone-950 px-4 py-4 text-xs text-stone-300 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-3 text-center sm:justify-between">
+          <span>ProtoLive © TermsDesk 포트폴리오</span>
+          <nav aria-label="법적 고지 링크" className="flex flex-wrap justify-center gap-4">
+            <a
+              href="https://termsdesk.vercel.app/p/proto-live/terms-of-service"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-stone-100"
+            >
+              이용약관
+            </a>
+            <a
+              href="https://termsdesk.vercel.app/p/proto-live/privacy-policy"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-stone-100"
+            >
+              개인정보처리방침
+            </a>
+            <a
+              href="https://termsdesk.vercel.app/support/proto-live"
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-stone-100"
+            >
+              지원
+            </a>
+          </nav>
+        </div>
+      </footer>
     </div>
   )
 }
