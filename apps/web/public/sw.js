@@ -1,12 +1,21 @@
 /* eslint-disable no-undef */
-const CACHE_NAME = 'proto-live-pwa-v1'
+// v2: navigations cache a single SPA shell copy under '/' (instead of one copy
+// per visited URL) and activate prunes caches left behind by older versions.
+const CACHE_NAME = 'proto-live-pwa-v2'
 
 self.addEventListener('install', () => {
   self.skipWaiting()
 })
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim())
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
+      )
+      .then(() => self.clients.claim())
+  )
 })
 
 self.addEventListener('fetch', (event) => {
@@ -15,11 +24,15 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request)
         .then((response) => {
-          const copy = response.clone()
-          caches
-            .open(CACHE_NAME)
-            .then((cache) => cache.put(request, copy))
-            .catch(() => {})
+          // Only successful responses refresh the shared shell entry; caching an
+          // error page under '/' would poison the offline fallback for every route.
+          if (response.ok) {
+            const copy = response.clone()
+            caches
+              .open(CACHE_NAME)
+              .then((cache) => cache.put('/', copy))
+              .catch(() => {})
+          }
           return response
         })
         .catch(() => caches.match(request).then((cached) => cached || caches.match('/')))

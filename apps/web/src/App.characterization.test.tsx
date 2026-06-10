@@ -179,6 +179,36 @@ describe('App characterization: filters', () => {
       expect(screen.getByRole('button', { name: '즐겨찾기만 보기 적용' })).toBeEnabled()
     )
   })
+
+  it('exposes pressed state on category, visibility, and funding preset chips', async () => {
+    const user = userEvent.setup()
+    await renderAppLoaded()
+
+    // Category chips mirror the tag-chip toggle semantics: the active one is pressed.
+    const allCategories = screen.getByRole('button', { name: '전체' })
+    const commerceChip = screen.getByRole('button', { name: '커머스' })
+    expect(allCategories).toHaveAttribute('aria-pressed', 'true')
+    expect(commerceChip).toHaveAttribute('aria-pressed', 'false')
+    await user.click(commerceChip)
+    await waitFor(() => expect(commerceChip).toHaveAttribute('aria-pressed', 'true'))
+    expect(allCategories).toHaveAttribute('aria-pressed', 'false')
+
+    // Advanced filters: access-mode chips and funding presets announce selection too.
+    await user.click(screen.getByRole('button', { name: '필터 더보기' }))
+    expect(await screen.findByRole('button', { name: 'All' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+    const seedPreset = screen.getByRole('button', { name: '시드' })
+    expect(seedPreset).toHaveAttribute('aria-pressed', 'false')
+    await user.click(seedPreset)
+    await waitFor(() => expect(seedPreset).toHaveAttribute('aria-pressed', 'true'))
+  })
+
+  it('gives the project search input an accessible name beyond its placeholder', async () => {
+    await renderAppLoaded()
+    expect(screen.getByRole('textbox', { name: '프로토타입 검색' })).toBeInTheDocument()
+  })
 })
 
 describe('App characterization: login modal', () => {
@@ -259,5 +289,29 @@ describe('App characterization: about page', () => {
 
     await waitFor(() => expect(window.location.pathname).toBe('/about'))
     expect(await screen.findByText('어느 단계든 환영합니다')).toBeInTheDocument()
+  })
+})
+
+describe('App characterization: market hero CTA', () => {
+  it('routes the hero 내 사이트 등록하기 CTA into the login gate when logged out', async () => {
+    const user = userEvent.setup()
+    await renderAppLoaded()
+
+    // 히어로 1차 CTA는 헤더 버튼과 같은 openSubmitDialog 가드를 타므로
+    // 비로그인 클릭은 로그인 모달로 안내된다.
+    await user.click(screen.getByRole('button', { name: '내 사이트 등록하기' }))
+
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText('테스트 계정')).toBeInTheDocument()
+  })
+
+  it('navigates to /about when the hero 작동 방식 보기 CTA is clicked', async () => {
+    const user = userEvent.setup()
+    await renderAppLoaded()
+
+    await user.click(screen.getByRole('button', { name: '작동 방식 보기' }))
+
+    await waitFor(() => expect(window.location.pathname).toBe('/about'))
+    expect(await screen.findByText('커뮤니티가 먼저, 투자는 사다리 위에')).toBeInTheDocument()
   })
 })
