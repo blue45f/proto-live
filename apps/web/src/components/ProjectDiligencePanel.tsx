@@ -141,7 +141,7 @@ export function ProjectDiligencePanel({
         aria-label={`${project.title} 리뷰 리포트`}
         aria-describedby={descriptionId}
         tabIndex={-1}
-        className="absolute right-0 top-0 flex h-full w-full flex-col border-l border-stone-700 bg-[oklch(96.2%_0.008_92)] shadow-2xl lg:w-[760px] motion-safe:animate-panel-slide-in"
+        className="absolute right-0 top-0 flex h-full w-full flex-col border-l border-stone-700 bg-sunken shadow-2xl lg:w-[760px] motion-safe:animate-panel-slide-in"
       >
         <div className="border-b border-stone-800 px-4 py-4 sm:px-5">
           <div className="flex items-start justify-between gap-3">
@@ -201,7 +201,7 @@ export function ProjectDiligencePanel({
                     return (
                       <div
                         key={row.label}
-                        className="grid gap-3 rounded-lg border border-stone-800 bg-[oklch(96.2%_0.008_92)] p-3 sm:grid-cols-[150px_minmax(0,1fr)]"
+                        className="grid gap-3 rounded-lg border border-stone-800 bg-sunken p-3 sm:grid-cols-[150px_minmax(0,1fr)]"
                       >
                         <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-stone-500">
                           <Icon className="h-3.5 w-3.5 text-cyan-200" />
@@ -228,7 +228,7 @@ export function ProjectDiligencePanel({
                   {decisionNotes.map((note) => (
                     <p
                       key={note}
-                      className="rounded-lg border border-stone-800 bg-[oklch(96.2%_0.008_92)] p-3 text-sm leading-6 text-stone-300"
+                      className="rounded-lg border border-stone-800 bg-sunken p-3 text-sm leading-6 text-stone-300"
                     >
                       {note}
                     </p>
@@ -257,7 +257,7 @@ export function ProjectDiligencePanel({
                         return (
                           <div
                             key={type}
-                            className="flex items-center justify-between gap-2 rounded-lg border border-stone-800 bg-[oklch(96.2%_0.008_92)] p-2 text-xs"
+                            className="flex items-center justify-between gap-2 rounded-lg border border-stone-800 bg-sunken p-2 text-xs"
                           >
                             <span className="inline-flex items-center gap-2 font-black text-stone-300">
                               <Icon className="h-3.5 w-3.5 text-cyan-200" />

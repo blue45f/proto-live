@@ -26,10 +26,7 @@ export function SignalTimeline({
   const totalEvents = events.length
 
   return (
-    <aside
-      id={titleId}
-      className={`${className} min-h-0 border-l border-stone-800 bg-[oklch(96.2%_0.008_92)]`}
-    >
+    <aside id={titleId} className={`${className} min-h-0 border-l border-stone-800 bg-sunken`}>
       <div className="border-b border-stone-800 p-4">
         <div className="flex items-center gap-2">
           <span className="protolive-signal-live" aria-hidden="true">

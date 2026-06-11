@@ -46,7 +46,7 @@ export function PreviewModal({
         aria-modal="true"
         aria-label="라이브 사이트 보기"
         tabIndex={-1}
-        className="absolute right-0 top-0 flex h-full w-full flex-col border-l border-stone-700 bg-[oklch(96.2%_0.008_92)] shadow-2xl lg:w-[72vw] xl:w-[62vw] motion-safe:animate-panel-slide-in"
+        className="absolute right-0 top-0 flex h-full w-full flex-col border-l border-stone-700 bg-sunken shadow-2xl lg:w-[72vw] xl:w-[62vw] motion-safe:animate-panel-slide-in"
       >
         <div className="flex min-h-16 items-start justify-between gap-3 border-b border-stone-800 px-4 py-3">
           <div className="min-w-0">

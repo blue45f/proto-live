@@ -213,7 +213,7 @@ export function AdminDashboardView({
           </div>
         </div>
       </div>
-      <div className="protolive-hero rounded-xl border border-cyan-900/50 bg-[oklch(99.2%_0.004_95)] p-5 shadow-[0_24px_80px_oklch(8%_0.02_205/0.45)]">
+      <div className="protolive-hero rounded-xl border border-cyan-900/50 bg-raised p-5 shadow-[0_24px_80px_oklch(8%_0.02_205/0.45)]">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="protolive-badge mb-3 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-300/10 px-3 py-1 text-xs font-black text-cyan-100">
@@ -275,7 +275,7 @@ export function AdminDashboardView({
               {adminReportedReviews.map((entry) => (
                 <article
                   key={entry.review.id}
-                  className="rounded-xl border border-stone-700/80 bg-[oklch(96.2%_0.008_92)] p-3 text-sm"
+                  className="rounded-xl border border-stone-700/80 bg-sunken p-3 text-sm"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="min-w-0">
@@ -436,7 +436,7 @@ export function AdminDashboardView({
                 </span>
               </div>
             </div>
-            <div className="rounded-lg border border-stone-700 bg-[oklch(96.2%_0.008_92)] p-2 text-xs text-stone-400">
+            <div className="rounded-lg border border-stone-700 bg-sunken p-2 text-xs text-stone-400">
               경고 {adminDashboard.health.warningCount}건 / 리스크 {adminDashboard.health.riskCount}
               건
             </div>
@@ -702,7 +702,7 @@ export function AdminDashboardView({
             <h3 className="font-black text-stone-100">월간 수익 지표</h3>
           </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            <div className="rounded-lg border border-stone-800 bg-[oklch(96.2%_0.008_92)] p-3 md:col-span-2 xl:col-span-3">
+            <div className="rounded-lg border border-stone-800 bg-sunken p-3 md:col-span-2 xl:col-span-3">
               <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">
                 목표 월매출
               </p>
@@ -806,7 +806,7 @@ export function AdminDashboardView({
                 />
               </div>
             </div>
-            <div className="min-w-0 rounded-lg border border-stone-800 bg-[oklch(96.2%_0.008_92)] p-3">
+            <div className="min-w-0 rounded-lg border border-stone-800 bg-sunken p-3">
               <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">
                 월 누적 추정
               </p>
@@ -814,7 +814,7 @@ export function AdminDashboardView({
                 {formatCurrency(revenueProjection.totalMonthlyRevenue)}
               </p>
             </div>
-            <div className="min-w-0 rounded-lg border border-stone-800 bg-[oklch(96.2%_0.008_92)] p-3">
+            <div className="min-w-0 rounded-lg border border-stone-800 bg-sunken p-3">
               <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">
                 연환산 추정
               </p>
@@ -822,7 +822,7 @@ export function AdminDashboardView({
                 {formatCurrency(revenueProjection.annualRevenue)}
               </p>
             </div>
-            <div className="min-w-0 rounded-lg border border-stone-800 bg-[oklch(96.2%_0.008_92)] p-3">
+            <div className="min-w-0 rounded-lg border border-stone-800 bg-sunken p-3">
               <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">
                 확인된 사이트 비중
               </p>
@@ -831,7 +831,7 @@ export function AdminDashboardView({
               </p>
               <p className="mt-1 text-[11px] text-stone-500">목표 68%</p>
             </div>
-            <div className="min-w-0 rounded-lg border border-stone-800 bg-[oklch(96.2%_0.008_92)] p-3">
+            <div className="min-w-0 rounded-lg border border-stone-800 bg-sunken p-3">
               <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">
                 ARPU / ARPPU
               </p>
@@ -840,7 +840,7 @@ export function AdminDashboardView({
               </p>
               <p className="mt-1 text-[11px] text-stone-500">목표 50,000원 / 500,000원</p>
             </div>
-            <div className="min-w-0 rounded-lg border border-stone-800 bg-[oklch(96.2%_0.008_92)] p-3">
+            <div className="min-w-0 rounded-lg border border-stone-800 bg-sunken p-3">
               <p className="text-[11px] font-black uppercase tracking-[0.14em] text-stone-500">
                 투자자 LTV & Payback
               </p>
@@ -863,7 +863,7 @@ export function AdminDashboardView({
             <h3 className="font-black text-stone-100">운영 퍼널</h3>
           </div>
           <div className="grid gap-3">
-            <div className="rounded-lg border border-stone-800 bg-[oklch(96.2%_0.008_92)] p-3">
+            <div className="rounded-lg border border-stone-800 bg-sunken p-3">
               <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">
                 미리보기→연결
               </p>
@@ -875,7 +875,7 @@ export function AdminDashboardView({
                 {adminDashboard.conversionFunnel.previewCount}건
               </p>
             </div>
-            <div className="rounded-lg border border-stone-800 bg-[oklch(96.2%_0.008_92)] p-3">
+            <div className="rounded-lg border border-stone-800 bg-sunken p-3">
               <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">
                 아웃바운드→연결
               </p>
@@ -887,7 +887,7 @@ export function AdminDashboardView({
                 {adminDashboard.conversionFunnel.outboundCount}건
               </p>
             </div>
-            <div className="rounded-lg border border-stone-800 bg-[oklch(96.2%_0.008_92)] p-3">
+            <div className="rounded-lg border border-stone-800 bg-sunken p-3">
               <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">
                 사이트당 연결율
               </p>
@@ -961,10 +961,7 @@ export function AdminDashboardView({
               ['match', '연결', adminDashboard.eventTotals.match],
               ['refresh', '갱신', adminDashboard.eventTotals.refresh],
             ].map(([type, label, count]) => (
-              <div
-                key={type}
-                className="rounded-lg border border-stone-800 bg-[oklch(96.2%_0.008_92)] p-2"
-              >
+              <div key={type} className="rounded-lg border border-stone-800 bg-sunken p-2">
                 <div className="flex items-center justify-between text-xs font-black text-stone-300">
                   <span>{label}</span>
                   <span className="text-stone-50">{count}</span>
@@ -1016,7 +1013,7 @@ export function AdminDashboardView({
             <h3 className="font-black text-stone-100">수익 구성 (월)</h3>
           </div>
           <div className="grid gap-3">
-            <div className="rounded-lg border border-stone-800 bg-[oklch(96.2%_0.008_92)] p-3">
+            <div className="rounded-lg border border-stone-800 bg-sunken p-3">
               <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">
                 창업자 플랜 수익
               </p>
@@ -1024,7 +1021,7 @@ export function AdminDashboardView({
                 {formatCurrency(revenueProjection.monthlyMakerPlanRevenue)}
               </p>
             </div>
-            <div className="rounded-lg border border-stone-800 bg-[oklch(96.2%_0.008_92)] p-3">
+            <div className="rounded-lg border border-stone-800 bg-sunken p-3">
               <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">
                 투자자 플랜 수익
               </p>
@@ -1032,7 +1029,7 @@ export function AdminDashboardView({
                 {formatCurrency(revenueProjection.monthlyInvestorPlanRevenue)}
               </p>
             </div>
-            <div className="rounded-lg border border-stone-800 bg-[oklch(96.2%_0.008_92)] p-3">
+            <div className="rounded-lg border border-stone-800 bg-sunken p-3">
               <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">
                 리드 기반 수익
               </p>
@@ -1040,7 +1037,7 @@ export function AdminDashboardView({
                 {formatCurrency(revenueProjection.monthlyLeadRevenue)}
               </p>
             </div>
-            <div className="rounded-lg border border-stone-800 bg-[oklch(96.2%_0.008_92)] p-3">
+            <div className="rounded-lg border border-stone-800 bg-sunken p-3">
               <p className="text-xs font-black uppercase tracking-[0.14em] text-stone-500">
                 성공 수수료 수익
               </p>
@@ -1096,7 +1093,7 @@ export function AdminDashboardView({
             {revenueProjection.scenarios.map((entry) => (
               <div
                 key={entry.label}
-                className="rounded-lg border border-stone-800 bg-[oklch(96.2%_0.008_92)] p-2 text-xs"
+                className="rounded-lg border border-stone-800 bg-sunken p-2 text-xs"
               >
                 <p className="font-black text-stone-100">
                   {entry.label} ({entry.multiplier}x)
@@ -1126,7 +1123,7 @@ export function AdminDashboardView({
               {adminDashboard.topMatchProjects.map((entry, index) => (
                 <div
                   key={entry.id}
-                  className="grid rounded-lg border border-stone-700 bg-[oklch(96.2%_0.008_92)] p-3 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:gap-4"
+                  className="grid rounded-lg border border-stone-700 bg-sunken p-3 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:gap-4"
                 >
                   <p className="text-sm font-black text-stone-100">#{index + 1}</p>
                   <div className="min-w-0">
@@ -1159,7 +1156,7 @@ export function AdminDashboardView({
               {adminDashboard.topSignalProjects.map((entry, index) => (
                 <div
                   key={entry.id}
-                  className="grid rounded-lg border border-stone-700 bg-[oklch(96.2%_0.008_92)] p-3 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:gap-4"
+                  className="grid rounded-lg border border-stone-700 bg-sunken p-3 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:gap-4"
                 >
                   <p className="text-sm font-black text-stone-100">#{index + 1}</p>
                   <div className="min-w-0">
@@ -1247,7 +1244,7 @@ export function AdminDashboardView({
                 return (
                   <div
                     key={item.rangeId}
-                    className="space-y-2 rounded-lg border border-stone-800 bg-[oklch(96.2%_0.008_92)] p-2"
+                    className="space-y-2 rounded-lg border border-stone-800 bg-sunken p-2"
                   >
                     <div className="flex items-center justify-between text-xs font-black text-stone-200">
                       <span>{item.label}</span>

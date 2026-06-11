@@ -22,13 +22,15 @@
   --color-lavender: oklch(56% 0.14 300);
 
   /* 중립 ramp 반전: 컴포넌트의 stone-950(=다크 배경)→리넨, stone-50(=밝은 텍스트)→ink.
-     stone은 전부 중립으로만 쓰여 반전이 안전하다(텍스트/배경 이중용도 충돌 없음). */
+     stone은 전부 중립으로만 쓰여 반전이 안전하다(텍스트/배경 이중용도 충돌 없음).
+     stone-500은 58%→52% 다크닝: 최암 표면 sunken(96.2%) 위 11~12px 보조 텍스트도
+     AA 4.5:1을 넘긴다(4.9:1) — theme-contrast.test.ts가 가드. */
   --color-stone-50: oklch(30% 0.02 250);
   --color-stone-100: oklch(30% 0.02 250);
   --color-stone-200: oklch(34% 0.018 250);
   --color-stone-300: oklch(42% 0.016 250);
   --color-stone-400: oklch(50% 0.015 250);
-  --color-stone-500: oklch(58% 0.014 250);
+  --color-stone-500: oklch(52% 0.014 250);
   --color-stone-600: oklch(70% 0.012 250);
   --color-stone-700: oklch(86% 0.008 95);
   --color-stone-800: oklch(90% 0.008 95);
@@ -623,10 +625,42 @@
   }
 }
 
-@layer utilities {
-  .animate-panel-slide-in {
-    animation: panel-slide-in 240ms var(--ease-out-expo) both;
+/* 센터 모달 입장: 사이드 패널(slide-in)과 같은 모션 언어의 pop(페이드+스케일).
+   backdrop 은 페이드만 받아 다이얼로그의 스케일이 단독으로 읽힌다. */
+@keyframes modal-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
   }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes modal-fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* @utility 로 등록해야 Tailwind v4 가 마크업의 motion-safe: 변형을 생성한다
+   (@layer utilities 의 일반 클래스는 변형 없이 그대로 출력만 된다). */
+@utility animate-panel-slide-in {
+  animation: panel-slide-in 240ms var(--ease-out-expo) both;
+}
+
+@utility animate-modal-pop {
+  animation: modal-pop 160ms var(--ease-out-expo) both;
+}
+
+@utility animate-modal-fade {
+  animation: modal-fade 160ms var(--ease-out-expo) both;
 }
 
 .animate-toast-in {
