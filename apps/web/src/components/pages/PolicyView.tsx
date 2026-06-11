@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, ExternalLink, RefreshCw, ShieldCheck } from 'lucide-react'
+import { AlertTriangle, ExternalLink, RefreshCw } from 'lucide-react'
 import type { PolicyView as PolicyViewKind } from '../../lib/constants'
 import {
   POLICY_PAGES,
@@ -28,16 +28,9 @@ export function PolicyView({ view }: { view: PolicyViewKind }) {
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 pb-6">
       <header>
-        <p className="inline-flex items-center gap-2 rounded-full border border-lime-300/30 bg-lime-300/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-lime-200">
-          <ShieldCheck className="h-3.5 w-3.5" />
-          TermsDesk 게시 정본
-        </p>
-        <h2 className="mt-4 text-3xl font-black tracking-tight text-stone-50 sm:text-4xl">
+        <h2 className="text-3xl font-black tracking-tight text-stone-50 sm:text-4xl">
           {meta.label}
         </h2>
-        <p className="mt-3 text-sm leading-relaxed text-stone-400">
-          이 문서는 TermsDesk에서 버전과 본문 해시로 관리되는 게시본을 그대로 보여줍니다.
-        </p>
       </header>
 
       {/* key 리마운트로 슬러그 전환/재시도 시 로딩 상태를 초기화한다(이펙트 내 동기 setState 회피). */}
@@ -143,7 +136,7 @@ function PolicyDocument({ policy }: { policy: PublicPolicy }) {
           </div>
         </dl>
         <p className="mt-3 border-t border-stone-800/70 pt-3 text-xs text-stone-500">
-          {policy.orgName} · TermsDesk에서 게시·버전 관리 ·{' '}
+          {policy.orgName} ·{' '}
           <a
             href={policyExternalUrl(policy.policySlug)}
             target="_blank"
