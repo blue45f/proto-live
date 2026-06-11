@@ -122,3 +122,13 @@ export const appMetaTable = pgTable('app_meta', {
   id: integer('id').primaryKey(),
   data: jsonb('data').notNull(),
 })
+
+/**
+ * 커뮤니티 모듈(토론/댓글/첨부/쪽지) 스냅샷 — 단일 행(id=1) jsonb.
+ * projects 스토어와 분리된 별도 모듈 상태로, app_meta 와 같은 single-row 패턴을 쓴다.
+ * 토론 트래픽이 커지면 per-entity 테이블로 점진 분리한다(프로젝트 표 주석과 동일한 진화 경로).
+ */
+export const communityStateTable = pgTable('community_state', {
+  id: integer('id').primaryKey(),
+  data: jsonb('data').notNull(),
+})

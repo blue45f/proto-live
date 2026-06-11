@@ -37,6 +37,7 @@ import {
   fetchProjectLog,
   addProjectLogEntry,
   fetchMakerProfile,
+  fetchConversations,
   fetchNotifications,
   markNotificationsRead,
   fetchProjectReviews,
@@ -110,7 +111,7 @@ import {
   readFilterPreset,
   readProjectListViewMode,
 } from './storage'
-import { matchRoute, navigate, routePath } from '../router/route'
+import { matchRoute, navigate, routePath, type DiscussionRoute } from '../router/route'
 import { useFavorites } from './useFavorites'
 import { useReviewComposer } from './useReviewComposer'
 import { useUpvotedProjects } from './useUpvotedProjects'
@@ -136,6 +137,14 @@ export function useProtoLiveApp() {
   const [makerProfileId, setMakerProfileId] = useState<number | null>(() => matchRoute().makerId)
   const [makerProfile, setMakerProfile] = useState<MakerProfile | null>(null)
   const [isMakerProfileLoading, setIsMakerProfileLoading] = useState(false)
+  // 커뮤니티 분할 라우트: 프로젝트 토론 서브라우트 + 열린 쪽지 대화. URL(popstate)과 동기화된다.
+  const [discussionRoute, setDiscussionRoute] = useState<DiscussionRoute | null>(
+    () => matchRoute().discussion
+  )
+  const [conversationId, setConversationId] = useState<number | null>(
+    () => matchRoute().conversationId
+  )
+  const [messageUnreadCount, setMessageUnreadCount] = useState(0)
   const [session, setSession] = useState<AuthSession | null>(() => readSession())
   const [isSessionHydrating, setIsSessionHydrating] = useState(true)
   const [isLoginOpen, setIsLoginOpen] = useState(false)
@@ -371,6 +380,8 @@ export function useProtoLiveApp() {
       setDetailProjectId(route.projectId)
       setView(route.view)
       setIsSubmitOpen(route.intent === 'submit')
+      setDiscussionRoute(route.discussion)
+      setConversationId(route.conversationId)
     }
 
     window.addEventListener('popstate', onPopState)
@@ -417,6 +428,7 @@ export function useProtoLiveApp() {
       .catch(() => setDiligenceEvents([]))
       .finally(() => setIsDiligenceEventsLoading(false))
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsProjectLogLoading(true)
     fetchProjectLog(detailProjectId)
       .then((entries) => setProjectLog(entries))
@@ -432,6 +444,7 @@ export function useProtoLiveApp() {
     projectsRef.current = projects
   }, [projects])
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDetailFallbackProject(null)
     setIsDetailUnavailable(false)
     if (!detailProjectId || projectsRef.current.some((item) => item.id === detailProjectId)) {
@@ -453,6 +466,7 @@ export function useProtoLiveApp() {
 
   useEffect(() => {
     if (!makerProfileId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMakerProfile(null)
       return
     }
@@ -687,10 +701,17 @@ export function useProtoLiveApp() {
   const favoriteProjectCount = favoriteProjectIds.size
 
   const isAdminView = effectiveView === 'admin'
+  const isAdminCommunityView = effectiveView === 'adminCommunity'
+  const isAdminMembersView = effectiveView === 'adminMembers'
   const isAboutView = effectiveView === 'about'
+  const isSupportView = effectiveView === 'support'
+  const isMessagesView = effectiveView === 'messages'
   // 법적 고지 뷰(이용약관/개인정보처리방침). null 이면 정책 페이지가 아니다.
   const activePolicyView: PolicyView | null =
     effectiveView === 'terms' || effectiveView === 'privacy' ? effectiveView : null
+  // 프로젝트 상세 위에 토론 허브를 띄울지(분할 라우트). 상세 프로젝트가 있을 때만 의미가 있다.
+  const activeDiscussionRoute =
+    effectiveView === 'market' && detailProjectId !== null ? discussionRoute : null
   const isAdminDashboardAvailable =
     adminDashboard.lastUpdatedAt !== EMPTY_ADMIN_DASHBOARD.lastUpdatedAt
   const orderedAdminRecommendations = useMemo(
@@ -1105,6 +1126,16 @@ export function useProtoLiveApp() {
       return
     }
 
+    // 분할 라우트(토론·쪽지·문의·운영 콘솔 서브·상세·메이커)에서는 그 라우트가 URL을 소유하므로
+    // 필터 URL 동기화가 경로를 덮어쓰지 않게 비운다(필터 프리셋 저장은 그대로 둔다).
+    // market/admin 리스트만 필터 쿼리스트링을 URL에 반영한다.
+    const ownsDedicatedPath =
+      (effectiveView !== 'market' && effectiveView !== 'admin') ||
+      detailProjectId !== null ||
+      makerProfileId !== null ||
+      conversationId !== null ||
+      discussionRoute !== null
+
     const params = new URLSearchParams()
     const trimmedSearch = debouncedSearch.trim()
     if (trimmedSearch) {
@@ -1159,20 +1190,22 @@ export function useProtoLiveApp() {
       params.set('view', 'admin')
     }
 
-    const query = params.toString()
-    const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/'
-    const pathSegments = normalizedPath.split('/').filter(Boolean)
-    const isAdminPath =
-      pathSegments.length > 0 && pathSegments[pathSegments.length - 1] === ADMIN_PATH_SEGMENT
-    if (isAdminPath) {
-      pathSegments.pop()
-    }
-    const basePath = pathSegments.length > 0 ? `/${pathSegments.join('/')}` : ''
-    const nextPathname =
-      effectiveView === 'admin' ? `${basePath}/${ADMIN_PATH_SEGMENT}` : basePath || '/'
-    const safePathname = `/${nextPathname}`.replace(/\/{2,}/g, '/').replace(/\/+$/, '') || '/'
+    if (!ownsDedicatedPath) {
+      const query = params.toString()
+      const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/'
+      const pathSegments = normalizedPath.split('/').filter(Boolean)
+      const isAdminPath =
+        pathSegments.length > 0 && pathSegments[pathSegments.length - 1] === ADMIN_PATH_SEGMENT
+      if (isAdminPath) {
+        pathSegments.pop()
+      }
+      const basePath = pathSegments.length > 0 ? `/${pathSegments.join('/')}` : ''
+      const nextPathname =
+        effectiveView === 'admin' ? `${basePath}/${ADMIN_PATH_SEGMENT}` : basePath || '/'
+      const safePathname = `/${nextPathname}`.replace(/\/{2,}/g, '/').replace(/\/+$/, '') || '/'
 
-    window.history.replaceState({}, '', `${safePathname}${query ? `?${query}` : ''}`)
+      window.history.replaceState({}, '', `${safePathname}${query ? `?${query}` : ''}`)
+    }
 
     localStorage.setItem(
       FILTER_PRESET_STORAGE_KEY,
@@ -1206,6 +1239,10 @@ export function useProtoLiveApp() {
     showFavoritesOnly,
     effectiveView,
     sortMode,
+    detailProjectId,
+    makerProfileId,
+    conversationId,
+    discussionRoute,
   ])
 
   useEffect(() => {
@@ -1269,6 +1306,7 @@ export function useProtoLiveApp() {
       return
     }
     submitDeepLinkPendingRef.current = false
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     openSubmitDialog()
   }, [isSessionHydrating, apiOnline, config.categories.length, openSubmitDialog])
 
@@ -1922,6 +1960,8 @@ export function useProtoLiveApp() {
     reviewProject,
     shouldShowLogin,
     isSubmitOpen,
+    resetReviewComposer,
+    setReplyToReview,
   ])
 
   async function handleVerifyUrl() {
@@ -2450,7 +2490,7 @@ export function useProtoLiveApp() {
       navigate(routePath.market())
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
-  }, [])
+  }, [setReplyToReview])
 
   const openMakerProfile = useCallback((makerId: number) => {
     setDetailProjectId(null)
@@ -2497,6 +2537,110 @@ export function useProtoLiveApp() {
     [closeModalStack]
   )
 
+  // 인앱 문의 폼(/support) — about/policy 와 같은 공개 페이지 이동 패턴.
+  const openSupport = useCallback(() => {
+    setMakerProfileId(null)
+    setDetailProjectId(null)
+    setDiscussionRoute(null)
+    setConversationId(null)
+    setView('support')
+    closeModalStack()
+    if (typeof window !== 'undefined') {
+      navigate(routePath.support())
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [closeModalStack])
+
+  // 쪽지함(/messages) — 로그인 회원 전용. 대화 id 없이 목록부터 연다.
+  const openMessages = useCallback(() => {
+    setMakerProfileId(null)
+    setDetailProjectId(null)
+    setDiscussionRoute(null)
+    setConversationId(null)
+    setView('messages')
+    closeModalStack()
+    if (typeof window !== 'undefined') {
+      navigate(routePath.messages())
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [closeModalStack])
+
+  const openConversation = useCallback((id: number) => {
+    setConversationId(id)
+    if (typeof window !== 'undefined') {
+      navigate(routePath.conversation(id), { conversationId: id })
+    }
+  }, [])
+
+  const closeConversation = useCallback(() => {
+    setConversationId(null)
+    if (typeof window !== 'undefined') {
+      navigate(routePath.messages())
+    }
+  }, [])
+
+  // 프로젝트 토론 분할 라우트 — 상세를 연 상태에서 목록/작성/스레드 사이를 오간다.
+  const openDiscussionList = useCallback((projectId: number) => {
+    setDiscussionRoute({ mode: 'list' })
+    if (typeof window !== 'undefined') {
+      navigate(routePath.discussions(projectId), { projectId, discussion: { mode: 'list' } })
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [])
+
+  const openDiscussionNew = useCallback((projectId: number) => {
+    setDiscussionRoute({ mode: 'new' })
+    if (typeof window !== 'undefined') {
+      navigate(routePath.discussionNew(projectId), { projectId, discussion: { mode: 'new' } })
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [])
+
+  const openDiscussionDetail = useCallback((projectId: number, discussionId: number) => {
+    setDiscussionRoute({ mode: 'detail', discussionId })
+    if (typeof window !== 'undefined') {
+      navigate(routePath.discussion(projectId, discussionId), {
+        projectId,
+        discussion: { mode: 'detail', discussionId },
+      })
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [])
+
+  const closeDiscussions = useCallback((projectId: number) => {
+    setDiscussionRoute(null)
+    if (typeof window !== 'undefined') {
+      navigate(routePath.detail(projectId), { projectId })
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }, [])
+
+  // 운영 콘솔 분할 라우트(토론 모더레이션 / 회원 관리). admin 권한 게이트는 switchView 와 동일.
+  const openAdminArea = useCallback(
+    (target: 'admin' | 'adminCommunity' | 'adminMembers') => {
+      if (!handleRequireAdminAccess()) {
+        return
+      }
+      setMakerProfileId(null)
+      setDetailProjectId(null)
+      setDiscussionRoute(null)
+      setConversationId(null)
+      setView(target)
+      closeModalStack()
+      if (typeof window !== 'undefined') {
+        const path =
+          target === 'adminCommunity'
+            ? routePath.adminCommunity()
+            : target === 'adminMembers'
+              ? routePath.adminMembers()
+              : `/${ADMIN_PATH_SEGMENT}`
+        navigate(path)
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    },
+    [closeModalStack, handleRequireAdminAccess]
+  )
+
   // 브랜드/홈 클릭 시 피드로 복귀.
   const goHome = useCallback(() => {
     setMakerProfileId(null)
@@ -2512,6 +2656,7 @@ export function useProtoLiveApp() {
   // 인앱 알림: 로그인 시 즉시 + 60초 주기로 받아오고, 로그아웃하면 비운다.
   useEffect(() => {
     if (!session) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setNotifications([])
       return
     }
@@ -2534,6 +2679,33 @@ export function useProtoLiveApp() {
   }, [session])
 
   const unreadNotificationCount = notifications.filter((notification) => !notification.read).length
+
+  // 쪽지 미확인 배지: 로그인 시 90초 주기로 합계만 받아온다(상세 폴링은 쪽지함이 직접 한다).
+  useEffect(() => {
+    if (!session) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMessageUnreadCount(0)
+      return
+    }
+    let active = true
+    const load = () => {
+      fetchConversations()
+        .then((list) => {
+          if (active) {
+            setMessageUnreadCount(list.reduce((sum, item) => sum + (item.unreadCount ?? 0), 0))
+          }
+        })
+        .catch(() => {
+          /* 쪽지 배지 폴링 실패는 조용히 무시(핵심 흐름 비차단) */
+        })
+    }
+    load()
+    const timer = window.setInterval(load, 90000)
+    return () => {
+      active = false
+      window.clearInterval(timer)
+    }
+  }, [session])
 
   const markAllNotificationsRead = useCallback(async () => {
     if (notifications.every((notification) => notification.read)) {
@@ -2573,6 +2745,24 @@ export function useProtoLiveApp() {
     unreadNotificationCount,
     markAllNotificationsRead,
     openNotification,
+    // 커뮤니티/문의/쪽지 분할 라우트
+    isAdminCommunityView,
+    isAdminMembersView,
+    isSupportView,
+    isMessagesView,
+    activeDiscussionRoute,
+    conversationId,
+    messageUnreadCount,
+    setMessageUnreadCount,
+    openSupport,
+    openMessages,
+    openConversation,
+    closeConversation,
+    openDiscussionList,
+    openDiscussionNew,
+    openDiscussionDetail,
+    closeDiscussions,
+    openAdminArea,
     activeFilters,
     adminAuditLogs,
     adminDashboard,

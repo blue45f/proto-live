@@ -38,7 +38,6 @@ import {
   AdminRangeMetric,
   AdminActionRecommendation,
   AdminHealthIndicator,
-  AdminTopProjectMetric,
   AdminRiskProject,
   AdminRevenueAssumption,
   AdminRevenueBenchmark,
@@ -52,6 +51,7 @@ import {
   NotificationType,
   ProjectsState,
   User,
+  UserRole,
   ValidationSnapshot,
   createEmptyProjectsState,
 } from './project.models'
@@ -1783,6 +1783,88 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
       this.persist()
     }
     return changed
+  }
+
+  /**
+   * 커뮤니티/쪽지 모듈용 읽기 전용 소유자 조회 — 프로젝트 메이커의 최소 연락 정보와 제목 스냅샷.
+   * (프로젝트 상태를 변경하지 않으며, projects 스토어 인터페이스에도 손대지 않는다.)
+   */
+  getProjectOwner(
+    projectId: number
+  ): { userId: number; email: string; name?: string; projectTitle: string } | null {
+    const project = this.projects.find((item) => item.id === projectId)
+    if (!project) {
+      return null
+    }
+    const owner = this.users.find((user) => user.id === project.userId)
+    if (!owner) {
+      return null
+    }
+    return { userId: owner.id, email: owner.email, name: owner.name, projectTitle: project.title }
+  }
+
+  /**
+   * 운영 콘솔 회원(메이커/투자자/일반) 디렉터리 — 활동 집계를 붙인 읽기 전용 뷰.
+   * 비밀번호 등 민감 필드는 제외하고 운영에 필요한 최소 필드만 노출한다.
+   */
+  getAdminMembers(): Array<{
+    id: number
+    email: string
+    name: string | null
+    role: UserRole
+    notes: string | null
+    projectCount: number
+    reviewCount: number
+    upvoteCount: number
+    proposalCount: number
+    lastActivityAt: string | null
+  }> {
+    return this.users
+      .map((user) => {
+        const email = user.email.toLowerCase()
+        const ownProjects = this.projects.filter((project) => project.userId === user.id)
+        const reviews = this.reviews.filter((review) => review.authorEmail.toLowerCase() === email)
+        const upvotes = this.upvotes.filter((upvote) => upvote.email.toLowerCase() === email)
+        const proposals = this.proposals.filter(
+          (proposal) => (proposal.investorEmail ?? '').toLowerCase() === email
+        )
+        const activityDates = [
+          ...ownProjects.map((project) => project.createdAt.getTime()),
+          ...reviews.map((review) => review.createdAt.getTime()),
+          ...upvotes.map((upvote) => upvote.createdAt.getTime()),
+          ...proposals.map((proposal) => proposal.createdAt.getTime()),
+        ]
+        const lastActivity = activityDates.length > 0 ? Math.max(...activityDates) : null
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name ?? null,
+          role: user.role,
+          notes: user.notes ?? null,
+          projectCount: ownProjects.length,
+          reviewCount: reviews.length,
+          upvoteCount: upvotes.length,
+          proposalCount: proposals.length,
+          lastActivityAt: lastActivity ? new Date(lastActivity).toISOString() : null,
+        }
+      })
+      .sort((a, b) => {
+        const at = a.lastActivityAt ? new Date(a.lastActivityAt).getTime() : 0
+        const bt = b.lastActivityAt ? new Date(b.lastActivityAt).getTime() : 0
+        return bt - at
+      })
+  }
+
+  /** 운영 메모 갱신 — User 모델의 기존 notes 필드만 수정한다(상태 형태 불변). */
+  updateMemberNotes(userId: number, notes: string): { id: number; notes: string | null } {
+    const user = this.users.find((item) => item.id === userId)
+    if (!user) {
+      throw new NotFoundException('회원을 찾을 수 없습니다.')
+    }
+    const trimmed = notes.trim()
+    user.notes = trimmed.length > 0 ? trimmed : undefined
+    this.persist()
+    return { id: user.id, notes: user.notes ?? null }
   }
 
   private normalizeTags(tags: string[] | undefined): string[] {

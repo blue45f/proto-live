@@ -12,10 +12,22 @@ import type {
 } from '../api'
 import { DEFAULT_REVENUE_CONFIG, DEFAULT_REVENUE_TARGET } from './revenue-config'
 
-export type AppView = 'market' | 'admin' | 'about' | 'terms' | 'privacy'
+export type AppView =
+  | 'market'
+  | 'admin'
+  | 'adminCommunity'
+  | 'adminMembers'
+  | 'about'
+  | 'terms'
+  | 'privacy'
+  | 'support'
+  | 'messages'
 
 /** TermsDesk 게시 정본을 내부에서 렌더하는 법적 고지 뷰(이용약관·개인정보처리방침). */
 export type PolicyView = Extract<AppView, 'terms' | 'privacy'>
+
+/** 운영 콘솔 패밀리(권한 게이트 공유): 대시보드 + 분할 라우트들. */
+export type AdminAreaView = Extract<AppView, 'admin' | 'adminCommunity' | 'adminMembers'>
 
 export const LOGIN_MODAL_KEY = 'protolive:login-form:v1'
 export const ADMIN_PATH_SEGMENT = 'admin'
@@ -23,6 +35,9 @@ export const SUBMIT_PATH_SEGMENT = 'submit'
 export const ABOUT_PATH_SEGMENT = 'about'
 export const TERMS_PATH_SEGMENT = 'terms'
 export const PRIVACY_PATH_SEGMENT = 'privacy'
+export const SUPPORT_PATH_SEGMENT = 'support'
+export const MESSAGES_PATH_SEGMENT = 'messages'
+export const DISCUSSIONS_PATH_SEGMENT = 'discussions'
 
 export const EMPTY_STATS: MarketStats = {
   totalProjects: 0,
@@ -363,6 +378,37 @@ export const maturityReviewHint: Record<ProjectMaturity, string> = {
   building: '만드는 중이에요. 핵심 흐름이 잘 작동하는지, 더 다듬을 부분 위주로 봐주세요.',
   live: '운영 중인 서비스예요. 완성도와 실사용 경험, 시장성 관점에서 평가해주세요.',
 }
+
+/** 토론 주제 분류 — 서버 DISCUSSION_CATEGORIES 와 동일한 4종. */
+export type DiscussionCategoryId = 'question' | 'feedback' | 'help' | 'showcase'
+
+export const discussionCategoryCopy: Record<
+  DiscussionCategoryId,
+  { label: string; helper: string; tone: string }
+> = {
+  question: {
+    label: '질문',
+    helper: '만든 방법, 도구, 운영 노하우를 메이커와 커뮤니티에 물어보세요.',
+    tone: 'border-cyan-300/35 bg-cyan-300/10 text-cyan-100',
+  },
+  feedback: {
+    label: '피드백',
+    helper: '써보고 느낀 점, 개선 아이디어를 구체적으로 남겨주세요.',
+    tone: 'border-lime-300/35 bg-lime-300/10 text-lime-100',
+  },
+  help: {
+    label: '도움 요청',
+    helper: '막힌 부분을 공유하면 비슷한 길을 걸은 메이커들이 도와줍니다.',
+    tone: 'border-amber-300/35 bg-amber-300/10 text-amber-100',
+  },
+  showcase: {
+    label: '활용 사례',
+    helper: '이 프로토타입을 어떻게 쓰고 있는지 사례를 들려주세요.',
+    tone: 'border-violet-300/35 bg-violet-300/10 text-violet-100',
+  },
+}
+
+export const DISCUSSION_CATEGORY_IDS = Object.keys(discussionCategoryCopy) as DiscussionCategoryId[]
 
 export const reviewTypeCopy: Record<
   ProjectReviewType,

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Plus, RefreshCw, Zap, Users } from 'lucide-react'
+import { Plus, RefreshCw, Zap, Users, Mail } from 'lucide-react'
 import { resolveRoleLabel } from './local-auth'
 import ToastContainer from './components/ToastContainer'
 import { ProjectDiligencePanel } from './components/ProjectDiligencePanel'
@@ -9,13 +9,18 @@ import { MakerProfileView } from './components/pages/MakerProfileView'
 import { NotificationBell } from './components/NotificationBell'
 import { AboutView } from './components/pages/AboutView'
 import { PolicyView } from './components/pages/PolicyView'
+import { SupportView } from './components/pages/SupportView'
+import { MessagesView } from './components/pages/MessagesView'
+import { AdminCommunityView } from './components/pages/AdminCommunityView'
+import { AdminMembersView } from './components/pages/AdminMembersView'
+import { DiscussionHub } from './components/community/DiscussionHub'
 import { LoginModal } from './components/modals/LoginModal'
 import { MatchModal } from './components/modals/MatchModal'
 import { SubmitProjectModal } from './components/modals/SubmitProjectModal'
 import { ReviewModal } from './components/modals/ReviewModal'
 import { PreviewModal } from './components/modals/PreviewModal'
 import { useProtoLiveApp } from './state/useProtoLiveApp'
-import { POLICY_PAGES, TERMSDESK_SUPPORT_URL } from './lib/termsdesk'
+import { POLICY_PAGES } from './lib/termsdesk'
 import { routePath } from './router/route'
 
 export default function App() {
@@ -95,6 +100,23 @@ export default function App() {
     openAbout,
     openPolicy,
     goHome,
+    isAdminCommunityView,
+    isAdminMembersView,
+    isSupportView,
+    isMessagesView,
+    activeDiscussionRoute,
+    conversationId,
+    messageUnreadCount,
+    setMessageUnreadCount,
+    openSupport,
+    openMessages,
+    openConversation,
+    closeConversation,
+    openDiscussionList,
+    openDiscussionNew,
+    openDiscussionDetail,
+    closeDiscussions,
+    openAdminArea,
     notifications,
     unreadNotificationCount,
     markAllNotificationsRead,
@@ -241,24 +263,43 @@ export default function App() {
     visibleProjects,
   } = useProtoLiveApp()
 
+  // 운영 콘솔 패밀리(대시보드 + 토론/회원 서브). 헤더 탭 활성/타이틀에 함께 쓴다.
+  const isAnyAdminView = isAdminView || isAdminCommunityView || isAdminMembersView
+
   // 뷰별 문서 타이틀 + 뷰 전환 시 보조기술 안내(aria-live). 첫 진입은 announce 를 건너뛴다.
   const [viewAnnouncement, setViewAnnouncement] = useState('')
   const hasAnnouncedRef = useRef(false)
   useEffect(() => {
     const label = isAdminView
       ? '운영 콘솔'
-      : isAboutView
-        ? '소개'
-        : activePolicyView
-          ? POLICY_PAGES[activePolicyView].label
-          : '프로토타입 마켓'
+      : isAdminCommunityView
+        ? '커뮤니티 모더레이션'
+        : isAdminMembersView
+          ? '회원 관리'
+          : isAboutView
+            ? '소개'
+            : isSupportView
+              ? '문의하기'
+              : isMessagesView
+                ? '쪽지함'
+                : activePolicyView
+                  ? POLICY_PAGES[activePolicyView].label
+                  : '프로토타입 마켓'
     document.title = `${label} · ProtoLive`
     if (!hasAnnouncedRef.current) {
       hasAnnouncedRef.current = true
       return
     }
     setViewAnnouncement(`${label} 화면으로 전환했습니다`)
-  }, [isAdminView, isAboutView, activePolicyView])
+  }, [
+    isAdminView,
+    isAdminCommunityView,
+    isAdminMembersView,
+    isAboutView,
+    isSupportView,
+    isMessagesView,
+    activePolicyView,
+  ])
 
   return (
     <div className="protolive-shell min-h-screen bg-base text-stone-100">
@@ -315,7 +356,7 @@ export default function App() {
                   type="button"
                   onClick={() => switchView('market')}
                   className={`protolive-pill shrink-0 whitespace-nowrap rounded-full px-3 py-1 transition ${
-                    isAdminView
+                    isAnyAdminView
                       ? 'text-stone-400 hover:text-stone-100'
                       : 'bg-cyan-300 text-slate-950'
                   }`}
@@ -324,7 +365,7 @@ export default function App() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => switchView('admin')}
+                  onClick={() => openAdminArea('admin')}
                   className={`protolive-pill shrink-0 whitespace-nowrap rounded-full px-3 py-1 transition ${
                     isAdminView
                       ? 'bg-cyan-300 text-slate-950'
@@ -332,6 +373,28 @@ export default function App() {
                   }`}
                 >
                   운영 현황
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openAdminArea('adminCommunity')}
+                  className={`protolive-pill shrink-0 whitespace-nowrap rounded-full px-3 py-1 transition ${
+                    isAdminCommunityView
+                      ? 'bg-cyan-300 text-slate-950'
+                      : 'text-stone-400 hover:text-stone-100'
+                  }`}
+                >
+                  커뮤니티
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openAdminArea('adminMembers')}
+                  className={`protolive-pill shrink-0 whitespace-nowrap rounded-full px-3 py-1 transition ${
+                    isAdminMembersView
+                      ? 'bg-cyan-300 text-slate-950'
+                      : 'text-stone-400 hover:text-stone-100'
+                  }`}
+                >
+                  회원
                 </button>
               </div>
             ) : null}
@@ -359,6 +422,29 @@ export default function App() {
               />
               {apiOnline ? '서버 연결됨' : 'API Offline'}
             </div>
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={openMessages}
+                aria-pressed={isMessagesView}
+                aria-label={
+                  messageUnreadCount > 0 ? `쪽지함, 새 쪽지 ${messageUnreadCount}건` : '쪽지함'
+                }
+                className={`relative grid min-h-11 min-w-11 place-items-center rounded-lg border text-xs font-black transition sm:rounded-full ${
+                  isMessagesView
+                    ? 'border-lime-300/50 bg-lime-300/10 text-lime-100'
+                    : 'border-stone-700/80 bg-stone-900/70 text-stone-300 hover:border-lime-300/40 hover:text-lime-100'
+                }`}
+              >
+                <Mail className="h-4 w-4" />
+                {messageUnreadCount > 0 ? (
+                  <span className="absolute -right-0.5 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full bg-cyan-300 px-1 text-[10px] font-black text-slate-950">
+                    {messageUnreadCount > 9 ? '9+' : messageUnreadCount}
+                  </span>
+                ) : null}
+                <span className="sr-only">쪽지함</span>
+              </button>
+            ) : null}
             {isAuthenticated ? (
               <NotificationBell
                 notifications={notifications}
@@ -456,6 +542,42 @@ export default function App() {
         ) : activePolicyView ? (
           <div className="lg:col-span-2">
             <PolicyView view={activePolicyView} />
+          </div>
+        ) : isSupportView ? (
+          <div className="lg:col-span-2">
+            <SupportView
+              contactEmail={session?.email}
+              originUrl={typeof window !== 'undefined' ? window.location.href : ''}
+            />
+          </div>
+        ) : isMessagesView ? (
+          <div className="lg:col-span-2">
+            <MessagesView
+              session={session}
+              activeConversationId={conversationId}
+              onOpenConversation={openConversation}
+              onCloseConversation={closeConversation}
+              onUnreadChange={setMessageUnreadCount}
+            />
+          </div>
+        ) : isAdminCommunityView ? (
+          <AdminCommunityView />
+        ) : isAdminMembersView ? (
+          <AdminMembersView />
+        ) : activeDiscussionRoute && detailProjectId !== null ? (
+          <div className="lg:col-span-2">
+            <DiscussionHub
+              projectId={detailProjectId}
+              route={activeDiscussionRoute}
+              session={session}
+              onRequireLogin={() => setIsLoginOpen(true)}
+              onNavigateList={() => openDiscussionList(detailProjectId)}
+              onNavigateNew={() => openDiscussionNew(detailProjectId)}
+              onNavigateDetail={(discussionId) =>
+                openDiscussionDetail(detailProjectId, discussionId)
+              }
+              onBackToProject={() => closeDiscussions(detailProjectId)}
+            />
           </div>
         ) : isAdminView ? (
           <AdminDashboardView
@@ -658,6 +780,9 @@ export default function App() {
             onOpenAbout={openAbout}
             onOpenDetail={openProjectDetail}
             onOpenMaker={openMakerProfile}
+            onOpenDiscussions={
+              detailProjectId !== null ? () => openDiscussionList(detailProjectId) : undefined
+            }
             onToggleFavorite={toggleFavorite}
             onToggleUpvote={(project) => void handleToggleUpvote(project)}
             canFeature={canAccessAdmin}
@@ -866,12 +991,15 @@ export default function App() {
               개인정보처리방침
             </a>
             <a
-              href={TERMSDESK_SUPPORT_URL}
-              target="_blank"
-              rel="noreferrer"
+              href={routePath.support()}
+              onClick={(event) => {
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+                event.preventDefault()
+                openSupport()
+              }}
               className="hover:text-stone-100"
             >
-              지원
+              문의
             </a>
           </nav>
         </div>

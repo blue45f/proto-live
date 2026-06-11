@@ -368,12 +368,18 @@ describe('App characterization: legal policy pages', () => {
     expect(await screen.findByText('da889f525586')).toBeInTheDocument()
   })
 
-  it('keeps the support board link external to TermsDesk', async () => {
+  it('routes the footer 문의 link to the in-app inquiry view', async () => {
+    const user = userEvent.setup()
     await renderAppLoaded()
 
-    const supportLink = screen.getByRole('link', { name: '지원' })
-    expect(supportLink).toHaveAttribute('href', 'https://termsdesk.vercel.app/support/proto-live')
-    expect(supportLink).toHaveAttribute('target', '_blank')
+    const supportLink = screen.getByRole('link', { name: '문의' })
+    // 외부 지원 보드 대신 내부 /support 인앱 문의 폼으로 연결된다(외부 폴백은 폼 안에서 제공).
+    expect(supportLink).toHaveAttribute('href', '/support')
+    expect(supportLink).not.toHaveAttribute('target', '_blank')
+
+    await user.click(supportLink)
+    expect(await screen.findByRole('heading', { name: '문의하기', level: 2 })).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/support')
   })
 })
 

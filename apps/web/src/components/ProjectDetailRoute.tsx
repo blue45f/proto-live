@@ -1,5 +1,14 @@
 import React from 'react'
-import { Briefcase, ExternalLink, Globe2, Loader2, RefreshCw, Send, Sparkles } from 'lucide-react'
+import {
+  Briefcase,
+  ExternalLink,
+  Globe2,
+  Loader2,
+  MessagesSquare,
+  RefreshCw,
+  Send,
+  Sparkles,
+} from 'lucide-react'
 import type { AuthSession } from '../local-auth'
 import type {
   Project,
@@ -52,6 +61,7 @@ export function ProjectDetailRoute({
   onSubmitLog,
   isSubmittingLog,
   onOpenMaker,
+  onOpenDiscussions,
 }: {
   project: Project
   events: ProjectEvent[]
@@ -86,6 +96,8 @@ export function ProjectDetailRoute({
   onSubmitLog: (event: React.FormEvent) => void
   isSubmittingLog: boolean
   onOpenMaker: (makerId: number) => void
+  /** 프로젝트 토론 허브(분할 라우트)로 이동. 미지정이면 토론 진입 버튼을 숨긴다. */
+  onOpenDiscussions?: () => void
 }) {
   const canPostLog = !!session && session.id === project.userId
   const isProtected = project.accessMode === 'screened'
@@ -307,6 +319,16 @@ export function ProjectDetailRoute({
                 <RefreshCw className="h-4 w-4" />
                 상태 다시 확인
               </button>
+              {onOpenDiscussions ? (
+                <button
+                  type="button"
+                  onClick={onOpenDiscussions}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-stone-700 px-3 text-sm font-black text-stone-200 transition hover:border-cyan-300/50 hover:text-cyan-100 sm:col-span-2"
+                >
+                  <MessagesSquare className="h-4 w-4" />
+                  토론 보기
+                </button>
+              ) : null}
             </div>
           </div>
 

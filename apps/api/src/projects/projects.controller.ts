@@ -26,6 +26,7 @@ import { CreateProjectLogDto } from './dto/create-project-log.dto'
 import { SetSeasonChallengeDto } from './dto/set-season-challenge.dto'
 import { GetProjectsQueryDto, ProjectQueryInput } from './dto/get-projects-query.dto'
 import { AdminRevenueProjectionQueryDto } from './dto/admin-revenue-projection-query.dto'
+import { UpdateMemberNotesDto } from './dto/update-member-notes.dto'
 
 @Controller('api/projects')
 export class ProjectsController {
@@ -149,6 +150,30 @@ export class ProjectsController {
   getAdminAuditLogs(@Req() request: Request, @Query('limit') limit?: string) {
     const admin = this.projectsService.requireAdminSession(request.headers.cookie)
     return this.projectsService.getAdminAuditLogs(admin, limit ? Number.parseInt(limit, 10) : 30)
+  }
+
+  /**
+   * GET /api/projects/admin-members
+   * 회원(메이커/투자자/일반) 디렉터리 — 활동 집계가 붙은 운영 콘솔 읽기 전용 뷰.
+   */
+  @Get('admin-members')
+  getAdminMembers(@Req() request: Request) {
+    this.projectsService.requireAdminSession(request.headers.cookie)
+    return this.projectsService.getAdminMembers()
+  }
+
+  /**
+   * POST /api/projects/admin-members/:memberId/notes
+   * 운영 메모를 갱신합니다(빈 문자열이면 비움). User 모델의 기존 notes 필드만 수정합니다.
+   */
+  @Post('admin-members/:memberId/notes')
+  updateMemberNotes(
+    @Req() request: Request,
+    @Param('memberId', ParseIntPipe) memberId: number,
+    @Body() body: UpdateMemberNotesDto
+  ) {
+    this.projectsService.requireAdminSession(request.headers.cookie)
+    return this.projectsService.updateMemberNotes(memberId, body.notes)
   }
 
   /**

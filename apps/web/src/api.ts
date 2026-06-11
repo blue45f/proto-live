@@ -740,6 +740,235 @@ export async function moderateProjectReview(
   return response.data
 }
 
+// ───────────────────────── 커뮤니티(토론/첨부/쪽지) ─────────────────────────
+
+export type DiscussionCategory = 'question' | 'feedback' | 'help' | 'showcase'
+export type DiscussionStatus = 'visible' | 'hidden'
+export type DiscussionCommentStatus = 'visible' | 'deleted' | 'hidden'
+
+export interface DiscussionSummary {
+  id: number
+  projectId: number
+  projectTitle: string
+  category: DiscussionCategory
+  title: string
+  excerpt: string
+  authorEmail: string
+  authorName: string
+  status: DiscussionStatus
+  commentCount: number
+  attachmentCount: number
+  createdAt: string
+  lastActivityAt: string
+}
+
+export interface CommunityAttachment {
+  id: number
+  targetType: 'thread' | 'comment'
+  targetId: number
+  projectId: number
+  authorEmail: string
+  dataUrl: string
+  byteSize: number
+  removedBy?: string | null
+  createdAt: string
+}
+
+export interface DiscussionComment {
+  id: number
+  threadId: number
+  parentId: number | null
+  authorEmail: string
+  authorName: string
+  body: string
+  status: DiscussionCommentStatus
+  createdAt: string
+  attachments: CommunityAttachment[]
+}
+
+export interface DiscussionDetail {
+  thread: {
+    id: number
+    projectId: number
+    authorEmail: string
+    authorName: string
+    category: DiscussionCategory
+    title: string
+    body: string
+    status: DiscussionStatus
+    moderationNote?: string | null
+    createdAt: string
+    lastActivityAt: string
+    attachments: CommunityAttachment[]
+  }
+  comments: DiscussionComment[]
+}
+
+export interface CreateDiscussionPayload {
+  category: DiscussionCategory
+  title: string
+  body: string
+  attachments?: string[]
+}
+
+export interface CreateDiscussionCommentPayload {
+  body: string
+  parentId?: number
+  attachments?: string[]
+}
+
+export async function fetchProjectDiscussions(projectId: number) {
+  const response = await client.get<DiscussionSummary[]>(
+    `/community/projects/${projectId}/discussions`
+  )
+  return response.data
+}
+
+export async function createDiscussion(projectId: number, payload: CreateDiscussionPayload) {
+  const response = await client.post<DiscussionDetail>(
+    `/community/projects/${projectId}/discussions`,
+    payload
+  )
+  return response.data
+}
+
+export async function fetchDiscussion(projectId: number, discussionId: number) {
+  const response = await client.get<DiscussionDetail>(
+    `/community/projects/${projectId}/discussions/${discussionId}`
+  )
+  return response.data
+}
+
+export async function deleteOwnDiscussion(discussionId: number) {
+  const response = await client.post<{ hidden: true }>(
+    `/community/discussions/${discussionId}/delete`
+  )
+  return response.data
+}
+
+export async function addDiscussionComment(
+  discussionId: number,
+  payload: CreateDiscussionCommentPayload
+) {
+  const response = await client.post<DiscussionComment>(
+    `/community/discussions/${discussionId}/comments`,
+    payload
+  )
+  return response.data
+}
+
+export async function deleteDiscussionComment(discussionId: number, commentId: number) {
+  const response = await client.post<DiscussionComment>(
+    `/community/discussions/${discussionId}/comments/${commentId}/delete`
+  )
+  return response.data
+}
+
+export async function fetchAdminDiscussions() {
+  const response = await client.get<DiscussionSummary[]>('/community/admin/discussions')
+  return response.data
+}
+
+export async function moderateDiscussion(
+  discussionId: number,
+  payload: { action: 'hide' | 'restore' | 'delete'; note?: string }
+) {
+  const response = await client.post<{ threadId: number; action: string }>(
+    `/community/admin/discussions/${discussionId}/moderate`,
+    payload
+  )
+  return response.data
+}
+
+export async function fetchAdminAttachments(limit = 60) {
+  const response = await client.get<CommunityAttachment[]>('/community/admin/attachments', {
+    params: { limit },
+  })
+  return response.data
+}
+
+export async function removeAdminAttachment(attachmentId: number) {
+  const response = await client.post<CommunityAttachment>(
+    `/community/admin/attachments/${attachmentId}/remove`
+  )
+  return response.data
+}
+
+export interface DmConversation {
+  id: number
+  projectId: number
+  projectTitle: string
+  makerEmail: string
+  makerName: string
+  investorEmail: string
+  investorName: string
+  createdAt: string
+  lastMessageAt: string
+  unreadCount?: number
+  lastMessagePreview?: string | null
+}
+
+export interface DmMessage {
+  id: number
+  conversationId: number
+  senderEmail: string
+  body: string
+  createdAt: string
+  readAt: string | null
+}
+
+export async function fetchConversations() {
+  const response = await client.get<DmConversation[]>('/community/messages/conversations')
+  return response.data
+}
+
+export async function fetchConversationMessages(conversationId: number) {
+  const response = await client.get<{ conversation: DmConversation; messages: DmMessage[] }>(
+    `/community/messages/conversations/${conversationId}`
+  )
+  return response.data
+}
+
+export async function sendDirectMessage(payload: {
+  projectId?: number
+  conversationId?: number
+  body: string
+}) {
+  const response = await client.post<{ conversation: DmConversation; message: DmMessage }>(
+    '/community/messages',
+    payload
+  )
+  return response.data
+}
+
+// ───────────────────────── 운영 콘솔: 회원 디렉터리 ─────────────────────────
+
+export interface AdminMember {
+  id: number
+  email: string
+  name: string | null
+  role: AuthRole
+  notes: string | null
+  projectCount: number
+  reviewCount: number
+  upvoteCount: number
+  proposalCount: number
+  lastActivityAt: string | null
+}
+
+export async function fetchAdminMembers() {
+  const response = await client.get<AdminMember[]>('/projects/admin-members')
+  return response.data
+}
+
+export async function updateAdminMemberNotes(memberId: number, notes: string) {
+  const response = await client.post<{ id: number; notes: string | null }>(
+    `/projects/admin-members/${memberId}/notes`,
+    { notes }
+  )
+  return response.data
+}
+
 export function extractProjects(payload: ProjectListPayload): Project[] {
   return Array.isArray(payload) ? payload : payload.data
 }

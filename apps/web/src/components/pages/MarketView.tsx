@@ -163,6 +163,7 @@ export function MarketView(props: {
   onOpenAbout: () => void
   onOpenDetail: (project: Project) => void
   onOpenMaker: (makerId: number) => void
+  onOpenDiscussions?: () => void
   onToggleFavorite: (projectId: number) => void
   onToggleUpvote: (project: Project) => void
   onToggleFeatured: (project: Project) => void
@@ -264,6 +265,7 @@ export function MarketView(props: {
     onOpenAbout,
     onOpenDetail,
     onOpenMaker,
+    onOpenDiscussions,
     onToggleFavorite,
     onToggleUpvote,
     onToggleFeatured,
@@ -471,6 +473,7 @@ export function MarketView(props: {
               onSubmitLog={onSubmitLog}
               isSubmittingLog={isSubmittingLog}
               onOpenMaker={onOpenMaker}
+              onOpenDiscussions={onOpenDiscussions}
             />
           ) : isDetailUnavailable ? (
             <div className="rounded-xl border border-amber-400/30 bg-amber-300/10 p-6">

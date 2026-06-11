@@ -76,6 +76,36 @@ function buildApiMock() {
     fetchNotifications: vi.fn(async () => []),
     markNotificationsRead: vi.fn(async () => ({ read: 0 })),
     validateLiveUrl: vi.fn(async () => projects[0].validation),
+    // 커뮤니티(토론/첨부/쪽지) — 기본은 빈 상태. 개별 테스트에서 mockResolvedValueOnce 로 덮는다.
+    fetchProjectDiscussions: vi.fn(async () => []),
+    createDiscussion: vi.fn(async () => {
+      throw new Error('createDiscussion not stubbed for this test')
+    }),
+    fetchDiscussion: vi.fn(async () => {
+      throw new Error('fetchDiscussion not stubbed for this test')
+    }),
+    deleteOwnDiscussion: vi.fn(async () => ({ hidden: true as const })),
+    addDiscussionComment: vi.fn(async () => {
+      throw new Error('addDiscussionComment not stubbed for this test')
+    }),
+    deleteDiscussionComment: vi.fn(async () => {
+      throw new Error('deleteDiscussionComment not stubbed for this test')
+    }),
+    fetchAdminDiscussions: vi.fn(async () => []),
+    moderateDiscussion: vi.fn(async () => ({ threadId: 0, action: 'hide' })),
+    fetchAdminAttachments: vi.fn(async () => []),
+    removeAdminAttachment: vi.fn(async () => {
+      throw new Error('removeAdminAttachment not stubbed for this test')
+    }),
+    fetchConversations: vi.fn(async () => []),
+    fetchConversationMessages: vi.fn(async () => {
+      throw new Error('fetchConversationMessages not stubbed for this test')
+    }),
+    sendDirectMessage: vi.fn(async () => {
+      throw new Error('sendDirectMessage not stubbed for this test')
+    }),
+    fetchAdminMembers: vi.fn(async () => []),
+    updateAdminMemberNotes: vi.fn(async () => ({ id: 0, notes: null })),
   }
 }
 
