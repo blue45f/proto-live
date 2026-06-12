@@ -1,9 +1,9 @@
 # ProtoLive NestJS API — OCI Always-Free ARM(Ampere A1, arm64) 컨테이너.
-# node:22 는 arm64 멀티아치라 Ampere A1 에서 그대로 동작한다. 모노레포 루트가 빌드 컨텍스트:
+# node:24 는 arm64 멀티아치라 Ampere A1 에서 그대로 동작한다. 모노레포 루트가 빌드 컨텍스트:
 #   docker build -f deploy/oci/Dockerfile -t protolive-api .
 # (apps/api 빌드 산출물은 dist/src/main.js — render.yaml startCommand 와 동일 경로)
 
-FROM node:22-bookworm-slim AS build
+FROM node:24-bookworm-slim AS build
 WORKDIR /repo
 RUN corepack enable && corepack prepare pnpm@11.4.0 --activate
 COPY . .
@@ -12,7 +12,7 @@ RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
 RUN pnpm --filter protolive-backend build
 
-FROM node:22-bookworm-slim AS runtime
+FROM node:24-bookworm-slim AS runtime
 WORKDIR /repo
 RUN corepack enable && corepack prepare pnpm@11.4.0 --activate
 ENV NODE_ENV=production
