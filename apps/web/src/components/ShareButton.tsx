@@ -10,7 +10,7 @@ import { useDismissableDetails } from '../lib/use-dismissable-details'
  */
 export function ShareButton({ url, title }: { url: string; title: string }) {
   const [copied, setCopied] = useState(false)
-  const detailsRef = useDismissableDetails()
+  const [detailsRef] = useDismissableDetails()
 
   const canSystemShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
   const encodedUrl = encodeURIComponent(url)

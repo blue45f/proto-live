@@ -35,5 +35,11 @@ export function useDismissableDetails() {
     }
   }, [])
 
-  return detailsRef
+  const close = () => {
+    if (detailsRef.current) {
+      detailsRef.current.open = false
+    }
+  }
+
+  return [detailsRef, close] as const
 }

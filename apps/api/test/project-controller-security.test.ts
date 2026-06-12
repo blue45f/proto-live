@@ -31,7 +31,10 @@ test('refresh all projects requires an admin session before mutating state', asy
   const controller = makeController()
 
   await assert.rejects(
-    () => (controller as any).refreshProjects({ headers: {} }),
+    () =>
+      (controller as unknown as Record<string, (req: unknown) => Promise<unknown>>).refreshProjects(
+        { headers: {} }
+      ),
     (error: unknown) => {
       assert.ok(error instanceof ForbiddenException)
       assert.match((error as ForbiddenException).message, /관리자/)
@@ -44,7 +47,10 @@ test('single project refresh requires a logged-in authorized session before muta
   const controller = makeController()
 
   await assert.rejects(
-    () => (controller as any).refreshProject(1, { headers: {} }),
+    () =>
+      (
+        controller as unknown as Record<string, (id: number, req: unknown) => Promise<unknown>>
+      ).refreshProject(1, { headers: {} }),
     (error: unknown) => {
       assert.ok(error instanceof ForbiddenException)
       assert.match((error as ForbiddenException).message, /로그인/)

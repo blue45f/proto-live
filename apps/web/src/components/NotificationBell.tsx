@@ -26,7 +26,7 @@ export function NotificationBell({
   onMarkAllRead: () => void
   onOpen: (notification: AppNotification) => void
 }) {
-  const detailsRef = useDismissableDetails()
+  const [detailsRef, closeDetails] = useDismissableDetails()
 
   return (
     <details
@@ -66,8 +66,7 @@ export function NotificationBell({
                 key={notification.id}
                 type="button"
                 onClick={() => {
-                  // 상세로 이동하므로 팝오버가 새 화면을 가리지 않게 닫는다.
-                  if (detailsRef.current) detailsRef.current.open = false
+                  closeDetails()
                   onOpen(notification)
                 }}
                 className={`flex w-full items-start gap-2.5 rounded-lg px-3 py-2.5 text-left transition hover:bg-lime-300/10 ${

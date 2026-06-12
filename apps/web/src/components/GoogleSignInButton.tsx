@@ -48,7 +48,9 @@ export function GoogleSignInButton({
 }) {
   const ref = useRef<HTMLDivElement>(null)
   const cbRef = useRef(onCredential)
-  cbRef.current = onCredential
+  useEffect(() => {
+    cbRef.current = onCredential
+  })
 
   useEffect(() => {
     let cancelled = false

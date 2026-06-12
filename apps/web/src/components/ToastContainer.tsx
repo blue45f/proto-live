@@ -17,6 +17,7 @@ interface ToastContextType {
 
 let globalAddToast: ToastContextType['addToast'] | null = null
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function toast(type: ToastType, title: string, message: string, duration?: number) {
   if (globalAddToast) {
     globalAddToast(type, title, message, duration)
