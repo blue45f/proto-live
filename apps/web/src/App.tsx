@@ -1,27 +1,51 @@
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { Plus, RefreshCw, Zap, Users, Mail } from 'lucide-react'
 import { resolveRoleLabel } from './local-auth'
 import ToastContainer from './components/ToastContainer'
 import { ProjectDiligencePanel } from './components/ProjectDiligencePanel'
-import { AdminDashboardView } from './components/pages/AdminDashboardView'
 import { MarketView } from './components/pages/MarketView'
-import { MakerProfileView } from './components/pages/MakerProfileView'
 import { NotificationBell } from './components/NotificationBell'
-import { AboutView } from './components/pages/AboutView'
-import { PolicyView } from './components/pages/PolicyView'
-import { SupportView } from './components/pages/SupportView'
-import { MessagesView } from './components/pages/MessagesView'
-import { AdminCommunityView } from './components/pages/AdminCommunityView'
-import { AdminMembersView } from './components/pages/AdminMembersView'
-import { DiscussionHub } from './components/community/DiscussionHub'
+import { RouteFallback } from './components/RouteFallback'
 import { LoginModal } from './components/modals/LoginModal'
 import { MatchModal } from './components/modals/MatchModal'
 import { SubmitProjectModal } from './components/modals/SubmitProjectModal'
 import { ReviewModal } from './components/modals/ReviewModal'
 import { PreviewModal } from './components/modals/PreviewModal'
 import { useProtoLiveApp } from './state/useProtoLiveApp'
+import { lazyRetry } from './lib/lazy-retry'
 import { POLICY_PAGES } from './lib/termsdesk'
 import { routePath } from './router/route'
+
+// 라우트 코드 스플리팅: 기본 랜딩(MarketView)은 첫 페인트 경로라 eager 로 유지하고,
+// 나머지 화면은 방문 시점에 청크를 불러온다. lazyRetry 는 재배포로 stale 해진 청크
+// 요청 실패를 세션당 1회 전체 새로고침으로 복구한다(lib/lazy-retry.ts 참고).
+const AdminDashboardView = lazyRetry(() =>
+  import('./components/pages/AdminDashboardView').then((m) => ({ default: m.AdminDashboardView }))
+)
+const MakerProfileView = lazyRetry(() =>
+  import('./components/pages/MakerProfileView').then((m) => ({ default: m.MakerProfileView }))
+)
+const AboutView = lazyRetry(() =>
+  import('./components/pages/AboutView').then((m) => ({ default: m.AboutView }))
+)
+const PolicyView = lazyRetry(() =>
+  import('./components/pages/PolicyView').then((m) => ({ default: m.PolicyView }))
+)
+const SupportView = lazyRetry(() =>
+  import('./components/pages/SupportView').then((m) => ({ default: m.SupportView }))
+)
+const MessagesView = lazyRetry(() =>
+  import('./components/pages/MessagesView').then((m) => ({ default: m.MessagesView }))
+)
+const AdminCommunityView = lazyRetry(() =>
+  import('./components/pages/AdminCommunityView').then((m) => ({ default: m.AdminCommunityView }))
+)
+const AdminMembersView = lazyRetry(() =>
+  import('./components/pages/AdminMembersView').then((m) => ({ default: m.AdminMembersView }))
+)
+const DiscussionHub = lazyRetry(() =>
+  import('./components/community/DiscussionHub').then((m) => ({ default: m.DiscussionHub }))
+)
 
 export default function App() {
   const {
@@ -528,267 +552,270 @@ export default function App() {
         tabIndex={-1}
         className="protolive-main mx-auto grid max-w-7xl gap-6 px-4 py-6 outline-none sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-8"
       >
-        {makerProfileId ? (
-          <MakerProfileView
-            profile={makerProfile}
-            isLoading={isMakerProfileLoading}
-            onBack={closeMakerProfile}
-            onOpenProject={openProjectDetail}
-          />
-        ) : isAboutView ? (
-          <div className="lg:col-span-2">
-            <AboutView onCreate={openSubmitDialog} onBrowse={goHome} />
-          </div>
-        ) : activePolicyView ? (
-          <div className="lg:col-span-2">
-            <PolicyView view={activePolicyView} />
-          </div>
-        ) : isSupportView ? (
-          <div className="lg:col-span-2">
-            <SupportView
-              contactEmail={session?.email}
-              originUrl={typeof window !== 'undefined' ? window.location.href : ''}
+        {/* 라우트 청크가 내려오는 동안 본문 자리에 스켈레톤을 유지한다(레이아웃 점프 방지). */}
+        <Suspense fallback={<RouteFallback />}>
+          {makerProfileId ? (
+            <MakerProfileView
+              profile={makerProfile}
+              isLoading={isMakerProfileLoading}
+              onBack={closeMakerProfile}
+              onOpenProject={openProjectDetail}
             />
-          </div>
-        ) : isMessagesView ? (
-          <div className="lg:col-span-2">
-            <MessagesView
-              session={session}
-              activeConversationId={conversationId}
-              onOpenConversation={openConversation}
-              onCloseConversation={closeConversation}
-              onUnreadChange={setMessageUnreadCount}
-            />
-          </div>
-        ) : isAdminCommunityView ? (
-          <AdminCommunityView />
-        ) : isAdminMembersView ? (
-          <AdminMembersView />
-        ) : activeDiscussionRoute && detailProjectId !== null ? (
-          <div className="lg:col-span-2">
-            <DiscussionHub
-              projectId={detailProjectId}
-              route={activeDiscussionRoute}
-              session={session}
-              onRequireLogin={() => setIsLoginOpen(true)}
-              onNavigateList={() => openDiscussionList(detailProjectId)}
-              onNavigateNew={() => openDiscussionNew(detailProjectId)}
-              onNavigateDetail={(discussionId) =>
-                openDiscussionDetail(detailProjectId, discussionId)
+          ) : isAboutView ? (
+            <div className="lg:col-span-2">
+              <AboutView onCreate={openSubmitDialog} onBrowse={goHome} />
+            </div>
+          ) : activePolicyView ? (
+            <div className="lg:col-span-2">
+              <PolicyView view={activePolicyView} />
+            </div>
+          ) : isSupportView ? (
+            <div className="lg:col-span-2">
+              <SupportView
+                contactEmail={session?.email}
+                originUrl={typeof window !== 'undefined' ? window.location.href : ''}
+              />
+            </div>
+          ) : isMessagesView ? (
+            <div className="lg:col-span-2">
+              <MessagesView
+                session={session}
+                activeConversationId={conversationId}
+                onOpenConversation={openConversation}
+                onCloseConversation={closeConversation}
+                onUnreadChange={setMessageUnreadCount}
+              />
+            </div>
+          ) : isAdminCommunityView ? (
+            <AdminCommunityView />
+          ) : isAdminMembersView ? (
+            <AdminMembersView />
+          ) : activeDiscussionRoute && detailProjectId !== null ? (
+            <div className="lg:col-span-2">
+              <DiscussionHub
+                projectId={detailProjectId}
+                route={activeDiscussionRoute}
+                session={session}
+                onRequireLogin={() => setIsLoginOpen(true)}
+                onNavigateList={() => openDiscussionList(detailProjectId)}
+                onNavigateNew={() => openDiscussionNew(detailProjectId)}
+                onNavigateDetail={(discussionId) =>
+                  openDiscussionDetail(detailProjectId, discussionId)
+                }
+                onBackToProject={() => closeDiscussions(detailProjectId)}
+              />
+            </div>
+          ) : isAdminView ? (
+            <AdminDashboardView
+              adminDashboard={adminDashboard}
+              adminDashboardError={adminDashboardError}
+              adminReportedReviews={adminReportedReviews}
+              adminAuditLogs={adminAuditLogs}
+              moderatingReviewId={moderatingReviewId}
+              recommendationSummary={recommendationSummary}
+              orderedAdminRecommendations={orderedAdminRecommendations}
+              isApplyingAllAdminRecommendations={isApplyingAllAdminRecommendations}
+              adminRevenueConfig={adminRevenueConfig}
+              adminScenarioMultipliers={adminScenarioMultipliers}
+              adminRevenueTargetMonthly={adminRevenueTargetMonthly}
+              adminRevenueProjectionParams={adminRevenueProjectionParams}
+              revenueProjection={revenueProjection}
+              adminRevenueTargetGap={adminRevenueTargetGap}
+              targetGapRate={targetGapRate}
+              adminRevenueHealthScore={adminRevenueHealthScore}
+              adminRevenueHealthTone={adminRevenueHealthTone}
+              adminTrendMetrics={adminTrendMetrics}
+              isAdminDashboardAvailable={isAdminDashboardAvailable}
+              onModerateReview={(entry, action) => void handleModerateReview(entry, action)}
+              onApplyAllRecommendations={applyAllAdminRecommendations}
+              onApplyRecommendation={applyAdminRecommendation}
+              onCopyRevenueSnapshot={copyAdminRevenueSnapshot}
+              onExportRevenueReport={exportAdminRevenueReport}
+              onApplyObservedConversionRates={applyObservedConversionRates}
+              onApplyRevenueModelPreset={applyRevenueModelPreset}
+              onResetScenarioMultipliers={resetAdminScenarioMultipliers}
+              onScenarioMultiplierChange={updateScenarioMultiplier}
+              onRevenueTargetChange={updateRevenueTargetInput}
+              onRevenueInputChange={updateRevenueInput}
+              challenge={config.challenge ?? null}
+              onSetChallenge={(title, description, endsAt) =>
+                void handleSetChallenge(title, description, endsAt)
               }
-              onBackToProject={() => closeDiscussions(detailProjectId)}
             />
-          </div>
-        ) : isAdminView ? (
-          <AdminDashboardView
-            adminDashboard={adminDashboard}
-            adminDashboardError={adminDashboardError}
-            adminReportedReviews={adminReportedReviews}
-            adminAuditLogs={adminAuditLogs}
-            moderatingReviewId={moderatingReviewId}
-            recommendationSummary={recommendationSummary}
-            orderedAdminRecommendations={orderedAdminRecommendations}
-            isApplyingAllAdminRecommendations={isApplyingAllAdminRecommendations}
-            adminRevenueConfig={adminRevenueConfig}
-            adminScenarioMultipliers={adminScenarioMultipliers}
-            adminRevenueTargetMonthly={adminRevenueTargetMonthly}
-            adminRevenueProjectionParams={adminRevenueProjectionParams}
-            revenueProjection={revenueProjection}
-            adminRevenueTargetGap={adminRevenueTargetGap}
-            targetGapRate={targetGapRate}
-            adminRevenueHealthScore={adminRevenueHealthScore}
-            adminRevenueHealthTone={adminRevenueHealthTone}
-            adminTrendMetrics={adminTrendMetrics}
-            isAdminDashboardAvailable={isAdminDashboardAvailable}
-            onModerateReview={(entry, action) => void handleModerateReview(entry, action)}
-            onApplyAllRecommendations={applyAllAdminRecommendations}
-            onApplyRecommendation={applyAdminRecommendation}
-            onCopyRevenueSnapshot={copyAdminRevenueSnapshot}
-            onExportRevenueReport={exportAdminRevenueReport}
-            onApplyObservedConversionRates={applyObservedConversionRates}
-            onApplyRevenueModelPreset={applyRevenueModelPreset}
-            onResetScenarioMultipliers={resetAdminScenarioMultipliers}
-            onScenarioMultiplierChange={updateScenarioMultiplier}
-            onRevenueTargetChange={updateRevenueTargetInput}
-            onRevenueInputChange={updateRevenueInput}
-            challenge={config.challenge ?? null}
-            onSetChallenge={(title, description, endsAt) =>
-              void handleSetChallenge(title, description, endsAt)
-            }
-          />
-        ) : (
-          <MarketView
-            apiOnline={apiOnline}
-            stats={stats}
-            config={config}
-            isInitialLoading={isInitialLoading}
-            loadError={loadError}
-            fastestResponseProject={fastestResponseProject}
-            averageSignalDensity={averageSignalDensity}
-            detailProjectId={detailProjectId}
-            detailProject={detailProject}
-            isDetailUnavailable={isDetailUnavailable}
-            diligenceEvents={diligenceEvents}
-            projectReviews={projectReviews}
-            projectLog={projectLog}
-            isProjectLogLoading={isProjectLogLoading}
-            logBody={logBody}
-            onLogBodyChange={setLogBody}
-            onSubmitLog={handleSubmitLog}
-            isSubmittingLog={isSubmittingLog}
-            session={session}
-            isDiligenceEventsLoading={isDiligenceEventsLoading}
-            isProjectReviewsLoading={isProjectReviewsLoading}
-            reviewType={reviewType}
-            reviewRating={reviewRating}
-            reviewBody={reviewBody}
-            replyToReview={replyToReview}
-            isSendingReview={isSendingReview}
-            reportingReviewId={reportingReviewId}
-            canRefreshProject={canRefreshProject}
-            searchInputRef={searchInputRef}
-            categoryOptions={categoryOptions}
-            tagOptions={tagOptions}
-            accessModeOptions={accessModeOptions}
-            selectedCategory={selectedCategory}
-            selectedTag={selectedTag}
-            selectedAccessMode={selectedAccessMode}
-            searchQuery={searchQuery}
-            sortMode={sortMode}
-            projectListView={projectListView}
-            onlyVerified={onlyVerified}
-            minSignal={minSignal}
-            minFundingAmount={minFundingAmount}
-            maxFundingAmount={maxFundingAmount}
-            showFavoritesOnly={showFavoritesOnly}
-            showAdvancedFilters={showAdvancedFilters}
-            hasFundingRangeError={hasFundingRangeError}
-            favoriteProjectCount={favoriteProjectCount}
-            favoriteProjectIds={favoriteProjectIds}
-            upvotedProjectIds={upvotedProjectIds}
-            pageSize={pageSize}
-            projectMeta={projectMeta}
-            activeFilters={activeFilters}
-            activeFilterCount={activeFilterCount}
-            visibleProjects={visibleProjects}
-            signalRankByProjectId={signalRankByProjectId}
-            onBack={closeProjectDetail}
-            onDetailPreview={() => {
-              if (detailProject) void handleOpenPreview(detailProject)
-            }}
-            onDetailMatch={() => {
-              if (detailProject) void handleOpenMatchDialog(detailProject)
-            }}
-            onDetailRefresh={() => {
-              if (detailProject) void handleRefreshProject(detailProject)
-            }}
-            onDetailOutbound={() => {
-              if (detailProject) void handleProjectEvent(detailProject, 'outbound')
-            }}
-            onSubmitReview={handleSubmitReview}
-            onReviewTypeChange={setReviewType}
-            onReviewRatingChange={setReviewRating}
-            onReviewBodyChange={setReviewBody}
-            onReplyTo={setReplyToReview}
-            onCancelReply={() => setReplyToReview(null)}
-            onReportReview={(review) => void handleReportReview(review)}
-            onDetailLogin={() => {
-              closeReviewDialog()
-              setIsLoginOpen(true)
-            }}
-            onSelectCategory={(item) => {
-              setSelectedCategory(item)
-              setPage(1)
-            }}
-            onSelectTag={(item) => {
-              setSelectedTag(item)
-              setPage(1)
-            }}
-            onSelectAccessMode={(item) => {
-              setSelectedAccessMode(item)
-              setPage(1)
-            }}
-            onSearchChange={(value) => {
-              setPage(1)
-              setSearchQuery(value)
-            }}
-            onToggleAdvancedFilters={() => setShowAdvancedFilters((value: boolean) => !value)}
-            onProjectListViewChange={setProjectListView}
-            onSortSignal={() => {
-              setSortMode('signal')
-              setPage(1)
-            }}
-            onSortUpvotes={() => {
-              setSortMode('upvotes')
-              setPage(1)
-            }}
-            onSortRecentClean={() => {
-              setSortMode('recent')
-              setOnlyVerified(false)
-              setMinSignal(0)
-              setPage(1)
-            }}
-            onSortFunding={() => {
-              setSortMode('funding')
-              setPage(1)
-            }}
-            onToggleOnlyVerified={() => {
-              setOnlyVerified((current) => !current)
-              setPage(1)
-            }}
-            onToggleFavoritesOnly={() => {
-              if (favoriteProjectCount > 0) {
+          ) : (
+            <MarketView
+              apiOnline={apiOnline}
+              stats={stats}
+              config={config}
+              isInitialLoading={isInitialLoading}
+              loadError={loadError}
+              fastestResponseProject={fastestResponseProject}
+              averageSignalDensity={averageSignalDensity}
+              detailProjectId={detailProjectId}
+              detailProject={detailProject}
+              isDetailUnavailable={isDetailUnavailable}
+              diligenceEvents={diligenceEvents}
+              projectReviews={projectReviews}
+              projectLog={projectLog}
+              isProjectLogLoading={isProjectLogLoading}
+              logBody={logBody}
+              onLogBodyChange={setLogBody}
+              onSubmitLog={handleSubmitLog}
+              isSubmittingLog={isSubmittingLog}
+              session={session}
+              isDiligenceEventsLoading={isDiligenceEventsLoading}
+              isProjectReviewsLoading={isProjectReviewsLoading}
+              reviewType={reviewType}
+              reviewRating={reviewRating}
+              reviewBody={reviewBody}
+              replyToReview={replyToReview}
+              isSendingReview={isSendingReview}
+              reportingReviewId={reportingReviewId}
+              canRefreshProject={canRefreshProject}
+              searchInputRef={searchInputRef}
+              categoryOptions={categoryOptions}
+              tagOptions={tagOptions}
+              accessModeOptions={accessModeOptions}
+              selectedCategory={selectedCategory}
+              selectedTag={selectedTag}
+              selectedAccessMode={selectedAccessMode}
+              searchQuery={searchQuery}
+              sortMode={sortMode}
+              projectListView={projectListView}
+              onlyVerified={onlyVerified}
+              minSignal={minSignal}
+              minFundingAmount={minFundingAmount}
+              maxFundingAmount={maxFundingAmount}
+              showFavoritesOnly={showFavoritesOnly}
+              showAdvancedFilters={showAdvancedFilters}
+              hasFundingRangeError={hasFundingRangeError}
+              favoriteProjectCount={favoriteProjectCount}
+              favoriteProjectIds={favoriteProjectIds}
+              upvotedProjectIds={upvotedProjectIds}
+              pageSize={pageSize}
+              projectMeta={projectMeta}
+              activeFilters={activeFilters}
+              activeFilterCount={activeFilterCount}
+              visibleProjects={visibleProjects}
+              signalRankByProjectId={signalRankByProjectId}
+              onBack={closeProjectDetail}
+              onDetailPreview={() => {
+                if (detailProject) void handleOpenPreview(detailProject)
+              }}
+              onDetailMatch={() => {
+                if (detailProject) void handleOpenMatchDialog(detailProject)
+              }}
+              onDetailRefresh={() => {
+                if (detailProject) void handleRefreshProject(detailProject)
+              }}
+              onDetailOutbound={() => {
+                if (detailProject) void handleProjectEvent(detailProject, 'outbound')
+              }}
+              onSubmitReview={handleSubmitReview}
+              onReviewTypeChange={setReviewType}
+              onReviewRatingChange={setReviewRating}
+              onReviewBodyChange={setReviewBody}
+              onReplyTo={setReplyToReview}
+              onCancelReply={() => setReplyToReview(null)}
+              onReportReview={(review) => void handleReportReview(review)}
+              onDetailLogin={() => {
+                closeReviewDialog()
+                setIsLoginOpen(true)
+              }}
+              onSelectCategory={(item) => {
+                setSelectedCategory(item)
+                setPage(1)
+              }}
+              onSelectTag={(item) => {
+                setSelectedTag(item)
+                setPage(1)
+              }}
+              onSelectAccessMode={(item) => {
+                setSelectedAccessMode(item)
+                setPage(1)
+              }}
+              onSearchChange={(value) => {
+                setPage(1)
+                setSearchQuery(value)
+              }}
+              onToggleAdvancedFilters={() => setShowAdvancedFilters((value: boolean) => !value)}
+              onProjectListViewChange={setProjectListView}
+              onSortSignal={() => {
+                setSortMode('signal')
+                setPage(1)
+              }}
+              onSortUpvotes={() => {
+                setSortMode('upvotes')
+                setPage(1)
+              }}
+              onSortRecentClean={() => {
+                setSortMode('recent')
+                setOnlyVerified(false)
+                setMinSignal(0)
+                setPage(1)
+              }}
+              onSortFunding={() => {
+                setSortMode('funding')
+                setPage(1)
+              }}
+              onToggleOnlyVerified={() => {
+                setOnlyVerified((current) => !current)
+                setPage(1)
+              }}
+              onToggleFavoritesOnly={() => {
+                if (favoriteProjectCount > 0) {
+                  setShowFavoritesOnly((value) => !value)
+                  setPage(1)
+                }
+              }}
+              onOnlyVerifiedChange={(value) => {
+                setOnlyVerified(value)
+                setPage(1)
+              }}
+              onMinSignalChange={(value) => {
+                setMinSignal(value)
+                setPage(1)
+              }}
+              onMinFundingAmountChange={(value) => {
+                setMinFundingAmount(value)
+                setPage(1)
+              }}
+              onMaxFundingAmountChange={(value) => {
+                setMaxFundingAmount(value)
+                setPage(1)
+              }}
+              onClearFundingRange={() => {
+                setMinFundingAmount(0)
+                setMaxFundingAmount(0)
+                setPage(1)
+              }}
+              onApplyFundingRange={applyFundingRange}
+              onToggleFavoritesOnlyAdvanced={() => {
                 setShowFavoritesOnly((value) => !value)
                 setPage(1)
+              }}
+              onPageSizeChange={(value) => {
+                setPageSize(value)
+                setPage(1)
+              }}
+              onCopyFilterLink={() => void copyFilterLink()}
+              onResetFilters={resetFilters}
+              onPrevPage={() => setPage((value) => Math.max(1, value - 1))}
+              onNextPage={() => setPage((value) => (projectMeta.hasNext ? value + 1 : value))}
+              onCreate={openSubmitDialog}
+              onOpenAbout={openAbout}
+              onOpenDetail={openProjectDetail}
+              onOpenMaker={openMakerProfile}
+              onOpenDiscussions={
+                detailProjectId !== null ? () => openDiscussionList(detailProjectId) : undefined
               }
-            }}
-            onOnlyVerifiedChange={(value) => {
-              setOnlyVerified(value)
-              setPage(1)
-            }}
-            onMinSignalChange={(value) => {
-              setMinSignal(value)
-              setPage(1)
-            }}
-            onMinFundingAmountChange={(value) => {
-              setMinFundingAmount(value)
-              setPage(1)
-            }}
-            onMaxFundingAmountChange={(value) => {
-              setMaxFundingAmount(value)
-              setPage(1)
-            }}
-            onClearFundingRange={() => {
-              setMinFundingAmount(0)
-              setMaxFundingAmount(0)
-              setPage(1)
-            }}
-            onApplyFundingRange={applyFundingRange}
-            onToggleFavoritesOnlyAdvanced={() => {
-              setShowFavoritesOnly((value) => !value)
-              setPage(1)
-            }}
-            onPageSizeChange={(value) => {
-              setPageSize(value)
-              setPage(1)
-            }}
-            onCopyFilterLink={() => void copyFilterLink()}
-            onResetFilters={resetFilters}
-            onPrevPage={() => setPage((value) => Math.max(1, value - 1))}
-            onNextPage={() => setPage((value) => (projectMeta.hasNext ? value + 1 : value))}
-            onCreate={openSubmitDialog}
-            onOpenAbout={openAbout}
-            onOpenDetail={openProjectDetail}
-            onOpenMaker={openMakerProfile}
-            onOpenDiscussions={
-              detailProjectId !== null ? () => openDiscussionList(detailProjectId) : undefined
-            }
-            onToggleFavorite={toggleFavorite}
-            onToggleUpvote={(project) => void handleToggleUpvote(project)}
-            canFeature={canAccessAdmin}
-            onToggleFeatured={(project) => void handleToggleFeatured(project)}
-          />
-        )}
+              onToggleFavorite={toggleFavorite}
+              onToggleUpvote={(project) => void handleToggleUpvote(project)}
+              canFeature={canAccessAdmin}
+              onToggleFeatured={(project) => void handleToggleFeatured(project)}
+            />
+          )}
+        </Suspense>
       </main>
 
       {diligenceProject && (
