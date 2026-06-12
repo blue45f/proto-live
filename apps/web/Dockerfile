@@ -15,7 +15,7 @@
 # --------------------------------------------------------------------------
 # 1. deps — 잠금 파일 기준으로 워크스페이스 전체 설치(레이어 캐싱 위해 매니페스트 먼저)
 # --------------------------------------------------------------------------
-FROM node:22-alpine AS deps
+FROM node:24-alpine AS deps
 WORKDIR /repo
 RUN corepack enable && corepack prepare pnpm@11.4.0 --activate
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./

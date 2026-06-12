@@ -12,7 +12,7 @@
 # --------------------------------------------------------------------------
 # 1. deps — 잠금 파일 기준으로 워크스페이스 전체 설치(레이어 캐싱 위해 매니페스트 먼저)
 # --------------------------------------------------------------------------
-FROM node:22-alpine AS deps
+FROM node:24-alpine AS deps
 WORKDIR /repo
 RUN corepack enable && corepack prepare pnpm@11.4.0 --activate
 # 워크스페이스 매니페스트 + 잠금 파일 먼저 복사(소스 변경과 무관하게 캐시 재사용).
@@ -39,7 +39,7 @@ RUN cp -R /repo/apps/api/dist /app/dist \
 # --------------------------------------------------------------------------
 # 3. runtime — 최소 prod 이미지, 비루트
 # --------------------------------------------------------------------------
-FROM node:22-alpine AS runtime
+FROM node:24-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 
