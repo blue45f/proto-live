@@ -1,47 +1,56 @@
 import { describe, expect, it } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { ShareButton } from './ShareButton'
 
-// useDismissableDetails 의 닫힘 규약을 공유 팝오버로 검증한다.
-// (jsdom 은 summary 클릭 토글을 구현하지 않으므로 open 속성은 직접 제어한다.)
-function renderOpenShare() {
-  const view = render(
+// Radix Popover 의 닫힘 규약을 공유 팝오버로 검증한다 — 트리거 클릭으로 열고,
+// 바깥 클릭·Esc 로 닫히며 포커스가 트리거로 복귀한다.
+function renderShare() {
+  render(
     <div>
       <ShareButton url="https://proto-live.vercel.app/projects/1" title="빌드 · ProtoLive" />
       <button type="button">바깥 버튼</button>
     </div>
   )
-  const details = view.container.querySelector('details')
-  if (!details) throw new Error('details popover not rendered')
-  details.open = true
-  return { details }
+  return screen.getByRole('button', { name: '공유' })
 }
 
-describe('ShareButton popover dismissal', () => {
-  it('stays open for pointer input inside, closes on outside pointerdown', () => {
-    const { details } = renderOpenShare()
+describe('ShareButton popover', () => {
+  it('opens on trigger click and shows the share menu', async () => {
+    const user = userEvent.setup()
+    const trigger = renderShare()
 
-    fireEvent.pointerDown(screen.getByText('링크 복사'))
-    expect(details.open).toBe(true)
+    expect(screen.queryByText('링크 복사')).not.toBeInTheDocument()
 
-    fireEvent.pointerDown(screen.getByRole('button', { name: '바깥 버튼' }))
-    expect(details.open).toBe(false)
+    await user.click(trigger)
+
+    expect(await screen.findByText('링크 복사')).toBeInTheDocument()
+    expect(screen.getByText('X에 공유')).toBeInTheDocument()
+    expect(screen.getByText('LinkedIn에 공유')).toBeInTheDocument()
   })
 
-  it('closes on Escape and returns focus to the summary toggle', () => {
-    const { details } = renderOpenShare()
-    const summary = details.querySelector('summary')
+  it('closes on outside pointer and keeps the menu content out of the DOM', async () => {
+    const user = userEvent.setup()
+    const trigger = renderShare()
 
-    fireEvent.keyDown(document, { key: 'Escape' })
-    expect(details.open).toBe(false)
-    expect(document.activeElement).toBe(summary)
+    await user.click(trigger)
+    expect(await screen.findByText('링크 복사')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '바깥 버튼' }))
+
+    await waitFor(() => expect(screen.queryByText('링크 복사')).not.toBeInTheDocument())
   })
 
-  it('ignores Escape while the popover is already closed', () => {
-    const { details } = renderOpenShare()
-    details.open = false
+  it('closes on Escape and returns focus to the trigger', async () => {
+    const user = userEvent.setup()
+    const trigger = renderShare()
 
-    fireEvent.keyDown(document, { key: 'Escape' })
-    expect(details.open).toBe(false)
+    await user.click(trigger)
+    expect(await screen.findByText('링크 복사')).toBeInTheDocument()
+
+    await user.keyboard('{Escape}')
+
+    await waitFor(() => expect(screen.queryByText('링크 복사')).not.toBeInTheDocument())
+    expect(trigger).toHaveFocus()
   })
 })

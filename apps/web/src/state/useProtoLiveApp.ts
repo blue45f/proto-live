@@ -100,7 +100,6 @@ import {
   getDriverActionHint,
   upsertProject,
 } from '../lib/format'
-import { getDialogFocusableElements } from '../lib/dialog'
 import {
   clampPageSize,
   clampRate,
@@ -359,14 +358,7 @@ export function useProtoLiveApp() {
     return hasAdvancedFilterPreset
   })
   const isFilterInitialized = useRef(false)
-  const previewDialogRef = useRef<HTMLElement>(null)
-  const diligenceDialogRef = useRef<HTMLElement>(null)
-  const matchModalRef = useRef<HTMLElement>(null)
-  const reviewModalRef = useRef<HTMLElement>(null)
-  const loginModalRef = useRef<HTMLElement>(null)
-  const submitModalRef = useRef<HTMLElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const previousFocusRef = useRef<HTMLElement | null>(null)
   const [isMobileProjectTimelineOpen, setIsMobileProjectTimelineOpen] = useState(false)
 
   useEffect(() => {
@@ -1843,127 +1835,6 @@ export function useProtoLiveApp() {
     return () => window.clearInterval(timer)
   }, [config.refreshIntervalMs, isAdminView, loadSnapshot])
 
-  useEffect(() => {
-    const hasOverlayOpen = Boolean(
-      previewProject ||
-      diligenceProject ||
-      matchingProject ||
-      reviewProject ||
-      isSubmitOpen ||
-      shouldShowLogin
-    )
-    if (!hasOverlayOpen) {
-      return
-    }
-
-    const activeDialogRef = previewProject
-      ? previewDialogRef
-      : diligenceProject
-        ? diligenceDialogRef
-        : matchingProject
-          ? matchModalRef
-          : reviewProject
-            ? reviewModalRef
-            : shouldShowLogin
-              ? loginModalRef
-              : submitModalRef
-
-    if (!activeDialogRef.current) {
-      return
-    }
-
-    previousFocusRef.current =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : previousFocusRef.current
-
-    const focusables = getDialogFocusableElements(activeDialogRef.current)
-    if (focusables.length > 0) {
-      focusables[0].focus()
-    } else {
-      activeDialogRef.current.focus()
-    }
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-
-        if (previewProject) {
-          setPreviewProject(null)
-          setPreviewEvents([])
-          return
-        }
-
-        if (diligenceProject) {
-          setDiligenceProject(null)
-          setDiligenceEvents([])
-          return
-        }
-
-        if (matchingProject) {
-          setMatchingProject(null)
-          return
-        }
-
-        if (reviewProject) {
-          setReviewProject(null)
-          setProjectReviews([])
-          resetReviewComposer()
-          return
-        }
-
-        if (isSubmitOpen) {
-          setIsSubmitOpen(false)
-          return
-        }
-
-        if (shouldShowLogin) {
-          setIsLoginOpen(false)
-        }
-        return
-      }
-
-      if (event.key !== 'Tab' || focusables.length === 0) {
-        return
-      }
-
-      const first = focusables[0]
-      const last = focusables[focusables.length - 1]
-      const activeElement = document.activeElement as HTMLElement | null
-
-      if (!event.shiftKey && activeElement === last) {
-        event.preventDefault()
-        first.focus()
-      } else if (event.shiftKey && activeElement === first) {
-        event.preventDefault()
-        last.focus()
-      }
-    }
-
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    window.addEventListener('keydown', onKeyDown)
-
-    return () => {
-      document.body.style.overflow = previousOverflow
-      window.removeEventListener('keydown', onKeyDown)
-
-      const restoreTarget = previousFocusRef.current
-      if (restoreTarget) {
-        restoreTarget.focus()
-      }
-    }
-  }, [
-    diligenceProject,
-    matchingProject,
-    previewProject,
-    reviewProject,
-    shouldShowLogin,
-    isSubmitOpen,
-    resetReviewComposer,
-    setReplyToReview,
-  ])
-
   async function handleVerifyUrl() {
     if (!liveUrl.trim()) {
       setUrlCheckStatus('error')
@@ -2799,7 +2670,6 @@ export function useProtoLiveApp() {
     detailProject,
     detailProjectId,
     isDetailUnavailable,
-    diligenceDialogRef,
     diligenceEvents,
     diligenceProject,
     exportAdminRevenueReport,
@@ -2849,11 +2719,9 @@ export function useProtoLiveApp() {
     loadError,
     loadProjectEvents,
     loginEmail,
-    loginModalRef,
     loginPassword,
     matchLegalNoticeAccepted,
     matchMessage,
-    matchModalRef,
     matchPrivacyConsentAccepted,
     matchRiskNoticeAccepted,
     matchingProject,
@@ -2866,7 +2734,6 @@ export function useProtoLiveApp() {
     openSubmitDialog,
     orderedAdminRecommendations,
     pageSize,
-    previewDialogRef,
     previewEvents,
     previewProject,
     projectListView,
@@ -2897,7 +2764,6 @@ export function useProtoLiveApp() {
     resetFilters,
     revenueProjection,
     reviewBody,
-    reviewModalRef,
     reviewProject,
     reviewRating,
     reviewType,
@@ -2953,7 +2819,6 @@ export function useProtoLiveApp() {
     signalRankByProjectId,
     sortMode,
     stats,
-    submitModalRef,
     switchView,
     tagInput,
     tagOptions,

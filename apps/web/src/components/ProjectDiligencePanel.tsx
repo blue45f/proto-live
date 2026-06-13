@@ -1,4 +1,4 @@
-import React, { useId } from 'react'
+import * as Dialog from '@radix-ui/react-dialog'
 import {
   Briefcase,
   Gauge,
@@ -28,7 +28,6 @@ export function ProjectDiligencePanel({
   events,
   isLoadingEvents,
   signalRank,
-  dialogRef,
   onClose,
   onPreview,
   onMatch,
@@ -39,15 +38,12 @@ export function ProjectDiligencePanel({
   events: ProjectEvent[]
   isLoadingEvents: boolean
   signalRank: number | null
-  dialogRef?: React.RefObject<HTMLElement | null>
   onClose: () => void
   onPreview: () => void
   onMatch: () => void
   onRefresh: () => void
   canRefresh: boolean
 }) {
-  const titleId = useId()
-  const descriptionId = useId()
   const isProtected = project.accessMode === 'screened'
   const responseTone = getResponseTimeTone(project.validation.responseTimeMs)
   const signalQuality = getSignalQuality(project.signalScore)
@@ -127,193 +123,192 @@ export function ProjectDiligencePanel({
   ]
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm">
-      <button
-        type="button"
-        className="absolute inset-0 cursor-default"
-        onClick={onClose}
-        aria-label="리뷰 리포트 닫기"
-      />
-      <section
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={`${project.title} 리뷰 리포트`}
-        aria-describedby={descriptionId}
-        tabIndex={-1}
-        className="absolute right-0 top-0 flex h-full w-full flex-col border-l border-stone-700 bg-sunken shadow-2xl lg:w-[760px] motion-safe:animate-panel-slide-in"
-      >
-        <div className="border-b border-stone-800 px-4 py-4 sm:px-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2.5 py-1 text-[11px] font-black text-cyan-100">
-                <Radar className="h-3.5 w-3.5" />
-                투자 연결 리뷰 리포트
-              </p>
-              <h2 id={titleId} className="truncate text-xl font-black text-stone-50">
-                {project.title}
-              </h2>
-              <p id={descriptionId} className="mt-1 text-sm leading-6 text-stone-400">
-                작동 증거, 보호 상태, 행동 신호, 투자 관심을 한 화면에서 검토합니다.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="grid min-h-10 min-w-10 place-items-center rounded-lg border border-stone-700 text-stone-300 hover:border-red-300/40 hover:text-red-100"
-              aria-label="닫기"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <span className="inline-flex min-h-7 items-center gap-1 rounded-full border border-stone-700 px-2 py-1 text-[11px] font-black text-stone-300">
-              <Layers3 className="h-3.5 w-3.5 text-cyan-200" />
-              {project.category}
-            </span>
-            <span
-              className={`inline-flex min-h-7 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-black ${getValidationTone(project.validation)}`}
-            >
-              {project.validation.success ? '확인 통과' : '확인 확인 필요'}
-            </span>
-            <span
-              className={`inline-flex min-h-7 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-black ${signalQuality.tone}`}
-            >
-              {signalQuality.label}
-            </span>
-            <span className="inline-flex min-h-7 items-center gap-1 rounded-full border border-amber-300/30 bg-amber-300/10 px-2 py-1 text-[11px] font-black text-amber-100">
-              {committedRange}
-            </span>
-          </div>
-        </div>
-
-        <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
-          <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_240px]">
-            <div className="space-y-4">
-              <section className="rounded-xl border border-stone-800 bg-stone-950/55 p-4">
-                <div className="mb-3 flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-lime-200" />
-                  <h3 className="font-black text-stone-100">Proof Ledger</h3>
-                </div>
-                <div className="grid gap-2">
-                  {proofRows.map((row) => {
-                    const Icon = row.icon
-                    return (
-                      <div
-                        key={row.label}
-                        className="grid gap-3 rounded-lg border border-stone-800 bg-sunken p-3 sm:grid-cols-[150px_minmax(0,1fr)]"
-                      >
-                        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-stone-500">
-                          <Icon className="h-3.5 w-3.5 text-cyan-200" />
-                          {row.label}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-black text-stone-100">{row.value}</p>
-                          <p className="mt-1 overflow-wrap-anywhere text-xs leading-5 text-stone-400">
-                            {row.detail}
-                          </p>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </section>
-
-              <section className="rounded-xl border border-stone-800 bg-stone-950/55 p-4">
-                <div className="mb-3 flex items-center gap-2">
-                  <Briefcase className="h-4 w-4 text-amber-200" />
-                  <h3 className="font-black text-stone-100">투자 판단 메모</h3>
-                </div>
-                <div className="space-y-2">
-                  {decisionNotes.map((note) => (
-                    <p
-                      key={note}
-                      className="rounded-lg border border-stone-800 bg-sunken p-3 text-sm leading-6 text-stone-300"
-                    >
-                      {note}
-                    </p>
-                  ))}
-                </div>
-              </section>
-            </div>
-
-            <aside className="space-y-4">
-              <section className="rounded-xl border border-stone-800 bg-stone-950/55 p-4">
-                <div className="mb-3 flex items-center gap-2">
-                  <Signal className="h-4 w-4 text-cyan-200" />
-                  <h3 className="font-black text-stone-100">Event Mix</h3>
-                </div>
-                {isLoadingEvents ? (
-                  <p className="inline-flex items-center gap-2 text-sm text-stone-400">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    신호 로딩
+    <Dialog.Root
+      open
+      onOpenChange={(open) => {
+        if (!open) {
+          onClose()
+        }
+      }}
+    >
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm">
+          <Dialog.Content className="absolute right-0 top-0 flex h-full w-full flex-col border-l border-stone-700 bg-sunken shadow-2xl lg:w-[760px] motion-safe:animate-panel-slide-in">
+            <div className="border-b border-stone-800 px-4 py-4 sm:px-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-2.5 py-1 text-[11px] font-black text-cyan-100">
+                    <Radar className="h-3.5 w-3.5" />
+                    투자 연결 리뷰 리포트
                   </p>
-                ) : (
-                  <div className="space-y-2">
-                    {(['preview', 'outbound', 'match', 'refresh'] as ProjectEventType[]).map(
-                      (type) => {
-                        const meta = eventCopy[type]
-                        const Icon = meta.icon
+                  <Dialog.Title className="truncate text-xl font-black text-stone-50">
+                    {project.title}
+                  </Dialog.Title>
+                  <Dialog.Description className="mt-1 text-sm leading-6 text-stone-400">
+                    작동 증거, 보호 상태, 행동 신호, 투자 관심을 한 화면에서 검토합니다.
+                  </Dialog.Description>
+                </div>
+                <Dialog.Close
+                  className="grid min-h-10 min-w-10 place-items-center rounded-lg border border-stone-700 text-stone-300 hover:border-red-300/40 hover:text-red-100"
+                  aria-label="닫기"
+                >
+                  <X className="h-4 w-4" />
+                </Dialog.Close>
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="inline-flex min-h-7 items-center gap-1 rounded-full border border-stone-700 px-2 py-1 text-[11px] font-black text-stone-300">
+                  <Layers3 className="h-3.5 w-3.5 text-cyan-200" />
+                  {project.category}
+                </span>
+                <span
+                  className={`inline-flex min-h-7 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-black ${getValidationTone(project.validation)}`}
+                >
+                  {project.validation.success ? '확인 통과' : '확인 확인 필요'}
+                </span>
+                <span
+                  className={`inline-flex min-h-7 items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-black ${signalQuality.tone}`}
+                >
+                  {signalQuality.label}
+                </span>
+                <span className="inline-flex min-h-7 items-center gap-1 rounded-full border border-amber-300/30 bg-amber-300/10 px-2 py-1 text-[11px] font-black text-amber-100">
+                  {committedRange}
+                </span>
+              </div>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 sm:p-5">
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_240px]">
+                <div className="space-y-4">
+                  <section className="rounded-xl border border-stone-800 bg-stone-950/55 p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4 text-lime-200" />
+                      <h3 className="font-black text-stone-100">Proof Ledger</h3>
+                    </div>
+                    <div className="grid gap-2">
+                      {proofRows.map((row) => {
+                        const Icon = row.icon
                         return (
                           <div
-                            key={type}
-                            className="flex items-center justify-between gap-2 rounded-lg border border-stone-800 bg-sunken p-2 text-xs"
+                            key={row.label}
+                            className="grid gap-3 rounded-lg border border-stone-800 bg-sunken p-3 sm:grid-cols-[150px_minmax(0,1fr)]"
                           >
-                            <span className="inline-flex items-center gap-2 font-black text-stone-300">
+                            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-stone-500">
                               <Icon className="h-3.5 w-3.5 text-cyan-200" />
-                              {meta.label}
-                            </span>
-                            <span className="font-black text-stone-50">{eventCounts[type]}</span>
+                              {row.label}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-black text-stone-100">{row.value}</p>
+                              <p className="mt-1 overflow-wrap-anywhere text-xs leading-5 text-stone-400">
+                                {row.detail}
+                              </p>
+                            </div>
                           </div>
                         )
-                      }
-                    )}
-                  </div>
-                )}
-              </section>
+                      })}
+                    </div>
+                  </section>
 
-              <section className="rounded-xl border border-stone-800 bg-stone-950/55 p-4">
-                <div className="mb-3 flex items-center gap-2">
-                  <Gauge className="h-4 w-4 text-lime-200" />
-                  <h3 className="font-black text-stone-100">Next Action</h3>
+                  <section className="rounded-xl border border-stone-800 bg-stone-950/55 p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <Briefcase className="h-4 w-4 text-amber-200" />
+                      <h3 className="font-black text-stone-100">투자 판단 메모</h3>
+                    </div>
+                    <div className="space-y-2">
+                      {decisionNotes.map((note) => (
+                        <p
+                          key={note}
+                          className="rounded-lg border border-stone-800 bg-sunken p-3 text-sm leading-6 text-stone-300"
+                        >
+                          {note}
+                        </p>
+                      ))}
+                    </div>
+                  </section>
                 </div>
-                <div className="grid gap-2">
-                  <button
-                    type="button"
-                    onClick={onMatch}
-                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-lime-300 px-3 text-xs font-black text-slate-950"
-                  >
-                    <Briefcase className="h-4 w-4" />
-                    투자 관심 기록
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onPreview}
-                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-cyan-300/35 px-3 text-xs font-black text-cyan-100 hover:bg-cyan-300/10"
-                  >
-                    {isProtected ? (
-                      <ShieldCheck className="h-4 w-4" />
+
+                <aside className="space-y-4">
+                  <section className="rounded-xl border border-stone-800 bg-stone-950/55 p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <Signal className="h-4 w-4 text-cyan-200" />
+                      <h3 className="font-black text-stone-100">Event Mix</h3>
+                    </div>
+                    {isLoadingEvents ? (
+                      <p className="inline-flex items-center gap-2 text-sm text-stone-400">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        신호 로딩
+                      </p>
                     ) : (
-                      <Sparkles className="h-4 w-4" />
+                      <div className="space-y-2">
+                        {(['preview', 'outbound', 'match', 'refresh'] as ProjectEventType[]).map(
+                          (type) => {
+                            const meta = eventCopy[type]
+                            const Icon = meta.icon
+                            return (
+                              <div
+                                key={type}
+                                className="flex items-center justify-between gap-2 rounded-lg border border-stone-800 bg-sunken p-2 text-xs"
+                              >
+                                <span className="inline-flex items-center gap-2 font-black text-stone-300">
+                                  <Icon className="h-3.5 w-3.5 text-cyan-200" />
+                                  {meta.label}
+                                </span>
+                                <span className="font-black text-stone-50">
+                                  {eventCounts[type]}
+                                </span>
+                              </div>
+                            )
+                          }
+                        )}
+                      </div>
                     )}
-                    {isProtected ? '리뷰 요청' : '사이트 보기'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onRefresh}
-                    disabled={!canRefresh}
-                    title={canRefresh ? '상태 재확인' : '운영자 또는 등록한 창업자만 재확인 가능'}
-                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-stone-700 px-3 text-xs font-black text-stone-300 hover:border-cyan-300/40 hover:text-cyan-100 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                    상태 재확인
-                  </button>
-                </div>
-              </section>
-            </aside>
-          </div>
-        </div>
-      </section>
-    </div>
+                  </section>
+
+                  <section className="rounded-xl border border-stone-800 bg-stone-950/55 p-4">
+                    <div className="mb-3 flex items-center gap-2">
+                      <Gauge className="h-4 w-4 text-lime-200" />
+                      <h3 className="font-black text-stone-100">Next Action</h3>
+                    </div>
+                    <div className="grid gap-2">
+                      <button
+                        type="button"
+                        onClick={onMatch}
+                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-lime-300 px-3 text-xs font-black text-slate-950"
+                      >
+                        <Briefcase className="h-4 w-4" />
+                        투자 관심 기록
+                      </button>
+                      <button
+                        type="button"
+                        onClick={onPreview}
+                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-cyan-300/35 px-3 text-xs font-black text-cyan-100 hover:bg-cyan-300/10"
+                      >
+                        {isProtected ? (
+                          <ShieldCheck className="h-4 w-4" />
+                        ) : (
+                          <Sparkles className="h-4 w-4" />
+                        )}
+                        {isProtected ? '리뷰 요청' : '사이트 보기'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={onRefresh}
+                        disabled={!canRefresh}
+                        title={
+                          canRefresh ? '상태 재확인' : '운영자 또는 등록한 창업자만 재확인 가능'
+                        }
+                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-stone-700 px-3 text-xs font-black text-stone-300 hover:border-cyan-300/40 hover:text-cyan-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <RefreshCw className="h-4 w-4" />
+                        상태 재확인
+                      </button>
+                    </div>
+                  </section>
+                </aside>
+              </div>
+            </div>
+          </Dialog.Content>
+        </Dialog.Overlay>
+      </Dialog.Portal>
+    </Dialog.Root>
   )
 }

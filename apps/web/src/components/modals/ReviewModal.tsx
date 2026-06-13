@@ -15,7 +15,6 @@ export function ReviewModal({
   replyToReview,
   isSubmitting,
   reportingReviewId,
-  dialogRef,
   onClose,
   onTypeChange,
   onRatingChange,
@@ -36,7 +35,6 @@ export function ReviewModal({
   replyToReview: ProjectReview | null
   isSubmitting: boolean
   reportingReviewId: number | null
-  dialogRef?: React.RefObject<HTMLElement | null>
   onClose: () => void
   onTypeChange: (type: ProjectReviewType) => void
   onRatingChange: (rating: number) => void
@@ -48,12 +46,7 @@ export function ReviewModal({
   onSubmit: (event: React.FormEvent) => void
 }) {
   return (
-    <Modal
-      title="회원 리뷰와 성장 의견"
-      subtitle={project.title}
-      onClose={onClose}
-      dialogRef={dialogRef}
-    >
+    <Modal title="회원 리뷰와 성장 의견" subtitle={project.title} onClose={onClose}>
       <ProjectReviewWorkspace
         project={project}
         reviews={reviews}

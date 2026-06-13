@@ -24,7 +24,6 @@ export function SubmitProjectModal({
   urlCheckStatus,
   urlCheckMessage,
   isSubmitting,
-  dialogRef,
   onClose,
   onTitleChange,
   onCategoryChange,
@@ -58,7 +57,6 @@ export function SubmitProjectModal({
   urlCheckStatus: 'idle' | 'checking' | 'success' | 'error'
   urlCheckMessage: string
   isSubmitting: boolean
-  dialogRef?: React.RefObject<HTMLElement | null>
   onClose: () => void
   onTitleChange: (value: string) => void
   onCategoryChange: (value: string) => void
@@ -81,7 +79,6 @@ export function SubmitProjectModal({
       title="라이브 프로토타입 등록"
       subtitle="공인 사이트 확인 후 마켓에 반영됩니다."
       onClose={onClose}
-      dialogRef={dialogRef}
     >
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="rounded-lg border border-cyan-300/20 bg-cyan-300/10 p-3 text-xs">

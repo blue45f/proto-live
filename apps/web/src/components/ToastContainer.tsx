@@ -1,9 +1,10 @@
-import { ReactNode, useCallback, useEffect, useRef, useState } from 'react'
+import { ReactNode, useCallback, useEffect, useState } from 'react'
+import * as Toast from '@radix-ui/react-toast'
 import { CheckCircle2, AlertTriangle, Info, X, Award } from 'lucide-react'
 
 export type ToastType = 'success' | 'error' | 'info' | 'match'
 
-interface Toast {
+interface ToastItem {
   id: string
   type: ToastType
   title: string
@@ -55,75 +56,65 @@ const toastConfig: Record<
 }
 
 export default function ToastContainer() {
-  const [toasts, setToasts] = useState<Toast[]>([])
-  const [exiting, setExiting] = useState<Set<string>>(new Set())
-  const removalTimers = useRef<number[]>([])
+  const [toasts, setToasts] = useState<ToastItem[]>([])
 
   const removeToast = useCallback((id: string) => {
-    setExiting((prev) => new Set(prev).add(id))
-    const timerId = window.setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id))
-      setExiting((prev) => {
-        const next = new Set(prev)
-        next.delete(id)
-        return next
-      })
-    }, 300)
-    removalTimers.current.push(timerId)
+    setToasts((prev) => prev.filter((t) => t.id !== id))
   }, [])
 
   const addToast = useCallback(
     (type: ToastType, title: string, message: string, duration = 4500) => {
       const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
       setToasts((prev) => [...prev, { id, type, title, message, duration }])
-      if (duration > 0) {
-        const timerId = window.setTimeout(() => removeToast(id), duration)
-        removalTimers.current.push(timerId)
-      }
     },
-    [removeToast]
+    []
   )
 
   useEffect(() => {
     globalAddToast = addToast
     return () => {
       globalAddToast = null
-      removalTimers.current.forEach(clearTimeout)
-      removalTimers.current = []
     }
   }, [addToast])
 
   return (
-    <div className="toast-container" role="status" aria-live="polite" aria-relevant="additions">
+    <Toast.Provider duration={4500} swipeDirection="right">
       {toasts.map((t) => {
         const config = toastConfig[t.type]
-        const isExiting = exiting.has(t.id)
         return (
-          <div
+          <Toast.Root
             key={t.id}
+            duration={t.duration && t.duration > 0 ? t.duration : Infinity}
+            onOpenChange={(open) => {
+              if (!open) {
+                removeToast(t.id)
+              }
+            }}
             className={`
               flex w-full items-start gap-3 rounded-xl border p-4 shadow-2xl backdrop-blur-xl
               ${config.shellClass}
-              ${isExiting ? 'animate-toast-out' : 'animate-toast-in'}
+              data-[state=open]:animate-toast-in data-[state=closed]:animate-toast-out
             `}
           >
             <div className="mt-0.5 flex-shrink-0 rounded-lg bg-stone-950/45 p-2">{config.icon}</div>
             <div className="flex-grow min-w-0">
-              <h4 className={`text-sm font-black ${config.titleClass}`}>{t.title}</h4>
-              <p className="mt-1 overflow-wrap-anywhere text-xs leading-5 text-stone-300">
+              <Toast.Title className={`text-sm font-black ${config.titleClass}`}>
+                {t.title}
+              </Toast.Title>
+              <Toast.Description className="mt-1 overflow-wrap-anywhere text-xs leading-5 text-stone-300">
                 {t.message}
-              </p>
+              </Toast.Description>
             </div>
-            <button
-              onClick={() => removeToast(t.id)}
+            <Toast.Close
               className="min-h-11 min-w-11 flex-shrink-0 rounded-lg text-stone-400 transition-colors hover:bg-stone-950/40 hover:text-stone-100"
               aria-label="알림 닫기"
             >
               <X className="mx-auto h-4 w-4" />
-            </button>
-          </div>
+            </Toast.Close>
+          </Toast.Root>
         )
       })}
-    </div>
+      <Toast.Viewport className="toast-container" />
+    </Toast.Provider>
   )
 }

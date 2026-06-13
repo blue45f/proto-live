@@ -15,7 +15,6 @@ export function LoginModal({
   loginEmail,
   loginPassword,
   testAccountsByRole,
-  dialogRef,
   onClose,
   onEmailChange,
   onPasswordChange,
@@ -27,7 +26,6 @@ export function LoginModal({
   loginEmail: string
   loginPassword: string
   testAccountsByRole: TestAccountsByRole
-  dialogRef?: React.RefObject<HTMLElement | null>
   onClose: () => void
   onEmailChange: (value: string) => void
   onPasswordChange: (value: string) => void
@@ -41,7 +39,6 @@ export function LoginModal({
       title="로그인"
       subtitle="테스트 계정으로 계정 역할을 전환해 실시간 플로우를 확인합니다."
       onClose={onClose}
-      dialogRef={dialogRef}
     >
       <form onSubmit={onSubmit} className="space-y-4">
         <label className="block">
