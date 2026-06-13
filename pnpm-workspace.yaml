@@ -6,3 +6,6 @@ packages:
 allowBuilds:
   '@nestjs/core': true
   esbuild: true
+
+minimumReleaseAgeExclude:
+  - '@heejun/prettier-config@3.0.0'
