@@ -1,15 +1,5 @@
-import { Transform } from 'class-transformer'
-import {
-  IsBooleanString,
-  IsIn,
-  IsInt,
-  IsNumber,
-  IsOptional,
-  IsString,
-  Max,
-  MaxLength,
-  Min,
-} from 'class-validator'
+import { createZodDto } from 'nestjs-zod'
+import { z } from 'zod'
 import {
   ProjectAccessMode,
   ProjectCategory,
@@ -39,116 +29,119 @@ export interface ProjectQueryInput {
   featured?: boolean
 }
 
-function parseNumberIfPossible(value: unknown): unknown {
-  if (typeof value !== 'string') return value
-  const next = Number.parseFloat(value)
-  return Number.isFinite(next) ? next : value
-}
-
-function trimOrUndefined(value: unknown): string | undefined {
+const trimOrUndefined = (value: unknown): string | undefined => {
   if (typeof value !== 'string') return undefined
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : undefined
 }
-
-function parseBooleanString(value: unknown): unknown {
+const parseNumberIfPossible = (value: unknown): unknown => {
+  if (typeof value !== 'string') return value
+  const next = Number.parseFloat(value)
+  return Number.isFinite(next) ? next : value
+}
+const parseBooleanString = (value: unknown): unknown => {
   if (typeof value === 'boolean') return value
   if (typeof value !== 'string') return value
   return value.trim().toLowerCase()
 }
 
-export class GetProjectsQueryDto {
-  @IsString({ message: '검색어는 문자열이어야 합니다.' })
-  @IsOptional()
-  @Transform(({ value }) => trimOrUndefined(value))
-  q?: string
+const MATURITY_IDS = PROJECT_MATURITIES.map((m) => m.id) as [ProjectMaturity, ...ProjectMaturity[]]
+const STACK_IDS = PROJECT_STACKS.map((s) => s.id) as [ProjectStack, ...ProjectStack[]]
 
-  @Transform(({ value }) => trimOrUndefined(value))
-  @IsIn(PROJECT_CATEGORIES as readonly string[], { message: '카테고리가 유효하지 않습니다.' })
-  @IsOptional()
-  category?: ProjectCategory
-
-  @Transform(({ value }) => trimOrUndefined(value))
-  @IsIn(PROJECT_MATURITIES.map((maturity) => maturity.id), {
-    message: '진행 단계가 유효하지 않습니다.',
+export const getProjectsQuerySchema = z
+  .object({
+    q: z.preprocess(
+      trimOrUndefined,
+      z.string({ error: '검색어는 문자열이어야 합니다.' }).optional()
+    ),
+    category: z.preprocess(
+      trimOrUndefined,
+      z
+        .enum([...PROJECT_CATEGORIES] as [ProjectCategory, ...ProjectCategory[]], {
+          error: '카테고리가 유효하지 않습니다.',
+        })
+        .optional()
+    ),
+    maturity: z.preprocess(
+      trimOrUndefined,
+      z.enum(MATURITY_IDS, { error: '진행 단계가 유효하지 않습니다.' }).optional()
+    ),
+    stack: z.preprocess(
+      trimOrUndefined,
+      z.enum(STACK_IDS, { error: '빌드 유형이 유효하지 않습니다.' }).optional()
+    ),
+    accessMode: z.preprocess(
+      trimOrUndefined,
+      z.enum(['screened', 'open'], { error: '공개 범위가 유효하지 않습니다.' }).optional()
+    ),
+    tag: z.preprocess(
+      trimOrUndefined,
+      z
+        .string({ error: '태그는 문자열이어야 합니다.' })
+        .max(24, '태그는 24자 이하로 입력해주세요.')
+        .optional()
+    ),
+    sort: z.preprocess(
+      trimOrUndefined,
+      z
+        .enum(['signal', 'recent', 'created', 'funding', 'upvotes'], {
+          error: '정렬 옵션이 유효하지 않습니다.',
+        })
+        .optional()
+    ),
+    minSignal: z.preprocess(
+      parseNumberIfPossible,
+      z
+        .number({ error: '최소 시그널은 정수여야 합니다.' })
+        .int('최소 시그널은 정수여야 합니다.')
+        .min(0, '최소 시그널은 0 이상이어야 합니다.')
+        .max(1000, '최소 시그널은 1000 이하이어야 합니다.')
+        .optional()
+    ),
+    minFundingAmount: z.preprocess(
+      parseNumberIfPossible,
+      z
+        .number({ error: '최소 투자액은 숫자여야 합니다.' })
+        .min(0, '최소 투자액은 0 이상이어야 합니다.')
+        .optional()
+    ),
+    maxFundingAmount: z.preprocess(
+      parseNumberIfPossible,
+      z
+        .number({ error: '최대 투자액은 숫자여야 합니다.' })
+        .min(0, '최대 투자액은 0 이상이어야 합니다.')
+        .optional()
+    ),
+    page: z.preprocess(
+      parseNumberIfPossible,
+      z
+        .number({ error: '페이지는 정수여야 합니다.' })
+        .int('페이지는 정수여야 합니다.')
+        .min(1, '페이지는 1 이상이어야 합니다.')
+        .optional()
+    ),
+    limit: z.preprocess(
+      parseNumberIfPossible,
+      z
+        .number({ error: '페이지 크기는 정수여야 합니다.' })
+        .int('페이지 크기는 정수여야 합니다.')
+        .min(1, '페이지 크기는 1 이상이어야 합니다.')
+        .max(100, '페이지 크기는 최대 100입니다.')
+        .optional()
+    ),
+    onlyVerified: z.preprocess(
+      parseBooleanString,
+      z
+        .enum(['true', 'false'], { error: '검증된 프로젝트만 보기 값은 true 또는 false 입니다.' })
+        .optional()
+    ),
+    featured: z.preprocess(
+      parseBooleanString,
+      z
+        .enum(['true', 'false'], { error: '투자 검토 대상만 보기 값은 true 또는 false 입니다.' })
+        .optional()
+    ),
   })
-  @IsOptional()
-  maturity?: ProjectMaturity
+  .strict()
 
-  @Transform(({ value }) => trimOrUndefined(value))
-  @IsIn(PROJECT_STACKS.map((stack) => stack.id), { message: '빌드 유형이 유효하지 않습니다.' })
-  @IsOptional()
-  stack?: ProjectStack
-
-  @Transform(({ value }) => trimOrUndefined(value))
-  @IsIn(['screened', 'open'], { message: '공개 범위가 유효하지 않습니다.' })
-  @IsOptional()
-  accessMode?: ProjectAccessMode
-
-  @Transform(({ value }) => trimOrUndefined(value))
-  @IsString({ message: '태그는 문자열이어야 합니다.' })
-  @MaxLength(24, { message: '태그는 24자 이하로 입력해주세요.' })
-  @IsOptional()
-  tag?: string
-
-  @Transform(({ value }) => trimOrUndefined(value))
-  @IsIn(['signal', 'recent', 'created', 'funding', 'upvotes'], {
-    message: '정렬 옵션이 유효하지 않습니다.',
-  })
-  @IsOptional()
-  sort?: ProjectSortKey
-
-  @Transform(({ value }) => parseNumberIfPossible(value))
-  @IsNumber(
-    { allowNaN: false, allowInfinity: false, maxDecimalPlaces: 0 },
-    { message: '최소 시그널은 정수여야 합니다.' }
-  )
-  @IsInt({ message: '최소 시그널은 정수여야 합니다.' })
-  @Min(0, { message: '최소 시그널은 0 이상이어야 합니다.' })
-  @Max(1000, { message: '최소 시그널은 1000 이하이어야 합니다.' })
-  @IsOptional()
-  minSignal?: number
-
-  @Transform(({ value }) => parseNumberIfPossible(value))
-  @IsNumber({ allowNaN: false, allowInfinity: false })
-  @IsOptional()
-  @Min(0, { message: '최소 투자액은 0 이상이어야 합니다.' })
-  minFundingAmount?: number
-
-  @Transform(({ value }) => parseNumberIfPossible(value))
-  @IsNumber({ allowNaN: false, allowInfinity: false })
-  @IsOptional()
-  @Min(0, { message: '최대 투자액은 0 이상이어야 합니다.' })
-  maxFundingAmount?: number
-
-  @Transform(({ value }) => parseNumberIfPossible(value))
-  @IsNumber(
-    { allowNaN: false, allowInfinity: false, maxDecimalPlaces: 0 },
-    { message: '페이지는 정수여야 합니다.' }
-  )
-  @IsInt({ message: '페이지는 정수여야 합니다.' })
-  @Min(1, { message: '페이지는 1 이상이어야 합니다.' })
-  @IsOptional()
-  page?: number
-
-  @Transform(({ value }) => parseNumberIfPossible(value))
-  @IsNumber(
-    { allowNaN: false, allowInfinity: false, maxDecimalPlaces: 0 },
-    { message: '페이지 크기는 정수여야 합니다.' }
-  )
-  @IsInt({ message: '페이지 크기는 정수여야 합니다.' })
-  @Min(1, { message: '페이지 크기는 1 이상이어야 합니다.' })
-  @Max(100, { message: '페이지 크기는 최대 100입니다.' })
-  @IsOptional()
-  limit?: number
-
-  @Transform(({ value }) => parseBooleanString(value))
-  @IsBooleanString({ message: '검증된 프로젝트만 보기 값은 true 또는 false 입니다.' })
-  @IsOptional()
-  onlyVerified?: 'true' | 'false'
-
-  @Transform(({ value }) => parseBooleanString(value))
-  @IsBooleanString({ message: '투자 검토 대상만 보기 값은 true 또는 false 입니다.' })
-  @IsOptional()
-  featured?: 'true' | 'false'
-}
+export class GetProjectsQueryDto extends createZodDto(getProjectsQuerySchema) {}

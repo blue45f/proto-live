@@ -1,8 +1,8 @@
 import { NestFactory } from '@nestjs/core'
-import { ValidationPipe } from '@nestjs/common'
 import type { NextFunction, Request, Response } from 'express'
 import { AppModule } from './app.module'
 import { isCorsOriginAllowed } from './common/cors-policy'
+import { ZodValidationPipe } from './common/zod-validation.pipe'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
@@ -16,14 +16,8 @@ async function bootstrap() {
     next()
   })
 
-  // 글로벌 ValidationPipe 설정 - DTO 기반 입력 검증 활성화
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true, // DTO에 정의되지 않은 프로퍼티 자동 제거
-      forbidNonWhitelisted: true, // 계약 밖의 필드는 명시적으로 차단
-      transform: true, // 요청 페이로드를 DTO 인스턴스로 자동 변환
-    })
-  )
+  // 글로벌 Zod 검증 파이프 - createZodDto 스키마 기반 입력 검증(에러 형태 호환 유지)
+  app.useGlobalPipes(new ZodValidationPipe())
 
   const corsOrigins = (process.env.CORS_ORIGINS ?? '')
     .split(',')
