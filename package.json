@@ -18,9 +18,13 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,md,yml,yaml,html,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,json,md,yml,yaml,html,css}\"",
     "validate:architecture": "node scripts/validate-architecture.mjs",
-    "ci": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test && pnpm run build",
+    "ci": "pnpm run format:check && pnpm run lint:ci && pnpm run typecheck && pnpm run test && pnpm run build",
     "verify": "pnpm run validate:architecture && pnpm run ci",
     "verify:push": "pnpm run verify",
+    "sonar": "sonar-scanner",
+    "lint:strict": "eslint . --max-warnings=0",
+    "lint:ci": "pnpm run lint:strict",
+    "sonar:ci": "sonar-scanner -Dsonar.qualitygate.wait=true",
     "smoke": "python3 scripts/smoke_ui.py",
     "seed:demo-data": "pnpm --filter protolive-backend run seed:test-data -- --reset",
     "seed:test-accounts": "pnpm --filter protolive-backend run seed:test-accounts",
@@ -44,6 +48,7 @@
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
+      "eslint --max-warnings=0 --fix",
       "prettier --write"
     ],
     "*.{json,md,yml,yaml,html,css}": [
