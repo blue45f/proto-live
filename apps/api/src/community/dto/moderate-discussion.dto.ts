@@ -1,15 +1,17 @@
-import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator'
+import { createZodDto } from 'nestjs-zod'
+import { z } from 'zod'
 
 const MODERATION_ACTIONS = ['hide', 'restore', 'delete'] as const
 export type DiscussionModerationAction = (typeof MODERATION_ACTIONS)[number]
 
-export class ModerateDiscussionDto {
-  @IsString({ message: '처리 유형은 문자열이어야 합니다.' })
-  @IsIn(MODERATION_ACTIONS, { message: '숨김, 복구, 삭제 중 하나를 선택해주세요.' })
-  action: DiscussionModerationAction
+export const moderateDiscussionSchema = z
+  .object({
+    action: z.enum(MODERATION_ACTIONS, { error: '숨김, 복구, 삭제 중 하나를 선택해주세요.' }),
+    note: z
+      .string({ error: '운영 메모는 문자열이어야 합니다.' })
+      .max(300, '운영 메모는 300자 이하로 입력해주세요.')
+      .optional(),
+  })
+  .strict()
 
-  @IsOptional()
-  @IsString({ message: '운영 메모는 문자열이어야 합니다.' })
-  @MaxLength(300, { message: '운영 메모는 300자 이하로 입력해주세요.' })
-  note?: string
-}
+export class ModerateDiscussionDto extends createZodDto(moderateDiscussionSchema) {}

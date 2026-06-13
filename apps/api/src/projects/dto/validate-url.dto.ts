@@ -1,14 +1,24 @@
-import { IsNotEmpty, IsUrl } from 'class-validator'
+import { createZodDto } from 'nestjs-zod'
+import { z } from 'zod'
 
-/**
- * URL 검증 요청 DTO
- * 프로젝트 제출 전 URL 유효성을 사전 검증하기 위한 DTO입니다.
- */
-export class ValidateUrlDto {
-  @IsUrl(
-    { protocols: ['http', 'https'], require_protocol: true },
-    { message: 'URL은 http:// 또는 https://로 시작하는 유효한 형식이어야 합니다.' }
-  )
-  @IsNotEmpty({ message: 'URL은 필수 항목입니다.' })
-  url: string
+const isHttpUrl = (value: string): boolean => {
+  try {
+    const { protocol } = new URL(value)
+    return protocol === 'http:' || protocol === 'https:'
+  } catch {
+    return false
+  }
 }
+
+export const validateUrlSchema = z
+  .object({
+    url: z
+      .string({ error: 'URL은 필수 항목입니다.' })
+      .min(1, 'URL은 필수 항목입니다.')
+      .refine(isHttpUrl, {
+        error: 'URL은 http:// 또는 https://로 시작하는 유효한 형식이어야 합니다.',
+      }),
+  })
+  .strict()
+
+export class ValidateUrlDto extends createZodDto(validateUrlSchema) {}
