@@ -1,10 +1,11 @@
+import { strict as assert } from 'node:assert'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { strict as assert } from 'node:assert'
-import { ProjectsService } from '../src/projects/projects.service'
+
 import { createEmptyProjectsState } from '../src/projects/project.models'
+import { ProjectsService } from '../src/projects/projects.service'
 import { JsonProjectsStore } from '../src/projects/projects.store'
 
 async function withService(run: (service: ProjectsService) => Promise<void>) {

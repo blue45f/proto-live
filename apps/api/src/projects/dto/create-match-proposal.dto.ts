@@ -1,4 +1,5 @@
 import { Equals, IsIn, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator'
+
 import { FUNDING_RANGES, FundingRangeId } from '../project.constants'
 
 const FUNDING_RANGE_IDS = FUNDING_RANGES.map((range) => range.id)

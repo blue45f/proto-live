@@ -1,5 +1,6 @@
-import { useId, useRef, useState } from 'react'
 import { ImagePlus, Loader2, X } from 'lucide-react'
+import { useId, useRef, useState } from 'react'
+
 import { ATTACHMENT_ACCEPT, prepareImageAttachment, type PreparedAttachment } from '../../lib/image'
 
 const MAX_ATTACHMENTS = 3

@@ -1,9 +1,11 @@
-import type { ReactNode } from 'react'
-import { useCallback, useEffect, useState } from 'react'
 import { Ban, Check, Loader2, RotateCcw, UserX, Users } from 'lucide-react'
-import type { AdminMember } from '../../api'
+import { useCallback, useEffect, useId, useState } from 'react'
+
 import { fetchAdminMembers, updateAdminMemberLifecycle, updateAdminMemberNotes } from '../../api'
 import { getRoleLabel } from '../../lib/format'
+
+import type { AdminMember } from '../../api'
+import type { ReactNode } from 'react'
 
 /**
  * 운영 콘솔 — 회원 디렉터리. 메이커/투자자/일반 회원의 활동 집계를 보고, 운영 메모를 남긴다.
@@ -56,6 +58,7 @@ export function AdminMembersView() {
 }
 
 function MemberRow({ member, onSaved }: { member: AdminMember; onSaved: () => void }) {
+  const notesId = useId()
   const [notes, setNotes] = useState(member.notes ?? '')
   const [isSaving, setIsSaving] = useState(false)
   const [savedAt, setSavedAt] = useState(false)
@@ -151,9 +154,12 @@ function MemberRow({ member, onSaved }: { member: AdminMember; onSaved: () => vo
       </dl>
 
       <div className="mt-3">
-        <label className="block text-[11px] font-bold text-stone-400">운영 메모</label>
+        <label htmlFor={notesId} className="block text-[11px] font-bold text-stone-400">
+          운영 메모
+        </label>
         <div className="mt-1 flex items-end gap-2">
           <textarea
+            id={notesId}
             value={notes}
             onChange={(event) => {
               setNotes(event.target.value)

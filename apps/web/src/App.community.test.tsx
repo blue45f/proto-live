@@ -1,6 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import * as api from './api'
+import App from './App'
 import { makeApiMock, makerSession } from './test/api-mock'
 import { projectMealmap } from './test/fixtures'
 
@@ -11,9 +14,6 @@ vi.mock('./api', async () => {
 })
 
 const mockApi = makeApiMock()
-
-import App from './App'
-import * as api from './api'
 
 function setPath(path: string) {
   window.history.pushState({}, '', path)

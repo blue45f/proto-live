@@ -1,5 +1,6 @@
-import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator'
 import { Transform } from 'class-transformer'
+import { IsIn, IsInt, IsNotEmpty, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator'
+
 import { ProjectReviewType } from '../project.models'
 
 const REVIEW_TYPES: ProjectReviewType[] = ['review', 'support', 'idea']

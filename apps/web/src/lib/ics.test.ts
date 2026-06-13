@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { buildIcs } from './ics'
 
 function physicalLines(value: string): string[] {

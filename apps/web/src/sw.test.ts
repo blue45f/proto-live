@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+
 // The service worker is a plain script in public/ (no module exports), so we
 // pull its source in via Vite's ?raw import, evaluate it inside a controlled
 // scope and drive the captured listeners directly. This pins the cache-hygiene

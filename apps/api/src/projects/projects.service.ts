@@ -1,4 +1,5 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
+
 import {
   BadRequestException,
   ForbiddenException,
@@ -11,6 +12,21 @@ import {
   Optional,
 } from '@nestjs/common'
 import axios, { AxiosResponse } from 'axios'
+
+import { getCurrentConsentTerms, type ConsentTerms } from './consent-terms'
+import { CreateMatchProposalDto } from './dto/create-match-proposal.dto'
+import { CreateProjectReviewDto } from './dto/create-project-review.dto'
+import { CreateProjectDto } from './dto/create-project.dto'
+import { ProjectQueryInput, ProjectSortKey } from './dto/get-projects-query.dto'
+import { LoginDto } from './dto/login.dto'
+import { ModerateProjectReviewDto } from './dto/moderate-project-review.dto'
+import { ReportProjectReviewDto } from './dto/report-project-review.dto'
+import {
+  AdminMemberLifecycleAction,
+  UpdateMemberLifecycleDto,
+} from './dto/update-member-lifecycle.dto'
+import { maskEmail } from './pii'
+import { calculateProjectSignalScore, summarizeProjectEvents } from './project-signals'
 import {
   FUNDING_RANGES,
   LADDER_THRESHOLD,
@@ -19,7 +35,6 @@ import {
   PROJECT_CATEGORIES,
   ProjectCategory,
 } from './project.constants'
-import { ProjectQueryInput, ProjectSortKey } from './dto/get-projects-query.dto'
 import {
   MatchProposal,
   Project,
@@ -56,21 +71,8 @@ import {
   ValidationSnapshot,
   createEmptyProjectsState,
 } from './project.models'
-import { CreateMatchProposalDto } from './dto/create-match-proposal.dto'
-import { CreateProjectDto } from './dto/create-project.dto'
-import { CreateProjectReviewDto } from './dto/create-project-review.dto'
-import { ModerateProjectReviewDto } from './dto/moderate-project-review.dto'
-import { ReportProjectReviewDto } from './dto/report-project-review.dto'
-import { LoginDto } from './dto/login.dto'
-import {
-  AdminMemberLifecycleAction,
-  UpdateMemberLifecycleDto,
-} from './dto/update-member-lifecycle.dto'
-import { calculateProjectSignalScore, summarizeProjectEvents } from './project-signals'
-import { maskEmail } from './pii'
-import { PROJECTS_STORE, type ProjectsStore } from './store/projects-store'
 import { FileProjectsStore } from './store/file-projects-store'
-import { getCurrentConsentTerms, type ConsentTerms } from './consent-terms'
+import { PROJECTS_STORE, type ProjectsStore } from './store/projects-store'
 import {
   assertResolvesToPublicInternet,
   normalizePublicHttpUrl,

@@ -1,5 +1,5 @@
 import { vi } from 'vitest'
-import type { AuthSession } from '../api'
+
 import {
   adminDashboard,
   marketConfig,
@@ -8,6 +8,8 @@ import {
   projectReviews,
   projects,
 } from './fixtures'
+
+import type { AuthSession } from '../api'
 
 // ---------------------------------------------------------------------------
 // Hermetic mock of ./api. App.tsx talks to the NestJS backend exclusively

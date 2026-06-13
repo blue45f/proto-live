@@ -1,12 +1,13 @@
+import { strict as assert } from 'node:assert'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { strict as assert } from 'node:assert'
-import { ProjectsService } from '../src/projects/projects.service'
-import { createEmptyProjectsState, AuthSession } from '../src/projects/project.models'
-import { JsonProjectsStore } from '../src/projects/projects.store'
+
 import { CommunityService, ATTACHMENT_MAX_BYTES } from '../src/community/community.service'
+import { createEmptyProjectsState, AuthSession } from '../src/projects/project.models'
+import { ProjectsService } from '../src/projects/projects.service'
+import { JsonProjectsStore } from '../src/projects/projects.store'
 
 const TINY_PNG =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='

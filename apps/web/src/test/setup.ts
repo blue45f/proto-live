@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest'
-import { afterEach, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
+import { afterEach, vi } from 'vitest'
 
 // React Testing Library unmounts everything after each test so the hand-rolled
 // history/popstate listeners and polling intervals in App.tsx are torn down and

@@ -1,6 +1,5 @@
-import type { LucideIcon } from 'lucide-react'
 import { Activity, DollarSign, Gauge, Layers3, ShieldCheck, Signal, TimerReset } from 'lucide-react'
-import type { AdminActionRecommendation, Project, ProjectReview, ValidationSnapshot } from '../api'
+
 import {
   DECIMAL_DIGITS,
   MAX_REVENUE_RATE,
@@ -9,6 +8,9 @@ import {
   MIN_SCENARIO_MULTIPLIER,
   type RevenueModelConfig,
 } from './revenue-config'
+
+import type { AdminActionRecommendation, Project, ProjectReview, ValidationSnapshot } from '../api'
+import type { LucideIcon } from 'lucide-react'
 
 export function maskEmail(email: string) {
   const [name, domain] = email.split('@')

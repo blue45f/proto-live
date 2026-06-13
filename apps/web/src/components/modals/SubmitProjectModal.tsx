@@ -1,11 +1,13 @@
-import React from 'react'
 import { AlertTriangle, BadgeCheck, CheckCircle2, Globe2, Loader2, ShieldCheck } from 'lucide-react'
-import type { AuthSession } from '../../local-auth'
-import type { MarketConfig, ProjectAccessMode, ProjectMaturity, ProjectStack } from '../../api'
-import { getValidationTone } from '../../lib/format'
+import React from 'react'
+
 import { BUILD_TOOLS, maturityCopy, stackCopy } from '../../lib/constants'
+import { getValidationTone } from '../../lib/format'
 import { parseTagInput } from '../../state/storage'
 import { Modal } from '../Modal'
+
+import type { MarketConfig, ProjectAccessMode, ProjectMaturity, ProjectStack } from '../../api'
+import type { AuthSession } from '../../local-auth'
 
 export function SubmitProjectModal({
   session,
@@ -74,6 +76,7 @@ export function SubmitProjectModal({
   onVerifyUrl: () => void
   onSubmit: (event: React.FormEvent) => void
 }) {
+  const liveUrlId = React.useId()
   return (
     <Modal
       title="라이브 프로토타입 등록"
@@ -302,15 +305,17 @@ export function SubmitProjectModal({
             AI(바이브코딩)로 만들었어요
           </label>
         </div>
-        <label className="block">
+        <label htmlFor={liveUrlId} className="block">
           <span className="mb-2 flex items-center justify-between gap-3 text-xs font-black text-stone-300">
             <span>라이브 데모 URL</span>
             <span className="text-cyan-200">HTTP/HTTPS, 공인망만 허용</span>
           </span>
           <div className="flex flex-col gap-2 sm:flex-row">
             <input
+              id={liveUrlId}
               type="url"
               required
+              aria-label="라이브 데모 URL"
               value={liveUrl}
               onChange={(event) => onLiveUrlChange(event.target.value)}
               placeholder="https://your-live-demo.com"

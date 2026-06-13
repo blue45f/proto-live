@@ -1,7 +1,6 @@
-import React from 'react'
 import { AlertTriangle, Loader2, Send } from 'lucide-react'
-import type { AuthSession } from '../local-auth'
-import type { Project, ProjectReview, ProjectReviewType } from '../api'
+import React from 'react'
+
 import { maturityReviewHint, maturityCopy, reviewTypeCopy } from '../lib/constants'
 import {
   formatRelativeTime,
@@ -10,6 +9,9 @@ import {
   getRootReviews,
   maskEmail,
 } from '../lib/format'
+
+import type { Project, ProjectReview, ProjectReviewType } from '../api'
+import type { AuthSession } from '../local-auth'
 
 export function ProjectReviewWorkspace({
   project,

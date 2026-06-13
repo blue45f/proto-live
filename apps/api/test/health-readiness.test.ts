@@ -1,8 +1,9 @@
-import { test } from 'node:test'
 import { strict as assert } from 'node:assert'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { test } from 'node:test'
+
 import { JsonProjectsStore } from '../src/projects/projects.store'
 
 test('checkReadiness reports ready for a writable dir with no store file yet', () => {

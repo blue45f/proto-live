@@ -1,5 +1,5 @@
 import { ArrowUpRight, ChevronUp, Star } from 'lucide-react'
-import type { Project } from '../api'
+
 import {
   type ProjectListViewMode,
   buildToolLabel,
@@ -13,6 +13,8 @@ import {
   getValidationTone,
   maskEmail,
 } from '../lib/format'
+
+import type { Project } from '../api'
 
 export function ProjectCard({
   project,

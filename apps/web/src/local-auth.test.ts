@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+
 import { resolveRoleLabel, listTestAccounts } from './local-auth'
 
 describe('local-auth', () => {
