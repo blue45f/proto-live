@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { isAxiosError } from 'axios'
+import { isHTTPError } from 'ky'
 import {
   API_BASE,
   AuditLog,
@@ -992,7 +992,7 @@ export function useProtoLiveApp() {
           setFundingRangeId(configData.fundingRanges[2]?.id ?? configData.fundingRanges[0].id)
         }
       } catch (error) {
-        const hasResponseError = isAxiosError(error) && Boolean(error.response)
+        const hasResponseError = isHTTPError(error) && Boolean(error.response)
         const message = getApiErrorMessage(error, '요청 처리 중 오류가 발생했습니다.')
 
         if (hasResponseError) {

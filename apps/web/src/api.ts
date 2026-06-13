@@ -1,4 +1,4 @@
-import axios, { AxiosError } from 'axios'
+import ky, { type ResponsePromise } from 'ky'
 
 export interface ValidationSnapshot {
   success: boolean
@@ -470,8 +470,6 @@ interface ApiErrorBody {
   message?: string | string[]
 }
 
-type ApiErrorResponse = AxiosError<ApiErrorBody>
-
 const DEFAULT_API_PORT = 3003
 
 function sanitizeApiBase(raw: string): string {
@@ -497,11 +495,51 @@ export const API_BASE_FALLBACKS = Array.from(
   new Set([API_BASE, 'http://localhost:3003/api', 'http://127.0.0.1:3003/api'].map(sanitizeApiBase))
 )
 
-const client = axios.create({
-  baseURL: API_BASE,
-  timeout: 12000,
-  withCredentials: true,
+const httpClient = ky.create({
+  prefix: API_BASE,
+  timeout: 12_000,
+  credentials: 'include',
 })
+
+interface RequestConfig {
+  params?: object
+  paramsSerializer?: (params: Record<string, unknown>) => string
+}
+
+function buildSearchParams(config?: RequestConfig): string | undefined {
+  if (!config?.params) return undefined
+  const params = config.params as Record<string, unknown>
+  if (config.paramsSerializer) return config.paramsSerializer(params)
+  const search = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null) continue
+    search.set(key, String(value))
+  }
+  return search.toString() || undefined
+}
+
+async function unwrap<T>(promise: ResponsePromise): Promise<T> {
+  const res = await promise
+  if (res.status === 204) return undefined as T
+  const text = await res.text()
+  return text ? (JSON.parse(text) as T) : (undefined as T)
+}
+
+// axios 인스턴스 호환 shim — 기존 함수들이 `response.data` 를 그대로 쓰도록 { data } 로 감싼다.
+const client = {
+  get: async <T>(url: string, config?: RequestConfig): Promise<{ data: T }> => {
+    const searchParams = buildSearchParams(config)
+    return { data: await unwrap<T>(httpClient.get(url, searchParams ? { searchParams } : {})) }
+  },
+  post: async <T>(url: string, body?: unknown, config?: RequestConfig): Promise<{ data: T }> => {
+    const searchParams = buildSearchParams(config)
+    return {
+      data: await unwrap<T>(
+        httpClient.post(url, { json: body, ...(searchParams ? { searchParams } : {}) })
+      ),
+    }
+  },
+}
 
 export async function loginUser(email: string, password: string) {
   const response = await client.post<AuthSession>('/projects/auth/login', { email, password })
@@ -1074,21 +1112,19 @@ function normalizeProjectQuery(query: ProjectListQuery): Record<string, string |
 }
 
 export function getApiErrorMessage(error: unknown, fallback: string): string {
-  if (axios.isAxiosError(error)) {
-    const responseError = error as ApiErrorResponse
-    const rawMessage = responseError.response?.data?.message
+  // ky HTTPError 는 파싱된 응답 본문을 `data` 로 보관한다.
+  const rawMessage = (error as { data?: ApiErrorBody } | null)?.data?.message
 
-    if (Array.isArray(rawMessage)) {
-      return rawMessage.join(' ')
-    }
+  if (Array.isArray(rawMessage)) {
+    return rawMessage.join(' ')
+  }
 
-    if (typeof rawMessage === 'string' && rawMessage.trim()) {
-      return rawMessage
-    }
+  if (typeof rawMessage === 'string' && rawMessage.trim()) {
+    return rawMessage
+  }
 
-    if (typeof responseError.message === 'string' && responseError.message.trim()) {
-      return responseError.message
-    }
+  if (error instanceof Error && error.message.trim()) {
+    return error.message
   }
 
   return fallback
