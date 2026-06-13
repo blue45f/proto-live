@@ -13,6 +13,7 @@ import type { AuthSession } from '../projects/project.models'
 import { COMMUNITY_STORE, CommunityStore, FileCommunityStore } from './community.store'
 import {
   AttachmentTargetType,
+  CommunityForbiddenTerm,
   CommunityAttachment,
   CommunityState,
   DISCUSSION_CATEGORIES,
@@ -22,6 +23,7 @@ import {
   DmConversation,
   DmMessage,
   createEmptyCommunityState,
+  normalizeForbiddenTerm,
 } from './community.models'
 
 /** 첨부 페이로드(디코드 기준) 상한 — 클라이언트 1600px 리사이즈 + 2MB 캡과 동일 계약. */
@@ -107,6 +109,10 @@ export class CommunityService implements OnModuleInit, OnModuleDestroy {
     if (!DISCUSSION_CATEGORIES.includes(input.category)) {
       throw new BadRequestException('토론 주제 분류가 올바르지 않습니다.')
     }
+    this.assertAllowedContent('discussion', [
+      { label: '토론 제목', value: input.title },
+      { label: '토론 내용', value: input.body },
+    ])
     const attachments = this.validateAttachmentPayloads(input.attachments)
 
     const now = new Date()
@@ -184,6 +190,7 @@ export class CommunityService implements OnModuleInit, OnModuleDestroy {
     if (thread.status === 'hidden') {
       throw new NotFoundException('토론을 찾을 수 없습니다.')
     }
+    this.assertAllowedContent('discussion', [{ label: '댓글', value: input.body }])
 
     let parentId: number | null = null
     if (input.parentId !== undefined && input.parentId !== null) {
@@ -299,6 +306,85 @@ export class CommunityService implements OnModuleInit, OnModuleDestroy {
     return attachment
   }
 
+  listForbiddenTerms(): CommunityForbiddenTerm[] {
+    return [...this.state.forbiddenTerms].sort((a, b) => {
+      if (a.enabled !== b.enabled) return a.enabled ? -1 : 1
+      return b.updatedAt.getTime() - a.updatedAt.getTime()
+    })
+  }
+
+  createForbiddenTerm(
+    admin: AuthSession,
+    input: { term: string; scope?: CommunityForbiddenTerm['scope']; reason?: string }
+  ): CommunityForbiddenTerm {
+    const term = input.term.trim()
+    const normalizedTerm = normalizeForbiddenTerm(term)
+    const scope = input.scope ?? 'all'
+    this.assertValidForbiddenTerm(normalizedTerm)
+    this.assertUniqueForbiddenTerm(normalizedTerm, scope)
+
+    const now = new Date()
+    const created: CommunityForbiddenTerm = {
+      id: this.state.nextForbiddenTermId++,
+      term,
+      normalizedTerm,
+      scope,
+      enabled: true,
+      reason: input.reason?.trim() || null,
+      createdBy: admin.email,
+      createdAt: now,
+      updatedAt: now,
+    }
+    this.state.forbiddenTerms.push(created)
+    this.persist()
+    return created
+  }
+
+  updateForbiddenTerm(
+    termId: number,
+    _admin: AuthSession,
+    input: {
+      term?: string
+      scope?: CommunityForbiddenTerm['scope']
+      reason?: string
+      enabled?: boolean
+    }
+  ): CommunityForbiddenTerm {
+    const target = this.state.forbiddenTerms.find((item) => item.id === termId)
+    if (!target) {
+      throw new NotFoundException('금칙어를 찾을 수 없습니다.')
+    }
+
+    const nextTerm = input.term === undefined ? target.term : input.term.trim()
+    const nextNormalized = normalizeForbiddenTerm(nextTerm)
+    const nextScope = input.scope ?? target.scope
+    this.assertValidForbiddenTerm(nextNormalized)
+    this.assertUniqueForbiddenTerm(nextNormalized, nextScope, target.id)
+
+    target.term = nextTerm
+    target.normalizedTerm = nextNormalized
+    target.scope = nextScope
+    if (input.reason !== undefined) {
+      target.reason = input.reason.trim() || null
+    }
+    if (input.enabled !== undefined) {
+      target.enabled = input.enabled
+    }
+    target.updatedAt = new Date()
+    this.persist()
+    return target
+  }
+
+  deleteForbiddenTerm(termId: number): { deleted: true } {
+    const before = this.state.forbiddenTerms.length
+    this.state.forbiddenTerms = this.state.forbiddenTerms.filter((item) => item.id !== termId)
+    if (this.state.forbiddenTerms.length === before) {
+      throw new NotFoundException('금칙어를 찾을 수 없습니다.')
+    }
+    this.persist()
+    return { deleted: true }
+  }
+
   // ───────────────────────── 1:1 쪽지 ─────────────────────────
 
   listConversations(session: AuthSession): ConversationSummary[] {
@@ -355,6 +441,7 @@ export class CommunityService implements OnModuleInit, OnModuleDestroy {
     input: { projectId?: number; conversationId?: number; body: string }
   ): Promise<{ conversation: DmConversation; message: DmMessage }> {
     const body = input.body.trim()
+    this.assertAllowedContent('message', [{ label: '쪽지', value: body }])
     let conversation: DmConversation
 
     if (input.conversationId) {
@@ -502,6 +589,48 @@ export class CommunityService implements OnModuleInit, OnModuleDestroy {
         attachment.dataUrl = ''
         attachment.removedBy = removedBy
       }
+    }
+  }
+
+  private assertAllowedContent(
+    scope: 'discussion' | 'message',
+    fields: Array<{ label: string; value: string }>
+  ): void {
+    const activeTerms = this.state.forbiddenTerms.filter(
+      (term) => term.enabled && (term.scope === 'all' || term.scope === scope)
+    )
+    if (activeTerms.length === 0) {
+      return
+    }
+
+    for (const field of fields) {
+      const normalizedValue = normalizeForbiddenTerm(field.value)
+      if (!normalizedValue) {
+        continue
+      }
+      if (activeTerms.some((term) => normalizedValue.includes(term.normalizedTerm))) {
+        throw new BadRequestException(`${field.label}에 커뮤니티 금칙어가 포함되어 있습니다.`)
+      }
+    }
+  }
+
+  private assertValidForbiddenTerm(normalizedTerm: string): void {
+    if (!normalizedTerm) {
+      throw new BadRequestException('금칙어를 입력해주세요.')
+    }
+  }
+
+  private assertUniqueForbiddenTerm(
+    normalizedTerm: string,
+    scope: CommunityForbiddenTerm['scope'],
+    ignoreId?: number
+  ): void {
+    const duplicate = this.state.forbiddenTerms.find(
+      (term) =>
+        term.id !== ignoreId && term.normalizedTerm === normalizedTerm && term.scope === scope
+    )
+    if (duplicate) {
+      throw new BadRequestException('이미 등록된 금칙어입니다.')
     }
   }
 

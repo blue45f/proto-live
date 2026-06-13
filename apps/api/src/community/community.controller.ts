@@ -6,6 +6,8 @@ import { CreateDiscussionDto } from './dto/create-discussion.dto'
 import { CreateDiscussionCommentDto } from './dto/create-discussion-comment.dto'
 import { ModerateDiscussionDto } from './dto/moderate-discussion.dto'
 import { SendMessageDto } from './dto/send-message.dto'
+import { CreateForbiddenTermDto } from './dto/create-forbidden-term.dto'
+import { UpdateForbiddenTermDto } from './dto/update-forbidden-term.dto'
 
 /**
  * 커뮤니티 컨트롤러 — 프로젝트별 토론 스레드(목록/생성/상세), 1단 댓글·답글, 이미지 첨부,
@@ -100,6 +102,38 @@ export class CommunityController {
   listAdminAttachments(@Req() request: Request, @Query('limit') limit?: string) {
     this.projectsService.requireAdminSession(request.headers.cookie)
     return this.communityService.listAdminAttachments(limit ? Number.parseInt(limit, 10) : 60)
+  }
+
+  /** GET /api/community/admin/forbidden-terms — 커뮤니티/쪽지 입력 금칙어 목록. */
+  @Get('admin/forbidden-terms')
+  listForbiddenTerms(@Req() request: Request) {
+    this.projectsService.requireAdminSession(request.headers.cookie)
+    return this.communityService.listForbiddenTerms()
+  }
+
+  /** POST /api/community/admin/forbidden-terms — 금칙어 추가. */
+  @Post('admin/forbidden-terms')
+  createForbiddenTerm(@Req() request: Request, @Body() body: CreateForbiddenTermDto) {
+    const admin = this.projectsService.requireAdminSession(request.headers.cookie)
+    return this.communityService.createForbiddenTerm(admin, body)
+  }
+
+  /** POST /api/community/admin/forbidden-terms/:termId — 금칙어 수정/활성 전환. */
+  @Post('admin/forbidden-terms/:termId')
+  updateForbiddenTerm(
+    @Param('termId', ParseIntPipe) termId: number,
+    @Req() request: Request,
+    @Body() body: UpdateForbiddenTermDto
+  ) {
+    const admin = this.projectsService.requireAdminSession(request.headers.cookie)
+    return this.communityService.updateForbiddenTerm(termId, admin, body)
+  }
+
+  /** POST /api/community/admin/forbidden-terms/:termId/delete — 금칙어 삭제. */
+  @Post('admin/forbidden-terms/:termId/delete')
+  deleteForbiddenTerm(@Param('termId', ParseIntPipe) termId: number, @Req() request: Request) {
+    this.projectsService.requireAdminSession(request.headers.cookie)
+    return this.communityService.deleteForbiddenTerm(termId)
   }
 
   /** POST /api/community/admin/attachments/:attachmentId/remove — 첨부 제거(레코드 보존). */

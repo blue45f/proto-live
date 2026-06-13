@@ -32,8 +32,20 @@ async function withCommunity(
 
     const state = createEmptyProjectsState()
     state.users.push({ id: 1, email: maker.email, role: 'maker', name: '메이커 김' })
-    state.users.push({ id: 2, email: member.email, role: 'member', name: '회원 이' })
-    state.users.push({ id: 3, email: investor.email, role: 'investor', name: '투자자 박' })
+    state.users.push({
+      id: 2,
+      email: member.email,
+      role: 'member',
+      name: '회원 이',
+      password: 'pass-member-test',
+    })
+    state.users.push({
+      id: 3,
+      email: investor.email,
+      role: 'investor',
+      name: '투자자 박',
+      password: 'pass-investor-test',
+    })
     state.users.push({ id: 4, email: admin.email, role: 'admin', name: '운영자' })
     state.projects.push({
       id: 1,
@@ -296,5 +308,113 @@ test('운영 콘솔 회원 디렉터리: 활동 집계와 메모 갱신', async 
     assert.equal(updated.notes, '활발한 베타 테스터')
     const cleared = projects.updateMemberNotes(memberRow.id, '   ')
     assert.equal(cleared.notes, null)
+  })
+})
+
+test('운영 콘솔 회원 라이프사이클: 정지/복구/탈퇴가 로그인과 세션에 반영된다', async () => {
+  await withCommunity(async (_community, projects) => {
+    const loggedIn = projects.login({ email: member.email, password: 'pass-member-test' })
+    assert.ok(projects.getSessionFromCookie(loggedIn.cookie))
+
+    const memberRow = projects.getAdminMembers().find((row) => row.email === member.email)
+    assert.ok(memberRow)
+
+    const suspended = projects.updateMemberLifecycle(
+      memberRow.id,
+      { action: 'suspend', reason: '반복 광고 게시' },
+      admin
+    )
+    assert.equal(suspended.member.status, 'suspended')
+    assert.equal(projects.getSessionFromCookie(loggedIn.cookie), null)
+    assert.throws(
+      () => projects.login({ email: member.email, password: 'pass-member-test' }),
+      /정지된 계정/
+    )
+
+    const restored = projects.updateMemberLifecycle(memberRow.id, { action: 'restore' }, admin)
+    assert.equal(restored.member.status, 'active')
+    assert.ok(projects.login({ email: member.email, password: 'pass-member-test' }).session)
+
+    const withdrawn = projects.updateMemberLifecycle(
+      memberRow.id,
+      { action: 'withdraw', reason: '본인 탈퇴 요청 처리' },
+      admin
+    )
+    assert.equal(withdrawn.member.status, 'withdrawn')
+    assert.equal(withdrawn.member.name, null)
+    assert.throws(
+      () => projects.login({ email: member.email, password: 'pass-member-test' }),
+      /이메일 또는 비밀번호/
+    )
+  })
+})
+
+test('커뮤니티 금칙어: 토론/댓글/쪽지 입력을 저장 전에 차단하고 비활성화하면 허용한다', async () => {
+  await withCommunity(async (community) => {
+    const term = community.createForbiddenTerm(admin, {
+      term: '금지어',
+      scope: 'all',
+      reason: '테스트 정책',
+    })
+    assert.equal(community.listForbiddenTerms().length, 1)
+
+    await assert.rejects(
+      community.createThread(1, member, {
+        category: 'question',
+        title: '금지어 포함 제목',
+        body: '본문은 충분히 정상적인 길이입니다.',
+      }),
+      /금칙어/
+    )
+
+    const { thread } = await community.createThread(1, member, {
+      category: 'question',
+      title: '정상 제목',
+      body: '금칙어 없이 충분히 긴 정상 토론 본문입니다.',
+    })
+    assert.throws(
+      () => community.addComment(thread.id, investor, { body: '댓글에 금지어 포함' }),
+      /금칙어/
+    )
+    await assert.rejects(
+      community.sendMessage(investor, { projectId: 1, body: '쪽지에 금지어 포함' }),
+      /금칙어/
+    )
+
+    community.updateForbiddenTerm(term.id, admin, { enabled: false })
+    const allowed = community.addComment(thread.id, investor, { body: '비활성 금지어는 허용' })
+    assert.equal(allowed.status, 'visible')
+  })
+})
+
+test('커뮤니티 금칙어 관리: 중복 방지, 범위 변경, 삭제가 동작한다', async () => {
+  await withCommunity(async (community) => {
+    const term = community.createForbiddenTerm(admin, {
+      term: '스팸',
+      scope: 'discussion',
+      reason: '광고성 표현',
+    })
+    assert.throws(
+      () => community.createForbiddenTerm(admin, { term: '  스팸  ', scope: 'discussion' }),
+      /이미 등록/
+    )
+
+    community.updateForbiddenTerm(term.id, admin, { scope: 'message' })
+    await community.createThread(1, member, {
+      category: 'help',
+      title: '스팸이라는 단어가 있지만 토론 범위에서는 해제됨',
+      body: '범위를 쪽지로 바꾼 뒤에는 토론 작성이 허용됩니다.',
+    })
+    await assert.rejects(
+      community.sendMessage(investor, { projectId: 1, body: '스팸 문의입니다.' }),
+      /금칙어/
+    )
+
+    community.deleteForbiddenTerm(term.id)
+    const message = await community.sendMessage(investor, {
+      projectId: 1,
+      body: '스팸 단어도 삭제 후에는 전송됩니다.',
+    })
+    assert.equal(message.message.body, '스팸 단어도 삭제 후에는 전송됩니다.')
   })
 })

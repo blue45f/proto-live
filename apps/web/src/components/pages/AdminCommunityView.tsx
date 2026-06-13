@@ -1,11 +1,29 @@
 import { useCallback, useEffect, useState } from 'react'
-import { EyeOff, ImageOff, Loader2, RotateCcw, Trash2 } from 'lucide-react'
-import type { CommunityAttachment, DiscussionSummary } from '../../api'
 import {
+  EyeOff,
+  ImageOff,
+  Loader2,
+  Plus,
+  Power,
+  RotateCcw,
+  ShieldAlert,
+  Trash2,
+} from 'lucide-react'
+import type {
+  CommunityAttachment,
+  CommunityForbiddenTerm,
+  DiscussionSummary,
+  ForbiddenTermScope,
+} from '../../api'
+import {
+  createForbiddenTerm,
+  deleteForbiddenTerm,
   fetchAdminAttachments,
   fetchAdminDiscussions,
+  fetchForbiddenTerms,
   moderateDiscussion,
   removeAdminAttachment,
+  updateForbiddenTerm,
 } from '../../api'
 import { discussionCategoryCopy } from '../../lib/constants'
 import { formatRelativeTime, maskEmail } from '../../lib/format'
@@ -17,15 +35,20 @@ import { formatRelativeTime, maskEmail } from '../../lib/format'
 export function AdminCommunityView() {
   const [threads, setThreads] = useState<DiscussionSummary[] | null>(null)
   const [attachments, setAttachments] = useState<CommunityAttachment[] | null>(null)
+  const [forbiddenTerms, setForbiddenTerms] = useState<CommunityForbiddenTerm[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [newTerm, setNewTerm] = useState('')
+  const [newScope, setNewScope] = useState<ForbiddenTermScope>('all')
+  const [newReason, setNewReason] = useState('')
 
   const load = useCallback(() => {
     setError(null)
-    Promise.all([fetchAdminDiscussions(), fetchAdminAttachments()])
-      .then(([threadList, attachmentList]) => {
+    Promise.all([fetchAdminDiscussions(), fetchAdminAttachments(), fetchForbiddenTerms()])
+      .then(([threadList, attachmentList, termList]) => {
         setThreads(threadList)
         setAttachments(attachmentList)
+        setForbiddenTerms(termList)
       })
       .catch(() => setError('커뮤니티 모더레이션 데이터를 불러오지 못했습니다.'))
   }, [])
@@ -66,6 +89,48 @@ export function AdminCommunityView() {
     }
   }
 
+  async function addForbiddenTerm(): Promise<void> {
+    const term = newTerm.trim()
+    if (!term) {
+      return
+    }
+    setBusyId('forbidden-new')
+    try {
+      await createForbiddenTerm({ term, scope: newScope, reason: newReason })
+      setNewTerm('')
+      setNewReason('')
+      load()
+    } catch {
+      setError('금칙어 등록에 실패했습니다. 중복 여부를 확인해주세요.')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function toggleForbiddenTerm(term: CommunityForbiddenTerm): Promise<void> {
+    setBusyId(`forbidden-${term.id}`)
+    try {
+      await updateForbiddenTerm(term.id, { enabled: !term.enabled })
+      load()
+    } catch {
+      setError('금칙어 상태 변경에 실패했습니다.')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function removeForbiddenTerm(termId: number): Promise<void> {
+    setBusyId(`forbidden-${termId}`)
+    try {
+      await deleteForbiddenTerm(termId)
+      load()
+    } catch {
+      setError('금칙어 삭제에 실패했습니다.')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   return (
     <div className="lg:col-span-2 space-y-8">
       <header>
@@ -76,6 +141,101 @@ export function AdminCommunityView() {
       </header>
 
       {error ? <p className="text-sm font-semibold text-red-200">{error}</p> : null}
+
+      <section>
+        <div className="mb-3 flex items-center gap-2">
+          <ShieldAlert className="h-4 w-4 text-amber-200" aria-hidden />
+          <h3 className="text-sm font-black uppercase tracking-wider text-stone-400">금칙어</h3>
+        </div>
+        <div className="rounded-xl border border-stone-800 bg-stone-900/50 p-4">
+          <div className="grid gap-2 md:grid-cols-[1.2fr_0.8fr_1fr_auto]">
+            <input
+              value={newTerm}
+              onChange={(event) => setNewTerm(event.target.value)}
+              maxLength={40}
+              placeholder="금칙어"
+              className="min-h-10 rounded-lg border border-stone-700 bg-stone-950 px-3 text-sm text-stone-100 outline-none placeholder:text-stone-500 focus:border-amber-200/70"
+            />
+            <select
+              value={newScope}
+              onChange={(event) => setNewScope(event.target.value as ForbiddenTermScope)}
+              className="min-h-10 rounded-lg border border-stone-700 bg-stone-950 px-3 text-sm font-bold text-stone-100 outline-none focus:border-amber-200/70"
+            >
+              <option value="all">전체</option>
+              <option value="discussion">토론</option>
+              <option value="message">쪽지</option>
+            </select>
+            <input
+              value={newReason}
+              onChange={(event) => setNewReason(event.target.value)}
+              maxLength={300}
+              placeholder="운영 사유 (선택)"
+              className="min-h-10 rounded-lg border border-stone-700 bg-stone-950 px-3 text-sm text-stone-100 outline-none placeholder:text-stone-500 focus:border-amber-200/70"
+            />
+            <button
+              type="button"
+              disabled={!newTerm.trim() || busyId === 'forbidden-new'}
+              onClick={() => void addForbiddenTerm()}
+              className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-lg bg-amber-200 px-3 text-sm font-black text-slate-950 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-stone-400"
+            >
+              {busyId === 'forbidden-new' ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+              ) : (
+                <Plus className="h-4 w-4" aria-hidden />
+              )}
+              추가
+            </button>
+          </div>
+
+          {forbiddenTerms === null ? (
+            <LoadingRow />
+          ) : forbiddenTerms.length === 0 ? (
+            <p className="mt-4 rounded-lg border border-dashed border-stone-700 px-4 py-6 text-center text-sm text-stone-400">
+              등록된 금칙어가 없습니다.
+            </p>
+          ) : (
+            <ul className="mt-4 grid gap-2 md:grid-cols-2">
+              {forbiddenTerms.map((term) => (
+                <li
+                  key={term.id}
+                  className={`rounded-lg border px-3 py-2 ${
+                    term.enabled
+                      ? 'border-amber-300/30 bg-amber-300/5'
+                      : 'border-stone-800 bg-stone-950/40'
+                  }`}
+                >
+                  <div className="flex min-w-0 items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-black text-stone-100">{term.term}</p>
+                      <p className="mt-0.5 text-[11px] text-stone-500">
+                        {forbiddenScopeLabel(term.scope)} · {term.enabled ? '활성' : '비활성'}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <IconButton
+                        busy={busyId === `forbidden-${term.id}`}
+                        onClick={() => void toggleForbiddenTerm(term)}
+                        icon={<Power className="h-3.5 w-3.5" />}
+                        label={term.enabled ? '비활성' : '활성'}
+                      />
+                      <IconButton
+                        danger
+                        busy={busyId === `forbidden-${term.id}`}
+                        onClick={() => void removeForbiddenTerm(term.id)}
+                        icon={<Trash2 className="h-3.5 w-3.5" />}
+                        label="삭제"
+                      />
+                    </div>
+                  </div>
+                  {term.reason ? (
+                    <p className="mt-2 line-clamp-2 text-[11px] text-amber-100/80">{term.reason}</p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </section>
 
       <section>
         <h3 className="mb-3 text-sm font-black uppercase tracking-wider text-stone-400">토론</h3>
@@ -231,6 +391,43 @@ function ModButton({
       {label}
     </button>
   )
+}
+
+function IconButton({
+  busy,
+  danger,
+  icon,
+  label,
+  onClick,
+}: {
+  busy: boolean
+  danger?: boolean
+  icon: React.ReactNode
+  label: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={onClick}
+      title={label}
+      className={`inline-flex h-8 min-w-8 items-center justify-center rounded-md border px-2 text-[11px] font-bold transition disabled:opacity-50 ${
+        danger
+          ? 'border-stone-700 text-stone-300 hover:border-red-300/60 hover:text-red-100'
+          : 'border-stone-700 text-stone-300 hover:border-amber-200/60 hover:text-amber-100'
+      }`}
+    >
+      {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : icon}
+      <span className="sr-only">{label}</span>
+    </button>
+  )
+}
+
+function forbiddenScopeLabel(scope: ForbiddenTermScope) {
+  if (scope === 'discussion') return '토론'
+  if (scope === 'message') return '쪽지'
+  return '전체'
 }
 
 function LoadingRow() {

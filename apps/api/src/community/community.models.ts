@@ -94,17 +94,33 @@ export interface DmMessage {
   readAt: Date | null
 }
 
+export type ForbiddenTermScope = 'all' | 'discussion' | 'message'
+
+export interface CommunityForbiddenTerm {
+  id: number
+  term: string
+  normalizedTerm: string
+  scope: ForbiddenTermScope
+  enabled: boolean
+  reason?: string | null
+  createdBy: string
+  createdAt: Date
+  updatedAt: Date
+}
+
 export interface CommunityState {
   threads: DiscussionThread[]
   comments: DiscussionComment[]
   attachments: CommunityAttachment[]
   conversations: DmConversation[]
   messages: DmMessage[]
+  forbiddenTerms: CommunityForbiddenTerm[]
   nextThreadId: number
   nextCommentId: number
   nextAttachmentId: number
   nextConversationId: number
   nextMessageId: number
+  nextForbiddenTermId: number
 }
 
 export function createEmptyCommunityState(): CommunityState {
@@ -114,11 +130,13 @@ export function createEmptyCommunityState(): CommunityState {
     attachments: [],
     conversations: [],
     messages: [],
+    forbiddenTerms: [],
     nextThreadId: 1,
     nextCommentId: 1,
     nextAttachmentId: 1,
     nextConversationId: 1,
     nextMessageId: 1,
+    nextForbiddenTermId: 1,
   }
 }
 
@@ -145,15 +163,21 @@ interface SerializedMessage extends Omit<DmMessage, 'createdAt' | 'readAt'> {
   readAt: string | null
 }
 
+interface SerializedForbiddenTerm extends Omit<CommunityForbiddenTerm, 'createdAt' | 'updatedAt'> {
+  createdAt: string
+  updatedAt: string
+}
+
 export interface SerializedCommunityState extends Omit<
   CommunityState,
-  'threads' | 'comments' | 'attachments' | 'conversations' | 'messages'
+  'threads' | 'comments' | 'attachments' | 'conversations' | 'messages' | 'forbiddenTerms'
 > {
   threads: SerializedThread[]
   comments: SerializedComment[]
   attachments: SerializedAttachment[]
   conversations: SerializedConversation[]
   messages: SerializedMessage[]
+  forbiddenTerms: SerializedForbiddenTerm[]
 }
 
 export function serializeCommunityState(state: CommunityState): SerializedCommunityState {
@@ -181,6 +205,11 @@ export function serializeCommunityState(state: CommunityState): SerializedCommun
       ...message,
       createdAt: message.createdAt.toISOString(),
       readAt: message.readAt ? message.readAt.toISOString() : null,
+    })),
+    forbiddenTerms: state.forbiddenTerms.map((term) => ({
+      ...term,
+      createdAt: term.createdAt.toISOString(),
+      updatedAt: term.updatedAt.toISOString(),
     })),
   }
 }
@@ -226,10 +255,32 @@ export function deserializeCommunityState(state: SerializedCommunityState): Comm
           readAt: message.readAt ? new Date(message.readAt) : null,
         }))
       : [],
+    forbiddenTerms: Array.isArray(state.forbiddenTerms)
+      ? state.forbiddenTerms.map((term) => ({
+          ...term,
+          normalizedTerm: term.normalizedTerm || normalizeForbiddenTerm(term.term),
+          scope: normalizeForbiddenTermScope(term.scope),
+          enabled: term.enabled !== false,
+          reason: term.reason ?? null,
+          createdAt: new Date(term.createdAt),
+          updatedAt: new Date(term.updatedAt ?? term.createdAt),
+        }))
+      : [],
     nextThreadId: Number.isInteger(state.nextThreadId) ? state.nextThreadId : 1,
     nextCommentId: Number.isInteger(state.nextCommentId) ? state.nextCommentId : 1,
     nextAttachmentId: Number.isInteger(state.nextAttachmentId) ? state.nextAttachmentId : 1,
     nextConversationId: Number.isInteger(state.nextConversationId) ? state.nextConversationId : 1,
     nextMessageId: Number.isInteger(state.nextMessageId) ? state.nextMessageId : 1,
+    nextForbiddenTermId: Number.isInteger(state.nextForbiddenTermId)
+      ? state.nextForbiddenTermId
+      : 1,
   }
+}
+
+export function normalizeForbiddenTerm(term: string): string {
+  return term.trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
+function normalizeForbiddenTermScope(scope: unknown): ForbiddenTermScope {
+  return scope === 'discussion' || scope === 'message' ? scope : 'all'
 }
