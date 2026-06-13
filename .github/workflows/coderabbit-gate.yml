@@ -1,0 +1,75 @@
+name: CodeRabbit review gate
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: coderabbit-review-gate-${{ github.event.pull_request.number || github.event.review.pull_request_url }}
+  cancel-in-progress: false
+
+jobs:
+  review-gate:
+    name: CodeRabbit review gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify CodeRabbit has not requested changes on the latest PR head
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const eventPr = context.payload.pull_request;
+            const reviewPr = context.payload.review?.pull_request_url;
+            let prNumber = eventPr?.number;
+            if (!prNumber && typeof reviewPr === "string") {
+              const m = reviewPr.match(/\/pulls\/(\d+)$/);
+              if (m) prNumber = Number(m[1]);
+            }
+            if (!prNumber) {
+              core.setFailed("Could not determine PR number for the CodeRabbit gate.");
+              return;
+            }
+            const { data: pr } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+            });
+            if (pr.draft) {
+              core.notice(`PR #${prNumber} is draft; skipping CodeRabbit gate.`);
+              return;
+            }
+            const headSha = pr.head?.sha;
+            if (!headSha) {
+              core.setFailed(`Could not determine head SHA for PR #${prNumber}.`);
+              return;
+            }
+            const reviews = await github.paginate(github.rest.pulls.listReviews, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              per_page: 100,
+            });
+            const codeRabbitLogins = new Set([
+              "coderabbitai[bot]", "coderabbitai", "coderabbit-ai[bot]", "coderabbit[bot]",
+            ]);
+            const headReviews = reviews
+              .filter((r) => codeRabbitLogins.has(r.user?.login ?? ""))
+              .filter((r) => r.commit_id === headSha);
+            if (headReviews.length === 0) {
+              core.notice(`CodeRabbit has not reviewed head ${headSha}; allowing merge (only CHANGES_REQUESTED blocks).`);
+              return;
+            }
+            headReviews.sort((a, b) => new Date(b.submitted_at ?? 0).getTime() - new Date(a.submitted_at ?? 0).getTime());
+            const state = String(headReviews[0].state ?? "").toUpperCase();
+            core.info(`Latest CodeRabbit review for ${headSha}: ${state}`);
+            if (state === "CHANGES_REQUESTED") {
+              core.setFailed("CodeRabbit requested changes; address them and push. Gate flips green once CodeRabbit no longer requests changes.");
+              return;
+            }
+            core.notice(`CodeRabbit review state '${state}'; allowing merge (only CHANGES_REQUESTED blocks).`);
