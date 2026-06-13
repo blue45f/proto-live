@@ -423,16 +423,15 @@ describe('App characterization: header/footer mid-breakpoint contract', () => {
     vi.mocked(api.fetchAuthSession).mockResolvedValueOnce(makerSession)
     await renderAppLoaded()
 
-    // <sm에서 벨은 justify-between 줄 중간에 오므로 right-0 팝오버(w-80)가
-    // 좌측 화면 밖으로 잘렸다. details를 static으로 두면 팝오버가 가장 가까운
-    // 포지션 조상인 sticky 헤더 우측에 정렬되어 항상 화면 안에 머문다.
-    const bellSummary = await screen.findByLabelText('알림')
-    expect(bellSummary.closest('details')).toHaveClass('static', 'sm:relative')
-    expect(bellSummary.nextElementSibling).toHaveClass(
-      'right-2',
-      'max-w-[calc(100vw-1rem)]',
-      'sm:right-0'
-    )
+    // Radix Popover 가 collisionPadding 으로 화면 안에 머물게 하고, 콘텐츠는
+    // max-w-[calc(100vw-1rem)] 로 좁은 뷰포트에서도 잘리지 않는다(예전 details
+    // static/right-2 클립 우회 대신).
+    const user = userEvent.setup()
+    const bellTrigger = await screen.findByLabelText(/알림/)
+    await user.click(bellTrigger)
+
+    const popoverHeading = await screen.findByText('알림', { selector: 'p' })
+    expect(popoverHeading.parentElement).toHaveClass('max-w-[calc(100vw-1rem)]')
   })
 
   it('keeps the footer row and legal nav wrap-safe at mid widths', async () => {

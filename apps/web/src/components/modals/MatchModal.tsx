@@ -64,7 +64,6 @@ export function MatchModal({
   matchPrivacyConsentAccepted,
   matchRiskNoticeAccepted,
   isSendingMatch,
-  dialogRef,
   onClose,
   onFundingRangeChange,
   onMessageChange,
@@ -81,7 +80,6 @@ export function MatchModal({
   matchPrivacyConsentAccepted: boolean
   matchRiskNoticeAccepted: boolean
   isSendingMatch: boolean
-  dialogRef?: React.RefObject<HTMLElement | null>
   onClose: () => void
   onFundingRangeChange: (value: string) => void
   onMessageChange: (value: string) => void
@@ -106,7 +104,7 @@ export function MatchModal({
   }
 
   return (
-    <Modal title="투자 관심 기록" subtitle={project.title} onClose={onClose} dialogRef={dialogRef}>
+    <Modal title="투자 관심 기록" subtitle={project.title} onClose={onClose}>
       <form
         onSubmit={(event) => {
           recordMatchDemo('submit', '투자 관심 제출')

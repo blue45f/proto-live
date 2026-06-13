@@ -89,7 +89,6 @@ export default function App() {
     detailProject,
     detailProjectId,
     isDetailUnavailable,
-    diligenceDialogRef,
     diligenceEvents,
     diligenceProject,
     exportAdminRevenueReport,
@@ -162,11 +161,9 @@ export default function App() {
     loadError,
     loadProjectEvents,
     loginEmail,
-    loginModalRef,
     loginPassword,
     matchLegalNoticeAccepted,
     matchMessage,
-    matchModalRef,
     matchPrivacyConsentAccepted,
     matchRiskNoticeAccepted,
     matchingProject,
@@ -184,7 +181,6 @@ export default function App() {
     openSubmitDialog,
     orderedAdminRecommendations,
     pageSize,
-    previewDialogRef,
     previewEvents,
     previewProject,
     projectListView,
@@ -215,7 +211,6 @@ export default function App() {
     resetFilters,
     revenueProjection,
     reviewBody,
-    reviewModalRef,
     reviewProject,
     reviewRating,
     reviewType,
@@ -271,7 +266,6 @@ export default function App() {
     signalRankByProjectId,
     sortMode,
     stats,
-    submitModalRef,
     switchView,
     tagInput,
     tagOptions,
@@ -823,7 +817,6 @@ export default function App() {
           project={diligenceProject}
           events={diligenceEvents}
           isLoadingEvents={isDiligenceEventsLoading}
-          dialogRef={diligenceDialogRef}
           signalRank={signalRankByProjectId.get(diligenceProject.id) ?? null}
           canRefresh={canRefreshProject(diligenceProject)}
           onClose={closeDiligence}
@@ -852,7 +845,6 @@ export default function App() {
           isMobileTimelineOpen={isMobileProjectTimelineOpen}
           previewEvents={previewEvents}
           isPreviewEventsLoading={isPreviewEventsLoading}
-          dialogRef={previewDialogRef}
           onClose={closePreview}
           onRefresh={async () => {
             await handleProjectEvent(previewProject, 'refresh')
@@ -886,7 +878,6 @@ export default function App() {
           replyToReview={replyToReview}
           isSubmitting={isSendingReview}
           reportingReviewId={reportingReviewId}
-          dialogRef={reviewModalRef}
           onClose={closeReviewDialog}
           onTypeChange={setReviewType}
           onRatingChange={setReviewRating}
@@ -912,7 +903,6 @@ export default function App() {
           matchPrivacyConsentAccepted={matchPrivacyConsentAccepted}
           matchRiskNoticeAccepted={matchRiskNoticeAccepted}
           isSendingMatch={isSendingMatch}
-          dialogRef={matchModalRef}
           onClose={() => {
             setMatchingProject(null)
             setMatchLegalNoticeAccepted(false)
@@ -947,7 +937,6 @@ export default function App() {
           urlCheckStatus={urlCheckStatus}
           urlCheckMessage={urlCheckMessage}
           isSubmitting={isSubmitting}
-          dialogRef={submitModalRef}
           onClose={() => setIsSubmitOpen(false)}
           onTitleChange={setTitle}
           onCategoryChange={setCategory}
@@ -975,7 +964,6 @@ export default function App() {
           loginEmail={loginEmail}
           loginPassword={loginPassword}
           testAccountsByRole={testAccountsByRole}
-          dialogRef={loginModalRef}
           onClose={() => setIsLoginOpen(false)}
           onEmailChange={setLoginEmail}
           onPasswordChange={setLoginPassword}

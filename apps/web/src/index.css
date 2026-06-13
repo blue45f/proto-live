@@ -663,11 +663,13 @@
   animation: modal-fade 160ms var(--ease-out-expo) both;
 }
 
-.animate-toast-in {
+/* @utility 로 등록해야 Tailwind v4 가 Radix 의 data-[state=open|closed]: 변형을
+   생성한다(@layer 의 일반 클래스는 변형 없이 그대로 출력만 된다). */
+@utility animate-toast-in {
   animation: toast-in 220ms var(--ease-out-expo) both;
 }
 
-.animate-toast-out {
+@utility animate-toast-out {
   animation: toast-out 180ms ease-in both;
 }
 
