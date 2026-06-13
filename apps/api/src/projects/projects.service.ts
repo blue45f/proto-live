@@ -52,6 +52,7 @@ import {
   ProjectsState,
   User,
   UserRole,
+  UserStatus,
   ValidationSnapshot,
   createEmptyProjectsState,
 } from './project.models'
@@ -61,6 +62,10 @@ import { CreateProjectReviewDto } from './dto/create-project-review.dto'
 import { ModerateProjectReviewDto } from './dto/moderate-project-review.dto'
 import { ReportProjectReviewDto } from './dto/report-project-review.dto'
 import { LoginDto } from './dto/login.dto'
+import {
+  AdminMemberLifecycleAction,
+  UpdateMemberLifecycleDto,
+} from './dto/update-member-lifecycle.dto'
 import { calculateProjectSignalScore, summarizeProjectEvents } from './project-signals'
 import { maskEmail } from './pii'
 import { PROJECTS_STORE, type ProjectsStore } from './store/projects-store'
@@ -127,6 +132,25 @@ export interface ProjectListPage {
   totalPages: number
   hasNext: boolean
   hasPrev: boolean
+}
+
+export interface AdminMemberSummary {
+  id: number
+  email: string
+  name: string | null
+  role: UserRole
+  status: UserStatus
+  notes: string | null
+  suspensionReason: string | null
+  suspendedAt: string | null
+  suspendedBy: string | null
+  withdrawalReason: string | null
+  withdrawnAt: string | null
+  projectCount: number
+  reviewCount: number
+  upvoteCount: number
+  proposalCount: number
+  lastActivityAt: string | null
 }
 
 @Injectable()
@@ -201,6 +225,7 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
     if (!user || !user.password || !this.safeCompare(user.password, password)) {
       throw new ForbiddenException('이메일 또는 비밀번호가 일치하지 않습니다.')
     }
+    this.assertUserCanAuthenticate(user)
 
     const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000)
     const session = this.toAuthSession(user, expiresAt)
@@ -242,6 +267,7 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
       throw new ForbiddenException('Google 계정 정보를 읽을 수 없습니다.')
     }
     const user = this.upsertGoogleUser(payload.email, payload.name)
+    this.assertUserCanAuthenticate(user)
     const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000)
     const session = this.toAuthSession(user, expiresAt)
     const token = this.signSessionToken({
@@ -1567,12 +1593,30 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
   }
 
   private getUserDisplayName(user: User): string {
+    if (this.getUserStatus(user) === 'withdrawn') {
+      return '탈퇴 회원'
+    }
+
     const name = user.name?.trim()
     if (name) {
       return name
     }
 
     return user.email.split('@')[0] || 'ProtoLive 회원'
+  }
+
+  private getUserStatus(user: User): UserStatus {
+    return user.status ?? 'active'
+  }
+
+  private assertUserCanAuthenticate(user: User): void {
+    const status = this.getUserStatus(user)
+    if (status === 'suspended') {
+      throw new ForbiddenException('정지된 계정입니다. 운영자에게 문의해주세요.')
+    }
+    if (status === 'withdrawn') {
+      throw new ForbiddenException('탈퇴 처리된 계정입니다.')
+    }
   }
 
   private signSessionToken(payload: SignedSessionPayload): string {
@@ -1616,7 +1660,7 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
       const user = this.users.find(
         (item) => item.id === parsed.id && item.email === normalizedEmail
       )
-      if (!user || user.role !== parsed.role) {
+      if (!user || user.role !== parsed.role || this.getUserStatus(user) !== 'active') {
         return null
       }
 
@@ -1807,47 +1851,9 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
    * 운영 콘솔 회원(메이커/투자자/일반) 디렉터리 — 활동 집계를 붙인 읽기 전용 뷰.
    * 비밀번호 등 민감 필드는 제외하고 운영에 필요한 최소 필드만 노출한다.
    */
-  getAdminMembers(): Array<{
-    id: number
-    email: string
-    name: string | null
-    role: UserRole
-    notes: string | null
-    projectCount: number
-    reviewCount: number
-    upvoteCount: number
-    proposalCount: number
-    lastActivityAt: string | null
-  }> {
+  getAdminMembers(): AdminMemberSummary[] {
     return this.users
-      .map((user) => {
-        const email = user.email.toLowerCase()
-        const ownProjects = this.projects.filter((project) => project.userId === user.id)
-        const reviews = this.reviews.filter((review) => review.authorEmail.toLowerCase() === email)
-        const upvotes = this.upvotes.filter((upvote) => upvote.email.toLowerCase() === email)
-        const proposals = this.proposals.filter(
-          (proposal) => (proposal.investorEmail ?? '').toLowerCase() === email
-        )
-        const activityDates = [
-          ...ownProjects.map((project) => project.createdAt.getTime()),
-          ...reviews.map((review) => review.createdAt.getTime()),
-          ...upvotes.map((upvote) => upvote.createdAt.getTime()),
-          ...proposals.map((proposal) => proposal.createdAt.getTime()),
-        ]
-        const lastActivity = activityDates.length > 0 ? Math.max(...activityDates) : null
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name ?? null,
-          role: user.role,
-          notes: user.notes ?? null,
-          projectCount: ownProjects.length,
-          reviewCount: reviews.length,
-          upvoteCount: upvotes.length,
-          proposalCount: proposals.length,
-          lastActivityAt: lastActivity ? new Date(lastActivity).toISOString() : null,
-        }
-      })
+      .map((user) => this.toAdminMemberSummary(user))
       .sort((a, b) => {
         const at = a.lastActivityAt ? new Date(a.lastActivityAt).getTime() : 0
         const bt = b.lastActivityAt ? new Date(b.lastActivityAt).getTime() : 0
@@ -1865,6 +1871,128 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
     user.notes = trimmed.length > 0 ? trimmed : undefined
     this.persist()
     return { id: user.id, notes: user.notes ?? null }
+  }
+
+  updateMemberLifecycle(
+    userId: number,
+    input: UpdateMemberLifecycleDto,
+    admin: AuthSession
+  ): { member: AdminMemberSummary } {
+    const target = this.users.find((item) => item.id === userId)
+    if (!target) {
+      throw new NotFoundException('회원을 찾을 수 없습니다.')
+    }
+    const action = input.action
+    const reason = input.reason?.trim()
+
+    this.assertMemberLifecycleAllowed(target, action, admin)
+
+    if (action === 'suspend') {
+      if (this.getUserStatus(target) === 'withdrawn') {
+        throw new BadRequestException('탈퇴 처리된 회원은 정지할 수 없습니다.')
+      }
+      target.status = 'suspended'
+      target.suspendedAt = new Date().toISOString()
+      target.suspendedBy = admin.email
+      target.suspensionReason = reason || '운영 정책 위반으로 정지 처리했습니다.'
+      target.withdrawnAt = undefined
+      target.withdrawalReason = undefined
+    } else if (action === 'restore') {
+      if (this.getUserStatus(target) === 'withdrawn') {
+        throw new BadRequestException('탈퇴 처리된 회원은 복구할 수 없습니다.')
+      }
+      target.status = 'active'
+      target.suspendedAt = undefined
+      target.suspendedBy = undefined
+      target.suspensionReason = undefined
+    } else {
+      target.status = 'withdrawn'
+      target.password = undefined
+      target.name = undefined
+      target.description = undefined
+      target.notes = undefined
+      target.suspendedAt = undefined
+      target.suspendedBy = undefined
+      target.suspensionReason = undefined
+      target.withdrawnAt = new Date().toISOString()
+      target.withdrawalReason = reason || '운영자에 의해 탈퇴 처리되었습니다.'
+    }
+
+    this.addAuditLog({
+      action: this.memberLifecycleActionToAudit(action),
+      actorEmail: admin.email,
+      targetType: 'member',
+      targetId: target.id,
+      message: reason || this.memberLifecycleActionLabel(action),
+    })
+    this.persist()
+    return { member: this.toAdminMemberSummary(target) }
+  }
+
+  private toAdminMemberSummary(user: User): AdminMemberSummary {
+    const email = user.email.toLowerCase()
+    const ownProjects = this.projects.filter((project) => project.userId === user.id)
+    const reviews = this.reviews.filter((review) => review.authorEmail.toLowerCase() === email)
+    const upvotes = this.upvotes.filter((upvote) => upvote.email.toLowerCase() === email)
+    const proposals = this.proposals.filter(
+      (proposal) => (proposal.investorEmail ?? '').toLowerCase() === email
+    )
+    const activityDates = [
+      ...ownProjects.map((project) => project.createdAt.getTime()),
+      ...reviews.map((review) => review.createdAt.getTime()),
+      ...upvotes.map((upvote) => upvote.createdAt.getTime()),
+      ...proposals.map((proposal) => proposal.createdAt.getTime()),
+    ]
+    const lastActivity = activityDates.length > 0 ? Math.max(...activityDates) : null
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name ?? null,
+      role: user.role,
+      status: this.getUserStatus(user),
+      notes: user.notes ?? null,
+      suspensionReason: user.suspensionReason ?? null,
+      suspendedAt: user.suspendedAt ?? null,
+      suspendedBy: user.suspendedBy ?? null,
+      withdrawalReason: user.withdrawalReason ?? null,
+      withdrawnAt: user.withdrawnAt ?? null,
+      projectCount: ownProjects.length,
+      reviewCount: reviews.length,
+      upvoteCount: upvotes.length,
+      proposalCount: proposals.length,
+      lastActivityAt: lastActivity ? new Date(lastActivity).toISOString() : null,
+    }
+  }
+
+  private assertMemberLifecycleAllowed(
+    target: User,
+    action: AdminMemberLifecycleAction,
+    admin: AuthSession
+  ): void {
+    if (target.id === admin.id && action !== 'restore') {
+      throw new BadRequestException('본인 관리자 계정은 정지하거나 탈퇴 처리할 수 없습니다.')
+    }
+    if (target.role !== 'admin' || action === 'restore') {
+      return
+    }
+    const activeAdminCount = this.users.filter(
+      (user) => user.role === 'admin' && this.getUserStatus(user) === 'active'
+    ).length
+    if (activeAdminCount <= 1) {
+      throw new BadRequestException('마지막 활성 관리자 계정은 정지하거나 탈퇴 처리할 수 없습니다.')
+    }
+  }
+
+  private memberLifecycleActionToAudit(action: AdminMemberLifecycleAction): AuditLog['action'] {
+    if (action === 'suspend') return 'member_suspended'
+    if (action === 'restore') return 'member_restored'
+    return 'member_withdrawn'
+  }
+
+  private memberLifecycleActionLabel(action: AdminMemberLifecycleAction): string {
+    if (action === 'suspend') return '회원 정지'
+    if (action === 'restore') return '회원 복구'
+    return '회원 탈퇴 처리'
   }
 
   private normalizeTags(tags: string[] | undefined): string[] {

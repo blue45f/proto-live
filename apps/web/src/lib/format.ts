@@ -29,6 +29,9 @@ export function getAuditActionLabel(action: string) {
   if (action === 'review_reported') return '리뷰 신고'
   if (action === 'review_hidden_auto') return '자동 숨김'
   if (action === 'review_moderated') return '운영 검토'
+  if (action === 'member_suspended') return '회원 정지'
+  if (action === 'member_restored') return '회원 복구'
+  if (action === 'member_withdrawn') return '회원 탈퇴'
   return '운영 기록'
 }
 

@@ -47,6 +47,7 @@ export type ProjectReviewType = 'review' | 'support' | 'idea'
 export type ProjectReviewAuthorRole = 'maker' | 'investor' | 'member'
 export type ProjectReviewStatus = 'visible' | 'reported' | 'hidden'
 export type AuthRole = 'maker' | 'investor' | 'member' | 'admin'
+export type UserStatus = 'active' | 'suspended' | 'withdrawn'
 
 export interface AuthSession {
   id: number
@@ -111,6 +112,9 @@ export type AuditLogAction =
   | 'review_reported'
   | 'review_hidden_auto'
   | 'review_moderated'
+  | 'member_suspended'
+  | 'member_restored'
+  | 'member_withdrawn'
 
 export interface AuditLog {
   id: number
@@ -774,6 +778,20 @@ export interface CommunityAttachment {
   createdAt: string
 }
 
+export type ForbiddenTermScope = 'all' | 'discussion' | 'message'
+
+export interface CommunityForbiddenTerm {
+  id: number
+  term: string
+  normalizedTerm: string
+  scope: ForbiddenTermScope
+  enabled: boolean
+  reason?: string | null
+  createdBy: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface DiscussionComment {
   id: number
   threadId: number
@@ -894,6 +912,46 @@ export async function removeAdminAttachment(attachmentId: number) {
   return response.data
 }
 
+export async function fetchForbiddenTerms() {
+  const response = await client.get<CommunityForbiddenTerm[]>('/community/admin/forbidden-terms')
+  return response.data
+}
+
+export async function createForbiddenTerm(payload: {
+  term: string
+  scope?: ForbiddenTermScope
+  reason?: string
+}) {
+  const response = await client.post<CommunityForbiddenTerm>(
+    '/community/admin/forbidden-terms',
+    payload
+  )
+  return response.data
+}
+
+export async function updateForbiddenTerm(
+  termId: number,
+  payload: {
+    term?: string
+    scope?: ForbiddenTermScope
+    reason?: string
+    enabled?: boolean
+  }
+) {
+  const response = await client.post<CommunityForbiddenTerm>(
+    `/community/admin/forbidden-terms/${termId}`,
+    payload
+  )
+  return response.data
+}
+
+export async function deleteForbiddenTerm(termId: number) {
+  const response = await client.post<{ deleted: true }>(
+    `/community/admin/forbidden-terms/${termId}/delete`
+  )
+  return response.data
+}
+
 export interface DmConversation {
   id: number
   projectId: number
@@ -948,7 +1006,13 @@ export interface AdminMember {
   email: string
   name: string | null
   role: AuthRole
+  status: UserStatus
   notes: string | null
+  suspensionReason: string | null
+  suspendedAt: string | null
+  suspendedBy: string | null
+  withdrawalReason: string | null
+  withdrawnAt: string | null
   projectCount: number
   reviewCount: number
   upvoteCount: number
@@ -965,6 +1029,17 @@ export async function updateAdminMemberNotes(memberId: number, notes: string) {
   const response = await client.post<{ id: number; notes: string | null }>(
     `/projects/admin-members/${memberId}/notes`,
     { notes }
+  )
+  return response.data
+}
+
+export async function updateAdminMemberLifecycle(
+  memberId: number,
+  payload: { action: 'suspend' | 'restore' | 'withdraw'; reason?: string }
+) {
+  const response = await client.post<{ member: AdminMember }>(
+    `/projects/admin-members/${memberId}/lifecycle`,
+    payload
   )
   return response.data
 }

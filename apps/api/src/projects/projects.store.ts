@@ -20,6 +20,7 @@ import {
   ProjectUpvote,
   ProjectLogEntry,
   AppNotification,
+  UserStatus,
 } from './project.models'
 
 interface SerializedProject extends Omit<Project, 'createdAt'> {
@@ -140,7 +141,17 @@ export function serializeState(state: ProjectsState): SerializedProjectsState {
 
 export function deserializeState(state: SerializedProjectsState): ProjectsState {
   return {
-    users: Array.isArray(state.users) ? state.users : [],
+    users: Array.isArray(state.users)
+      ? state.users.map((user) => {
+          const status = normalizeUserStatus(user.status)
+          if (status !== 'active') {
+            return { ...user, status }
+          }
+          const activeUser = { ...user }
+          delete activeUser.status
+          return activeUser
+        })
+      : [],
     projects: Array.isArray(state.projects)
       ? state.projects.map((project) => ({
           ...project,
@@ -227,6 +238,10 @@ export function deserializeState(state: SerializedProjectsState): ProjectsState 
     nextReviewId: Number.isInteger(state.nextReviewId) ? state.nextReviewId : 1,
     nextAuditLogId: Number.isInteger(state.nextAuditLogId) ? state.nextAuditLogId : 1,
   }
+}
+
+function normalizeUserStatus(status: unknown): UserStatus {
+  return status === 'suspended' || status === 'withdrawn' ? status : 'active'
 }
 
 export class JsonProjectsStore {

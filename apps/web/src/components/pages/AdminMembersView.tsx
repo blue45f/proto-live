@@ -1,7 +1,8 @@
+import type { ReactNode } from 'react'
 import { useCallback, useEffect, useState } from 'react'
-import { Check, Loader2, Users } from 'lucide-react'
+import { Ban, Check, Loader2, RotateCcw, UserX, Users } from 'lucide-react'
 import type { AdminMember } from '../../api'
-import { fetchAdminMembers, updateAdminMemberNotes } from '../../api'
+import { fetchAdminMembers, updateAdminMemberLifecycle, updateAdminMemberNotes } from '../../api'
 import { getRoleLabel } from '../../lib/format'
 
 /**
@@ -58,8 +59,11 @@ function MemberRow({ member, onSaved }: { member: AdminMember; onSaved: () => vo
   const [notes, setNotes] = useState(member.notes ?? '')
   const [isSaving, setIsSaving] = useState(false)
   const [savedAt, setSavedAt] = useState(false)
+  const [busyAction, setBusyAction] = useState<'suspend' | 'restore' | 'withdraw' | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const dirty = notes.trim() !== (member.notes ?? '').trim()
+  const isWithdrawn = member.status === 'withdrawn'
 
   async function handleSave() {
     setIsSaving(true)
@@ -73,13 +77,51 @@ function MemberRow({ member, onSaved }: { member: AdminMember; onSaved: () => vo
     }
   }
 
+  async function handleLifecycle(action: 'suspend' | 'restore' | 'withdraw') {
+    let reason: string | undefined
+    if (action === 'suspend') {
+      const prompted = window.prompt('정지 사유를 입력하세요. 비워두면 기본 사유로 저장됩니다.')
+      if (prompted === null) {
+        return
+      }
+      reason = prompted
+    }
+    if (
+      action === 'withdraw' &&
+      !window.confirm(
+        '이 회원을 탈퇴 처리할까요? 비밀번호와 공개 이름이 제거되고 로그인할 수 없습니다.'
+      )
+    ) {
+      return
+    }
+    setBusyAction(action)
+    setActionError(null)
+    try {
+      await updateAdminMemberLifecycle(member.id, { action, reason })
+      onSaved()
+    } catch {
+      setActionError('회원 상태 변경에 실패했습니다.')
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
   return (
-    <li className="rounded-xl border border-stone-800 bg-stone-900/50 p-4">
+    <li
+      className={`rounded-xl border p-4 ${
+        member.status === 'suspended'
+          ? 'border-amber-300/30 bg-amber-300/5'
+          : isWithdrawn
+            ? 'border-red-300/25 bg-red-500/5'
+            : 'border-stone-800 bg-stone-900/50'
+      }`}
+    >
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-bold text-stone-50">{member.name || member.email}</span>
         <span className="inline-flex items-center rounded-full border border-stone-700 px-2 py-0.5 text-[11px] font-bold text-stone-300">
           {getRoleLabel(member.role)}
         </span>
+        <StatusBadge status={member.status} />
         {member.lastActivityAt ? (
           <span className="text-[11px] text-stone-500">
             최근 활동{' '}
@@ -92,6 +134,14 @@ function MemberRow({ member, onSaved }: { member: AdminMember; onSaved: () => vo
         )}
       </div>
       <p className="mt-0.5 text-xs text-stone-500">{member.email}</p>
+      {member.suspensionReason || member.withdrawalReason ? (
+        <p className="mt-1 text-[11px] font-semibold text-amber-100/80">
+          {member.suspensionReason || member.withdrawalReason}
+        </p>
+      ) : null}
+      {actionError ? (
+        <p className="mt-1 text-[11px] font-semibold text-red-200">{actionError}</p>
+      ) : null}
 
       <dl className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Stat label="등록" value={member.projectCount} />
@@ -112,11 +162,12 @@ function MemberRow({ member, onSaved }: { member: AdminMember; onSaved: () => vo
             rows={2}
             maxLength={1000}
             placeholder="이 회원에 대한 운영 메모 (선택)"
+            disabled={isWithdrawn}
             className="flex-1 resize-y rounded-lg border border-stone-700 bg-stone-900/60 px-3 py-2 text-sm text-stone-100 outline-none transition focus:border-cyan-300/60"
           />
           <button
             type="button"
-            disabled={!dirty || isSaving}
+            disabled={!dirty || isSaving || isWithdrawn}
             onClick={() => void handleSave()}
             className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-cyan-300 px-3 text-sm font-black text-slate-950 transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-stone-400"
           >
@@ -129,7 +180,86 @@ function MemberRow({ member, onSaved }: { member: AdminMember; onSaved: () => vo
           </button>
         </div>
       </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {member.status === 'suspended' ? (
+          <LifecycleButton
+            busy={busyAction === 'restore'}
+            disabled={busyAction !== null}
+            onClick={() => void handleLifecycle('restore')}
+            icon={<RotateCcw className="h-3.5 w-3.5" />}
+            label="복구"
+          />
+        ) : member.status === 'active' ? (
+          <LifecycleButton
+            busy={busyAction === 'suspend'}
+            disabled={busyAction !== null}
+            onClick={() => void handleLifecycle('suspend')}
+            icon={<Ban className="h-3.5 w-3.5" />}
+            label="정지"
+          />
+        ) : null}
+        {!isWithdrawn ? (
+          <LifecycleButton
+            danger
+            busy={busyAction === 'withdraw'}
+            disabled={busyAction !== null}
+            onClick={() => void handleLifecycle('withdraw')}
+            icon={<UserX className="h-3.5 w-3.5" />}
+            label="탈퇴 처리"
+          />
+        ) : null}
+      </div>
     </li>
+  )
+}
+
+function StatusBadge({ status }: { status: AdminMember['status'] }) {
+  const copy =
+    status === 'suspended'
+      ? { label: '정지', tone: 'border-amber-300/40 text-amber-100' }
+      : status === 'withdrawn'
+        ? { label: '탈퇴', tone: 'border-red-300/40 text-red-100' }
+        : { label: '활성', tone: 'border-lime-300/35 text-lime-100' }
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-bold ${copy.tone}`}
+    >
+      {copy.label}
+    </span>
+  )
+}
+
+function LifecycleButton({
+  busy,
+  danger,
+  disabled,
+  icon,
+  label,
+  onClick,
+}: {
+  busy: boolean
+  danger?: boolean
+  disabled?: boolean
+  icon: ReactNode
+  label: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      disabled={busy || disabled}
+      onClick={onClick}
+      className={`inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-bold transition disabled:opacity-50 ${
+        danger
+          ? 'border-stone-700 text-stone-300 hover:border-red-300/60 hover:text-red-100'
+          : 'border-stone-700 text-stone-300 hover:border-cyan-300/50 hover:text-cyan-100'
+      }`}
+    >
+      {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : icon}
+      {label}
+    </button>
   )
 }
 

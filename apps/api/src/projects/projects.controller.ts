@@ -27,6 +27,7 @@ import { SetSeasonChallengeDto } from './dto/set-season-challenge.dto'
 import { GetProjectsQueryDto, ProjectQueryInput } from './dto/get-projects-query.dto'
 import { AdminRevenueProjectionQueryDto } from './dto/admin-revenue-projection-query.dto'
 import { UpdateMemberNotesDto } from './dto/update-member-notes.dto'
+import { UpdateMemberLifecycleDto } from './dto/update-member-lifecycle.dto'
 
 @Controller('api/projects')
 export class ProjectsController {
@@ -174,6 +175,20 @@ export class ProjectsController {
   ) {
     this.projectsService.requireAdminSession(request.headers.cookie)
     return this.projectsService.updateMemberNotes(memberId, body.notes)
+  }
+
+  /**
+   * POST /api/projects/admin-members/:memberId/lifecycle
+   * 회원 계정을 정지/복구/탈퇴 처리합니다. 정지·탈퇴 계정은 기존 세션도 즉시 무효화됩니다.
+   */
+  @Post('admin-members/:memberId/lifecycle')
+  updateMemberLifecycle(
+    @Req() request: Request,
+    @Param('memberId', ParseIntPipe) memberId: number,
+    @Body() body: UpdateMemberLifecycleDto
+  ) {
+    const admin = this.projectsService.requireAdminSession(request.headers.cookie)
+    return this.projectsService.updateMemberLifecycle(memberId, body, admin)
   }
 
   /**

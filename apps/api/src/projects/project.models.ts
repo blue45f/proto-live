@@ -52,15 +52,22 @@ export interface Project {
 }
 
 export type UserRole = 'maker' | 'investor' | 'member' | 'admin'
+export type UserStatus = 'active' | 'suspended' | 'withdrawn'
 
 export interface User {
   id: number
   email: string
   role: UserRole
+  status?: UserStatus
   password?: string
   name?: string
   description?: string
   notes?: string
+  suspendedAt?: string
+  suspendedBy?: string
+  suspensionReason?: string
+  withdrawnAt?: string
+  withdrawalReason?: string
 }
 
 export interface AuthSession {
@@ -364,12 +371,15 @@ export type AuditLogAction =
   | 'review_reported'
   | 'review_hidden_auto'
   | 'review_moderated'
+  | 'member_suspended'
+  | 'member_restored'
+  | 'member_withdrawn'
 
 export interface AuditLog {
   id: number
   action: AuditLogAction
   actorEmail: string
-  targetType: 'project' | 'review' | 'match'
+  targetType: 'project' | 'review' | 'match' | 'member'
   targetId: number
   projectId?: number
   message: string

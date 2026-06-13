@@ -97,6 +97,14 @@ function buildApiMock() {
     removeAdminAttachment: vi.fn(async () => {
       throw new Error('removeAdminAttachment not stubbed for this test')
     }),
+    fetchForbiddenTerms: vi.fn(async () => []),
+    createForbiddenTerm: vi.fn(async () => {
+      throw new Error('createForbiddenTerm not stubbed for this test')
+    }),
+    updateForbiddenTerm: vi.fn(async () => {
+      throw new Error('updateForbiddenTerm not stubbed for this test')
+    }),
+    deleteForbiddenTerm: vi.fn(async () => ({ deleted: true as const })),
     fetchConversations: vi.fn(async () => []),
     fetchConversationMessages: vi.fn(async () => {
       throw new Error('fetchConversationMessages not stubbed for this test')
@@ -106,6 +114,9 @@ function buildApiMock() {
     }),
     fetchAdminMembers: vi.fn(async () => []),
     updateAdminMemberNotes: vi.fn(async () => ({ id: 0, notes: null })),
+    updateAdminMemberLifecycle: vi.fn(async () => {
+      throw new Error('updateAdminMemberLifecycle not stubbed for this test')
+    }),
   }
 }
 
