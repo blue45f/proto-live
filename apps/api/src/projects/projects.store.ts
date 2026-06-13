@@ -8,6 +8,7 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { dirname, join } from 'node:path'
+
 import {
   createEmptyProjectsState,
   AuditLog,

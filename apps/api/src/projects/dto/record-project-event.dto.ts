@@ -1,4 +1,5 @@
 import { IsIn, IsNotEmpty, IsString } from 'class-validator'
+
 import { ProjectEventType } from '../project.models'
 
 const PROJECT_EVENT_TYPES: ProjectEventType[] = ['preview', 'outbound', 'refresh']

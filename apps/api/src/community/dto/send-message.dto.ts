@@ -1,5 +1,5 @@
-import { IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min, MinLength } from 'class-validator'
 import { Transform } from 'class-transformer'
+import { IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min, MinLength } from 'class-validator'
 
 function parseOptionalInteger(value: unknown): unknown {
   if (value === undefined || value === null || value === '') {

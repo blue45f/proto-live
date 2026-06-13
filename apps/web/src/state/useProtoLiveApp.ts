@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { isAxiosError } from 'axios'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
 import {
   API_BASE,
   AuditLog,
@@ -55,23 +56,7 @@ import {
   reportProjectReview,
   validateLiveUrl,
 } from '../api'
-import {
-  type AuthSession,
-  type TestAccount,
-  listTestAccounts,
-  readSession,
-  resolveRoleLabel,
-} from '../local-auth'
 import { toast } from '../components/ToastContainer'
-import {
-  type RevenueModelConfig,
-  DEFAULT_SCENARIO_MULTIPLIERS,
-  ADMIN_REVENUE_CONFIG_STORAGE_KEY,
-  ADMIN_REVENUE_SCENARIO_STORAGE_KEY,
-  ADMIN_REVENUE_TARGET_STORAGE_KEY,
-  ADMIN_DASHBOARD_POLL_INTERVAL_MS,
-  ADMIN_DASHBOARD_TREND_KEY_DAYS,
-} from '../lib/revenue-config'
 import {
   type AppView,
   type PolicyView,
@@ -101,6 +86,24 @@ import {
   upsertProject,
 } from '../lib/format'
 import {
+  type RevenueModelConfig,
+  DEFAULT_SCENARIO_MULTIPLIERS,
+  ADMIN_REVENUE_CONFIG_STORAGE_KEY,
+  ADMIN_REVENUE_SCENARIO_STORAGE_KEY,
+  ADMIN_REVENUE_TARGET_STORAGE_KEY,
+  ADMIN_DASHBOARD_POLL_INTERVAL_MS,
+  ADMIN_DASHBOARD_TREND_KEY_DAYS,
+} from '../lib/revenue-config'
+import {
+  type AuthSession,
+  type TestAccount,
+  listTestAccounts,
+  readSession,
+  resolveRoleLabel,
+} from '../local-auth'
+import { matchRoute, navigate, routePath, type DiscussionRoute } from '../router/route'
+
+import {
   clampPageSize,
   clampRate,
   parseTagInput,
@@ -110,7 +113,6 @@ import {
   readFilterPreset,
   readProjectListViewMode,
 } from './storage'
-import { matchRoute, navigate, routePath, type DiscussionRoute } from '../router/route'
 import { useFavorites } from './useFavorites'
 import { useReviewComposer } from './useReviewComposer'
 import { useUpvotedProjects } from './useUpvotedProjects'

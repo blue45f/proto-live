@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
+
 import { ProjectSkeleton } from './ProjectSkeleton'
 
 // 로딩 스켈레톤의 라이브 리전 규약(role/label)과 펄스 적용을 검증한다.

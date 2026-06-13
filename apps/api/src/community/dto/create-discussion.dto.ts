@@ -8,6 +8,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator'
+
 import { DISCUSSION_CATEGORIES, DiscussionCategory } from '../community.models'
 import { ATTACHMENTS_PER_TARGET } from '../community.service'
 

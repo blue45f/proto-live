@@ -1,14 +1,16 @@
+import { strict as assert } from 'node:assert'
 import { mkdtempSync, rmSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { strict as assert } from 'node:assert'
+
 import { BadRequestException } from '@nestjs/common'
-import { ProjectsService } from '../src/projects/projects.service'
-import { createEmptyProjectsState } from '../src/projects/project.models'
-import { JsonProjectsStore } from '../src/projects/projects.store'
+
 import { getCurrentConsentTerms } from '../src/projects/consent-terms'
 import { FUNDING_RANGES } from '../src/projects/project.constants'
+import { createEmptyProjectsState } from '../src/projects/project.models'
+import { ProjectsService } from '../src/projects/projects.service'
+import { JsonProjectsStore } from '../src/projects/projects.store'
 
 async function withService(run: (service: ProjectsService, storePath: string) => Promise<void>) {
   const dir = mkdtempSync(join(tmpdir(), 'protolive-consent-'))

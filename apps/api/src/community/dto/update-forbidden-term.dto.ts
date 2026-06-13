@@ -7,6 +7,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator'
+
 import type { ForbiddenTermScope } from '../community.models'
 
 export class UpdateForbiddenTermDto {

@@ -1,8 +1,10 @@
 import { Controller, Get, Header, Param, Res } from '@nestjs/common'
-import type { Response } from 'express'
+
 import { Project } from './project.models'
 import { ProjectsService } from './projects.service'
 import { buildFallbackOgHtml, buildProjectOgHtml, resolveSiteOrigin } from './seo-og'
+
+import type { Response } from 'express'
 
 /**
  * SEO 발견 레이어. 공개 커뮤니티 전환에 맞춰 검색엔진이 프로젝트·메이커 페이지를 크롤링하도록

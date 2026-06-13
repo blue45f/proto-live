@@ -1,5 +1,6 @@
-import { test } from 'node:test'
 import * as assert from 'node:assert/strict'
+import { test } from 'node:test'
+
 import { maskEmail } from '../src/projects/pii'
 
 test('maskEmail keeps first two chars and masks the rest of the local part', () => {

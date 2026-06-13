@@ -1,8 +1,10 @@
-import { NestFactory } from '@nestjs/core'
 import { ValidationPipe } from '@nestjs/common'
-import type { NextFunction, Request, Response } from 'express'
+import { NestFactory } from '@nestjs/core'
+
 import { AppModule } from './app.module'
 import { isCorsOriginAllowed } from './common/cors-policy'
+
+import type { NextFunction, Request, Response } from 'express'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)

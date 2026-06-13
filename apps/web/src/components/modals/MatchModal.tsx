@@ -1,7 +1,9 @@
-import React from 'react'
 import { Loader2, Send } from 'lucide-react'
-import type { FundingRange, MarketConfig, Project } from '../../api'
+import React from 'react'
+
 import { Modal } from '../Modal'
+
+import type { FundingRange, MarketConfig, Project } from '../../api'
 
 const MATCH_DEMO_LOG_KEY = 'protolive-match-demo-log-v1'
 const MATCH_DEMO_LOG_LIMIT = 40

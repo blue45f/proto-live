@@ -1,8 +1,10 @@
 import React from 'react'
-import type { AuthSession } from '../../local-auth'
-import type { Project, ProjectReview, ProjectReviewType } from '../../api'
+
 import { Modal } from '../Modal'
 import { ProjectReviewWorkspace } from '../ProjectReviewWorkspace'
+
+import type { Project, ProjectReview, ProjectReviewType } from '../../api'
+import type { AuthSession } from '../../local-auth'
 
 export function ReviewModal({
   project,

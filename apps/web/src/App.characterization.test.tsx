@@ -1,6 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import * as api from './api'
+import App from './App'
 import { makeApiMock, adminSession, makerSession } from './test/api-mock'
 import {
   projectCareloop,
@@ -8,6 +11,7 @@ import {
   publicPrivacyPolicy,
   publicTermsPolicy,
 } from './test/fixtures'
+
 import type { PublicPolicy } from './lib/termsdesk'
 
 // Pure helpers (extractProjects/hasPagination/etc.) stay real via importActual
@@ -22,9 +26,6 @@ vi.mock('./api', async () => {
 
 // Same singleton instance the factory installed -> usable for clear/override.
 const mockApi = makeApiMock()
-
-import App from './App'
-import * as api from './api'
 
 function setPath(path: string) {
   window.history.pushState({}, '', path)

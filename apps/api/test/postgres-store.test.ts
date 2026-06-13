@@ -1,7 +1,8 @@
-import { test } from 'node:test'
 import { strict as assert } from 'node:assert'
-import { PostgresProjectsStore } from '../src/projects/store/postgres-projects-store'
+import { test } from 'node:test'
+
 import { createEmptyProjectsState } from '../src/projects/project.models'
+import { PostgresProjectsStore } from '../src/projects/store/postgres-projects-store'
 
 // DATABASE_URL이 설정된 환경에서만 실행한다(CI는 파일 드라이버라 미설정 → 스킵).
 // 로컬 검증: docker postgres 띄우고 DATABASE_URL=postgres://... pnpm --filter protolive-backend test

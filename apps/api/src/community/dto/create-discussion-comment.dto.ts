@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer'
 import {
   ArrayMaxSize,
   IsArray,
@@ -9,7 +10,7 @@ import {
   Min,
   MinLength,
 } from 'class-validator'
-import { Transform } from 'class-transformer'
+
 import { ATTACHMENTS_PER_TARGET } from '../community.service'
 
 function parseOptionalInteger(value: unknown): unknown {

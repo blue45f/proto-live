@@ -1,4 +1,3 @@
-import React from 'react'
 import {
   Activity,
   AlertTriangle,
@@ -23,7 +22,23 @@ import {
   Users,
   X,
 } from 'lucide-react'
-import type { AuthSession } from '../../local-auth'
+import React from 'react'
+
+import {
+  type ProjectListViewMode,
+  PROJECT_LIST_VIEW_OPTIONS,
+  benchmarkCopy,
+} from '../../lib/constants'
+import { formatChallengeDday, formatRelativeTime } from '../../lib/format'
+import { downloadIcs } from '../../lib/ics'
+import { DifferentiationPanel } from '../DifferentiationPanel'
+import { EmptyState } from '../EmptyState'
+import { OnboardingTip } from '../OnboardingTip'
+import { ProjectCard } from '../ProjectCard'
+import { ProjectDetailRoute } from '../ProjectDetailRoute'
+import { ProjectSkeleton } from '../ProjectSkeleton'
+import { ProofKpiRail } from '../ProofKpiRail'
+
 import type {
   FundingRange,
   MarketConfig,
@@ -35,20 +50,7 @@ import type {
   ProjectReview,
   ProjectReviewType,
 } from '../../api'
-import {
-  type ProjectListViewMode,
-  PROJECT_LIST_VIEW_OPTIONS,
-  benchmarkCopy,
-} from '../../lib/constants'
-import { formatChallengeDday, formatRelativeTime } from '../../lib/format'
-import { downloadIcs } from '../../lib/ics'
-import { ProofKpiRail } from '../ProofKpiRail'
-import { ProjectDetailRoute } from '../ProjectDetailRoute'
-import { ProjectCard } from '../ProjectCard'
-import { EmptyState } from '../EmptyState'
-import { OnboardingTip } from '../OnboardingTip'
-import { ProjectSkeleton } from '../ProjectSkeleton'
-import { DifferentiationPanel } from '../DifferentiationPanel'
+import type { AuthSession } from '../../local-auth'
 
 type ProjectMeta = {
   total: number

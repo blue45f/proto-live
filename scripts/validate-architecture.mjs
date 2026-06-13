@@ -62,7 +62,9 @@ if (exists('pnpm-workspace.yaml')) {
   const ws = read('pnpm-workspace.yaml')
   const globs = [...ws.matchAll(/^\s*-\s*['"]?([^'"\n]+?)['"]?\s*$/gm)]
     .map((m) => m[1].trim())
-    .filter((g) => g.includes('/'))
+    // 워크스페이스 dir glob 만(예: apps/*). 스코프 패키지 스펙(@scope/pkg,
+    // minimumReleaseAgeExclude 등)은 dir 가 아니므로 제외한다.
+    .filter((g) => g.includes('/') && !g.includes('@'))
   for (const glob of globs) {
     const base = glob.replace(/\/\*+$/, '')
     if (!exists(base)) issues.push(`workspace dir missing: ${base} (from "${glob}")`)

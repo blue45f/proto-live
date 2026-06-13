@@ -1,6 +1,8 @@
-import { test } from 'node:test'
 import * as assert from 'node:assert/strict'
+import { test } from 'node:test'
+
 import { BadRequestException, ForbiddenException } from '@nestjs/common'
+
 import { ProjectsController } from '../src/projects/projects.controller'
 import { ProjectsService } from '../src/projects/projects.service'
 

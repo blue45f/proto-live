@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
+
 import { Modal } from './Modal'
 
 // 센터 모달의 입장 모션 계약을 고정한다 — 사이드 패널(motion-safe:animate-panel-slide-in)과

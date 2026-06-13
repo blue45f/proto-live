@@ -1,7 +1,9 @@
 import { Loader2, Signal } from 'lucide-react'
-import type { ProjectEvent, ProjectEventType } from '../api'
+
 import { eventCopy } from '../lib/constants'
 import { formatRelativeTime } from '../lib/format'
+
+import type { ProjectEvent, ProjectEventType } from '../api'
 
 export function SignalTimeline({
   events,

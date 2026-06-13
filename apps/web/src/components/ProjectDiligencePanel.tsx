@@ -13,7 +13,7 @@ import {
   TimerReset,
   X,
 } from 'lucide-react'
-import type { Project, ProjectEvent, ProjectEventType } from '../api'
+
 import { eventCopy } from '../lib/constants'
 import {
   formatRelativeTime,
@@ -22,6 +22,8 @@ import {
   getSignalQuality,
   getValidationTone,
 } from '../lib/format'
+
+import type { Project, ProjectEvent, ProjectEventType } from '../api'
 
 export function ProjectDiligencePanel({
   project,

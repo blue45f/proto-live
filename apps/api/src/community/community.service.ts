@@ -8,9 +8,9 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common'
+
 import { ProjectsService } from '../projects/projects.service'
-import type { AuthSession } from '../projects/project.models'
-import { COMMUNITY_STORE, CommunityStore, FileCommunityStore } from './community.store'
+
 import {
   AttachmentTargetType,
   CommunityForbiddenTerm,
@@ -25,6 +25,9 @@ import {
   createEmptyCommunityState,
   normalizeForbiddenTerm,
 } from './community.models'
+import { COMMUNITY_STORE, CommunityStore, FileCommunityStore } from './community.store'
+
+import type { AuthSession } from '../projects/project.models'
 
 /** 첨부 페이로드(디코드 기준) 상한 — 클라이언트 1600px 리사이즈 + 2MB 캡과 동일 계약. */
 export const ATTACHMENT_MAX_BYTES = 2 * 1024 * 1024

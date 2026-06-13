@@ -1,8 +1,8 @@
+import { strict as assert } from 'node:assert'
+import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { spawnSync } from 'node:child_process'
-import { strict as assert } from 'node:assert'
 import { test } from 'node:test'
 
 function runSeedScript(options: { fixturePath: string; storePath: string; dryRun?: boolean }) {

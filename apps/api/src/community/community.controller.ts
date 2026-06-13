@@ -1,13 +1,16 @@
 import { Body, Controller, Get, Param, ParseIntPipe, Post, Query, Req } from '@nestjs/common'
-import type { Request } from 'express'
+
 import { ProjectsService } from '../projects/projects.service'
+
 import { CommunityService } from './community.service'
-import { CreateDiscussionDto } from './dto/create-discussion.dto'
 import { CreateDiscussionCommentDto } from './dto/create-discussion-comment.dto'
+import { CreateDiscussionDto } from './dto/create-discussion.dto'
+import { CreateForbiddenTermDto } from './dto/create-forbidden-term.dto'
 import { ModerateDiscussionDto } from './dto/moderate-discussion.dto'
 import { SendMessageDto } from './dto/send-message.dto'
-import { CreateForbiddenTermDto } from './dto/create-forbidden-term.dto'
 import { UpdateForbiddenTermDto } from './dto/update-forbidden-term.dto'
+
+import type { Request } from 'express'
 
 /**
  * 커뮤니티 컨트롤러 — 프로젝트별 토론 스레드(목록/생성/상세), 1단 댓글·답글, 이미지 첨부,
