@@ -20,6 +20,7 @@
   "dependencies": {
     "@nestjs/common": "^11.1.26",
     "@nestjs/core": "^11.1.26",
+    "@nestjs/jwt": "^11.0.2",
     "@nestjs/platform-express": "^11.1.26",
     "axios": "^1.17.0",
     "nestjs-zod": "^5.4.0",
