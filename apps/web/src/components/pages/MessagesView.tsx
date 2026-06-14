@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Inbox, Loader2, Mail, Send } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -30,31 +31,29 @@ export function MessagesView({
   onCloseConversation: () => void
   onUnreadChange?: (total: number) => void
 }) {
-  const [conversations, setConversations] = useState<DmConversation[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  // 기존: 로그인 시 마운트 1회 + 20초 폴링으로 대화 목록 fetch, 비로그인 시 null.
+  // react-query 로 옮기되 enabled(세션 게이트) + refetchInterval(폴링)로 동작을 보존한다.
+  const { data, isError, refetch } = useQuery({
+    queryKey: ['messages', 'conversations'],
+    queryFn: fetchConversations,
+    enabled: Boolean(session),
+    refetchInterval: CONVERSATION_POLL_MS,
+  })
+
+  const conversations: DmConversation[] | null = session ? (data ?? null) : null
+  const error = isError ? '쪽지를 불러오지 못했습니다.' : null
 
   const loadConversations = useCallback(() => {
-    if (!session) {
-      return
-    }
-    fetchConversations()
-      .then((list) => {
-        setConversations(list)
-        onUnreadChange?.(list.reduce((sum, item) => sum + (item.unreadCount ?? 0), 0))
-      })
-      .catch(() => setError('쪽지를 불러오지 못했습니다.'))
-  }, [session, onUnreadChange])
+    void refetch()
+  }, [refetch])
 
+  // 성공 fetch 마다 미읽음 합계를 상위로 올리던 부수효과를 보존한다(데이터 변화 시 실행).
   useEffect(() => {
-    if (!session) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setConversations(null)
+    if (!session || !data) {
       return
     }
-    loadConversations()
-    const timer = window.setInterval(loadConversations, CONVERSATION_POLL_MS)
-    return () => window.clearInterval(timer)
-  }, [session, loadConversations])
+    onUnreadChange?.(data.reduce((sum, item) => sum + (item.unreadCount ?? 0), 0))
+  }, [session, data, onUnreadChange])
 
   if (!session) {
     return (
@@ -69,7 +68,10 @@ export function MessagesView({
 
   if (activeConversationId !== null) {
     return (
+      // key 로 대화 전환 시 스레드를 리마운트해 로컬 입력/전송 에러를 리셋한다
+      // (기존엔 conversationId effect 가 error 를 비웠음).
       <ConversationThread
+        key={activeConversationId}
         conversationId={activeConversationId}
         session={session}
         onBack={onCloseConversation}
@@ -153,29 +155,27 @@ function ConversationThread({
   onBack: () => void
   onAfterSend: () => void
 }) {
-  const [conversation, setConversation] = useState<DmConversation | null>(null)
-  const [messages, setMessages] = useState<DmMessage[]>([])
   const [body, setBody] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  // 전송 실패 에러는 fetch 에러와 동일한 영역에 표시되므로 로컬로 따로 둔다.
+  const [sendError, setSendError] = useState<string | null>(null)
   const [isSending, setIsSending] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  const load = useCallback(() => {
-    fetchConversationMessages(conversationId)
-      .then((data) => {
-        setConversation(data.conversation)
-        setMessages(data.messages)
-      })
-      .catch(() => setError('대화를 불러오지 못했습니다.'))
-  }, [conversationId])
+  // 기존: 마운트 1회 + 20초 폴링으로 대화 상세 fetch(conversationId 변경 시 재로드).
+  const { data, isError, refetch } = useQuery({
+    queryKey: ['messages', 'conversation', conversationId],
+    queryFn: () => fetchConversationMessages(conversationId),
+    refetchInterval: CONVERSATION_POLL_MS,
+  })
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setError(null)
-    load()
-    const timer = window.setInterval(load, CONVERSATION_POLL_MS)
-    return () => window.clearInterval(timer)
-  }, [load])
+  const conversation: DmConversation | null = data?.conversation ?? null
+  const messages: DmMessage[] = data?.messages ?? []
+  // 로드 에러와 전송 에러를 같은 영역에서 보여주던 동작을 보존한다.
+  const error = sendError ?? (isError ? '대화를 불러오지 못했습니다.' : null)
+
+  const load = useCallback(() => {
+    void refetch()
+  }, [refetch])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: 'end' })
@@ -192,14 +192,14 @@ function ConversationThread({
       return
     }
     setIsSending(true)
-    setError(null)
+    setSendError(null)
     try {
       await sendDirectMessage({ conversationId, body: body.trim() })
       setBody('')
       load()
       onAfterSend()
     } catch {
-      setError('쪽지를 보내지 못했습니다. 다시 시도해주세요.')
+      setSendError('쪽지를 보내지 못했습니다. 다시 시도해주세요.')
     } finally {
       setIsSending(false)
     }

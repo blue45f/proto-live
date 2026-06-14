@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query'
 import {
   EyeOff,
   ImageOff,
@@ -8,7 +9,7 @@ import {
   ShieldAlert,
   Trash2,
 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 
 import {
   createForbiddenTerm,
@@ -35,28 +36,36 @@ import type {
  * 권한 게이트는 상위(App)에서 admin 뷰로만 진입하도록 막는다.
  */
 export function AdminCommunityView() {
-  const [threads, setThreads] = useState<DiscussionSummary[] | null>(null)
-  const [attachments, setAttachments] = useState<CommunityAttachment[] | null>(null)
-  const [forbiddenTerms, setForbiddenTerms] = useState<CommunityForbiddenTerm[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  // 3개 리소스를 함께 fetch 하는 기존 Promise.all 의 all-or-nothing 의미를 보존하려고
+  // 하나의 쿼리로 묶는다(하나라도 실패하면 공통 에러, 세 영역 모두 null 로 스피너 유지).
+  // 모더레이션 액션 후에는 동일하게 전체를 refetch 한다.
+  const { data, isError, refetch } = useQuery({
+    queryKey: ['admin', 'community-moderation'],
+    queryFn: async () => {
+      const [threadList, attachmentList, termList] = await Promise.all([
+        fetchAdminDiscussions(),
+        fetchAdminAttachments(),
+        fetchForbiddenTerms(),
+      ])
+      return { threads: threadList, attachments: attachmentList, forbiddenTerms: termList }
+    },
+  })
+
+  // 과거 계약 보존: 로딩/에러 시 세 영역 모두 null(스피너).
+  const threads: DiscussionSummary[] | null = data?.threads ?? null
+  const attachments: CommunityAttachment[] | null = data?.attachments ?? null
+  const forbiddenTerms: CommunityForbiddenTerm[] | null = data?.forbiddenTerms ?? null
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const error = loadError ?? (isError ? '커뮤니티 모더레이션 데이터를 불러오지 못했습니다.' : null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [newTerm, setNewTerm] = useState('')
   const [newScope, setNewScope] = useState<ForbiddenTermScope>('all')
   const [newReason, setNewReason] = useState('')
 
   const load = useCallback(() => {
-    setError(null)
-    Promise.all([fetchAdminDiscussions(), fetchAdminAttachments(), fetchForbiddenTerms()])
-      .then(([threadList, attachmentList, termList]) => {
-        setThreads(threadList)
-        setAttachments(attachmentList)
-        setForbiddenTerms(termList)
-      })
-      .catch(() => setError('커뮤니티 모더레이션 데이터를 불러오지 못했습니다.'))
-  }, [])
-
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => load(), [load])
+    setLoadError(null)
+    void refetch()
+  }, [refetch])
 
   async function runModeration(
     threadId: number,
@@ -73,7 +82,7 @@ export function AdminCommunityView() {
       await moderateDiscussion(threadId, { action })
       load()
     } catch {
-      setError('처리에 실패했습니다. 다시 시도해주세요.')
+      setLoadError('처리에 실패했습니다. 다시 시도해주세요.')
     } finally {
       setBusyId(null)
     }
@@ -85,7 +94,7 @@ export function AdminCommunityView() {
       await removeAdminAttachment(attachmentId)
       load()
     } catch {
-      setError('첨부 제거에 실패했습니다.')
+      setLoadError('첨부 제거에 실패했습니다.')
     } finally {
       setBusyId(null)
     }
@@ -103,7 +112,7 @@ export function AdminCommunityView() {
       setNewReason('')
       load()
     } catch {
-      setError('금칙어 등록에 실패했습니다. 중복 여부를 확인해주세요.')
+      setLoadError('금칙어 등록에 실패했습니다. 중복 여부를 확인해주세요.')
     } finally {
       setBusyId(null)
     }
@@ -115,7 +124,7 @@ export function AdminCommunityView() {
       await updateForbiddenTerm(term.id, { enabled: !term.enabled })
       load()
     } catch {
-      setError('금칙어 상태 변경에 실패했습니다.')
+      setLoadError('금칙어 상태 변경에 실패했습니다.')
     } finally {
       setBusyId(null)
     }
@@ -127,7 +136,7 @@ export function AdminCommunityView() {
       await deleteForbiddenTerm(termId)
       load()
     } catch {
-      setError('금칙어 삭제에 실패했습니다.')
+      setLoadError('금칙어 삭제에 실패했습니다.')
     } finally {
       setBusyId(null)
     }

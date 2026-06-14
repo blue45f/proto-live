@@ -1,5 +1,6 @@
+import { useQuery } from '@tanstack/react-query'
 import { Ban, Check, Loader2, RotateCcw, UserX, Users } from 'lucide-react'
-import { useCallback, useEffect, useId, useState } from 'react'
+import { useCallback, useId, useState } from 'react'
 
 import {
   fetchAdminMembers,
@@ -16,18 +17,20 @@ import type { ReactNode } from 'react'
  * 회원 데이터는 projects 도메인의 읽기 전용 뷰이며, 메모만 갱신 가능하다(상태 형태 불변).
  */
 export function AdminMembersView() {
-  const [members, setMembers] = useState<AdminMember[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  // 기존 useState+useEffect 1회 fetch 를 react-query 로 옮긴다. 마운트 시 1회 로드 +
+  // 메모/라이프사이클 변경 후 수동 refetch 라는 동작은 그대로다(자동 재시도/포커스 재요청
+  // 없음은 전역 QueryClient 기본값으로 보장).
+  const { data, isError, refetch } = useQuery({
+    queryKey: ['admin', 'members'],
+    queryFn: fetchAdminMembers,
+  })
 
+  // 과거 계약 보존: 로딩 중에는 members === null(스피너), 에러도 목록은 null 로 둔다.
+  const members: AdminMember[] | null = data ?? null
+  const error = isError ? '회원 목록을 불러오지 못했습니다.' : null
   const load = useCallback(() => {
-    setError(null)
-    fetchAdminMembers()
-      .then(setMembers)
-      .catch(() => setError('회원 목록을 불러오지 못했습니다.'))
-  }, [])
-
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => load(), [load])
+    void refetch()
+  }, [refetch])
 
   return (
     <div className="lg:col-span-2 space-y-6">

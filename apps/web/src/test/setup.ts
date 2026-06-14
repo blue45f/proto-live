@@ -5,6 +5,7 @@ import { afterEach, vi } from 'vitest'
 import { useFavoritesStore } from '../domains/projects/favoritesStore'
 import { useReviewComposerStore } from '../domains/projects/reviewComposerStore'
 import { useUpvotedProjectsStore } from '../domains/projects/upvotedProjectsStore'
+import { appQueryClient } from '../infrastructure/queryClient'
 import { useToastStore } from '../state/stores/toastStore'
 
 // zustand 스토어는 모듈 싱글턴이라 테스트 간에 상태가 남는다(useState 훅은 매 마운트마다
@@ -29,6 +30,10 @@ afterEach(() => {
   cleanup()
   vi.clearAllTimers()
   resetStores()
+  // react-query 클라이언트도 모듈 싱글턴이라 캐시가 테스트 간 누수된다. 마운트 단위
+  // 격리(과거 useState 동작)를 유지하려고 매 테스트 후 진행 중 쿼리를 취소하고 캐시를 비운다.
+  appQueryClient.cancelQueries()
+  appQueryClient.clear()
 })
 
 // jsdom does not implement scrollTo; App.tsx calls window.scrollTo on every
