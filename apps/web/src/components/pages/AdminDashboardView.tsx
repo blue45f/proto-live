@@ -50,7 +50,7 @@ import type {
   AdminReportedReview,
   AuditLog,
   SeasonChallenge,
-} from '../../api'
+} from '../../infrastructure/api'
 
 type AdminTrendMetrics = {
   trend: AdminDashboardSnapshot['eventTrend14d']

@@ -1,8 +1,8 @@
 import { ShieldCheck, TimerReset, Zap } from 'lucide-react'
 
-import { Metric } from './Metric'
+import { Metric } from '../../components/Metric'
 
-import type { MarketStats, Project } from '../api'
+import type { MarketStats, Project } from '../../infrastructure/api'
 
 /**
  * 피드 상단 "라이브 증명" 요약. 히어로에 이미 진행 상황 패널이 있으므로, 여기서는 커뮤니티가

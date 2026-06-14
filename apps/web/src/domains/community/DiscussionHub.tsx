@@ -16,7 +16,7 @@ import {
   deleteOwnDiscussion,
   fetchDiscussion,
   fetchProjectDiscussions,
-} from '../../api'
+} from '../../infrastructure/api'
 import {
   DISCUSSION_CATEGORY_IDS,
   discussionCategoryCopy,
@@ -28,7 +28,7 @@ import { AttachmentGrid } from './AttachmentGrid'
 import { BodyText } from './BodyText'
 import { ImageAttachmentPicker } from './ImageAttachmentPicker'
 
-import type { AuthSession, DiscussionDetail, DiscussionSummary } from '../../api'
+import type { AuthSession, DiscussionDetail, DiscussionSummary } from '../../infrastructure/api'
 import type { PreparedAttachment } from '../../lib/image'
 import type { DiscussionRoute } from '../../router/route'
 

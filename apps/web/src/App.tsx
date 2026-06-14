@@ -8,12 +8,12 @@ import { ReviewModal } from './components/modals/ReviewModal'
 import { SubmitProjectModal } from './components/modals/SubmitProjectModal'
 import { NotificationBell } from './components/NotificationBell'
 import { MarketView } from './components/pages/MarketView'
-import { ProjectDiligencePanel } from './components/ProjectDiligencePanel'
 import { RouteFallback } from './components/RouteFallback'
 import ToastContainer from './components/ToastContainer'
+import { ProjectDiligencePanel } from './domains/projects/ProjectDiligencePanel'
+import { resolveRoleLabel } from './infrastructure/local-auth'
 import { lazyRetry } from './lib/lazy-retry'
 import { POLICY_PAGES } from './lib/termsdesk'
-import { resolveRoleLabel } from './local-auth'
 import { routePath } from './router/route'
 import { useProtoLiveApp } from './state/useProtoLiveApp'
 
@@ -45,7 +45,7 @@ const AdminMembersView = lazyRetry(() =>
   import('./components/pages/AdminMembersView').then((m) => ({ default: m.AdminMembersView }))
 )
 const DiscussionHub = lazyRetry(() =>
-  import('./components/community/DiscussionHub').then((m) => ({ default: m.DiscussionHub }))
+  import('./domains/community/DiscussionHub').then((m) => ({ default: m.DiscussionHub }))
 )
 
 export default function App() {

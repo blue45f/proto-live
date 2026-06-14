@@ -19,7 +19,7 @@ import {
   type RevenueModelConfig,
 } from '../lib/revenue-config'
 
-import type { ProjectListQuery } from '../api'
+import type { ProjectListQuery } from '../infrastructure/api'
 
 export function safeInt(value: string | null, fallback: number) {
   const parsed = Number.parseInt(value ?? '', 10)

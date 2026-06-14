@@ -6,8 +6,13 @@ import { getValidationTone } from '../../lib/format'
 import { parseTagInput } from '../../state/storage'
 import { Modal } from '../Modal'
 
-import type { MarketConfig, ProjectAccessMode, ProjectMaturity, ProjectStack } from '../../api'
-import type { AuthSession } from '../../local-auth'
+import type {
+  MarketConfig,
+  ProjectAccessMode,
+  ProjectMaturity,
+  ProjectStack,
+} from '../../infrastructure/api'
+import type { AuthSession } from '../../infrastructure/local-auth'
 
 export function SubmitProjectModal({
   session,

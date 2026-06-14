@@ -1,10 +1,14 @@
 import { Ban, Check, Loader2, RotateCcw, UserX, Users } from 'lucide-react'
 import { useCallback, useEffect, useId, useState } from 'react'
 
-import { fetchAdminMembers, updateAdminMemberLifecycle, updateAdminMemberNotes } from '../../api'
+import {
+  fetchAdminMembers,
+  updateAdminMemberLifecycle,
+  updateAdminMemberNotes,
+} from '../../infrastructure/api'
 import { getRoleLabel } from '../../lib/format'
 
-import type { AdminMember } from '../../api'
+import type { AdminMember } from '../../infrastructure/api'
 import type { ReactNode } from 'react'
 
 /**

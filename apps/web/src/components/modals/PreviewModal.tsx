@@ -2,9 +2,9 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { Activity, ArrowUpRight, Loader2, RefreshCw, X } from 'lucide-react'
 
-import { SignalTimeline } from '../SignalTimeline'
+import { SignalTimeline } from '../../domains/projects/SignalTimeline'
 
-import type { Project, ProjectEvent } from '../../api'
+import type { Project, ProjectEvent } from '../../infrastructure/api'
 
 export function PreviewModal({
   project,

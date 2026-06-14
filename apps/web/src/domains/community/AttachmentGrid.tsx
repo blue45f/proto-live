@@ -1,6 +1,6 @@
 import { ImageOff } from 'lucide-react'
 
-import type { CommunityAttachment } from '../../api'
+import type { CommunityAttachment } from '../../infrastructure/api'
 
 /**
  * 토론/댓글 이미지 첨부 표시 — 래스터 data URL(image/*)만 <img> 로 렌더한다.

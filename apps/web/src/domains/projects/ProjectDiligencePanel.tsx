@@ -14,16 +14,16 @@ import {
   X,
 } from 'lucide-react'
 
-import { eventCopy } from '../lib/constants'
+import { eventCopy } from '../../lib/constants'
 import {
   formatRelativeTime,
   formatWon,
   getResponseTimeTone,
   getSignalQuality,
   getValidationTone,
-} from '../lib/format'
+} from '../../lib/format'
 
-import type { Project, ProjectEvent, ProjectEventType } from '../api'
+import type { Project, ProjectEvent, ProjectEventType } from '../../infrastructure/api'
 
 export function ProjectDiligencePanel({
   project,

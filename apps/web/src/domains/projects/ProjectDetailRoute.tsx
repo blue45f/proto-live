@@ -10,16 +10,16 @@ import {
 } from 'lucide-react'
 import React from 'react'
 
-import { eventCopy, reviewTypeCopy } from '../lib/constants'
+import { ShareButton } from '../../components/ShareButton'
+import { eventCopy, reviewTypeCopy } from '../../lib/constants'
 import {
   formatRelativeTime,
   getResponseTimeTone,
   getValidationTone,
   maskEmail,
-} from '../lib/format'
+} from '../../lib/format'
 
 import { ProjectReviewWorkspace } from './ProjectReviewWorkspace'
-import { ShareButton } from './ShareButton'
 
 import type {
   Project,
@@ -27,8 +27,8 @@ import type {
   ProjectLogEntry,
   ProjectReview,
   ProjectReviewType,
-} from '../api'
-import type { AuthSession } from '../local-auth'
+} from '../../infrastructure/api'
+import type { AuthSession } from '../../infrastructure/local-auth'
 
 export function ProjectDetailRoute({
   project,

@@ -9,7 +9,12 @@ import {
   type RevenueModelConfig,
 } from './revenue-config'
 
-import type { AdminActionRecommendation, Project, ProjectReview, ValidationSnapshot } from '../api'
+import type {
+  AdminActionRecommendation,
+  Project,
+  ProjectReview,
+  ValidationSnapshot,
+} from '../infrastructure/api'
 import type { LucideIcon } from 'lucide-react'
 
 export function maskEmail(email: string) {

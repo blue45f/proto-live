@@ -2,7 +2,7 @@ import { ArrowRight, MessageSquare, ShieldCheck, Sparkles, TrendingUp, Zap } fro
 
 import { BUILD_TOOLS, maturityCopy } from '../../lib/constants'
 
-import type { ProjectMaturity } from '../../api'
+import type { ProjectMaturity } from '../../infrastructure/api'
 
 const LADDER_STEPS = [
   {

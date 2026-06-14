@@ -11,7 +11,7 @@ import type {
   ProjectMaturity,
   ProjectReviewType,
   ProjectStack,
-} from '../api'
+} from '../infrastructure/api'
 import type { LucideIcon } from 'lucide-react'
 
 export type AppView =

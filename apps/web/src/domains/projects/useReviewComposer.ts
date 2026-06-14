@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 
-import type { ProjectReview, ProjectReviewType } from '../api'
+import type { ProjectReview, ProjectReviewType } from '../../infrastructure/api'
 
 /**
  * 리뷰 컴포저 도메인 훅. 거대 useProtoLiveApp에서 분리한 두 번째 슬라이스로,

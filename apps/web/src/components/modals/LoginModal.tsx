@@ -4,7 +4,7 @@ import React from 'react'
 import { GoogleSignInButton } from '../GoogleSignInButton'
 import { Modal } from '../Modal'
 
-import type { TestAccount } from '../../local-auth'
+import type { TestAccount } from '../../infrastructure/local-auth'
 
 type TestAccountsByRole = {
   maker: TestAccount[]

@@ -19,7 +19,7 @@ import {
   moderateDiscussion,
   removeAdminAttachment,
   updateForbiddenTerm,
-} from '../../api'
+} from '../../infrastructure/api'
 import { discussionCategoryCopy } from '../../lib/constants'
 import { formatRelativeTime, maskEmail } from '../../lib/format'
 
@@ -28,7 +28,7 @@ import type {
   CommunityForbiddenTerm,
   DiscussionSummary,
   ForbiddenTermScope,
-} from '../../api'
+} from '../../infrastructure/api'
 
 /**
  * 운영 콘솔 — 토론/첨부 모더레이션. 토론 숨김·복구·하드 삭제, 첨부 이미지 제거(레코드 보존).

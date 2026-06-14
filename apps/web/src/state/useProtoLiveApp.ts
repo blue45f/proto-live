@@ -1,6 +1,10 @@
 import { isAxiosError } from 'axios'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import { toast } from '../components/ToastContainer'
+import { useFavorites } from '../domains/projects/useFavorites'
+import { useReviewComposer } from '../domains/projects/useReviewComposer'
+import { useUpvotedProjects } from '../domains/projects/useUpvotedProjects'
 import {
   API_BASE,
   AuditLog,
@@ -55,8 +59,14 @@ import {
   moderateProjectReview,
   reportProjectReview,
   validateLiveUrl,
-} from '../api'
-import { toast } from '../components/ToastContainer'
+} from '../infrastructure/api'
+import {
+  type AuthSession,
+  type TestAccount,
+  listTestAccounts,
+  readSession,
+  resolveRoleLabel,
+} from '../infrastructure/local-auth'
 import {
   type AppView,
   type PolicyView,
@@ -94,13 +104,6 @@ import {
   ADMIN_DASHBOARD_POLL_INTERVAL_MS,
   ADMIN_DASHBOARD_TREND_KEY_DAYS,
 } from '../lib/revenue-config'
-import {
-  type AuthSession,
-  type TestAccount,
-  listTestAccounts,
-  readSession,
-  resolveRoleLabel,
-} from '../local-auth'
 import { matchRoute, navigate, routePath, type DiscussionRoute } from '../router/route'
 
 import {
@@ -113,9 +116,6 @@ import {
   readFilterPreset,
   readProjectListViewMode,
 } from './storage'
-import { useFavorites } from './useFavorites'
-import { useReviewComposer } from './useReviewComposer'
-import { useUpvotedProjects } from './useUpvotedProjects'
 
 export function useProtoLiveApp() {
   const filterPreset = useMemo(() => readFilterPreset(), [])
