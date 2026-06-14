@@ -3,10 +3,15 @@ import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
 import { isCorsOriginAllowed } from './common/cors-policy'
 import { ZodValidationPipe } from './common/zod-validation.pipe'
+import { validateEnv } from './config/env'
 
 import type { NextFunction, Request, Response } from 'express'
 
 async function bootstrap() {
+  // 환경변수 검증 (NON-FATAL): 형식/시크릿 점검만 하고 경고 로그를 남긴다.
+  // 실패해도 throw 하지 않으므로 라이브 부팅을 깨뜨리지 않는다.
+  validateEnv()
+
   const app = await NestFactory.create(AppModule)
   app.getHttpAdapter().getInstance().disable('x-powered-by')
 
