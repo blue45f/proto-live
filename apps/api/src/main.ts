@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core'
+import { Logger } from 'nestjs-pino'
 
 import { AppModule } from './app.module'
 import { isCorsOriginAllowed } from './common/cors-policy'
@@ -12,7 +13,10 @@ async function bootstrap() {
   // 실패해도 throw 하지 않으므로 라이브 부팅을 깨뜨리지 않는다.
   validateEnv()
 
-  const app = await NestFactory.create(AppModule)
+  // bufferLogs: 앱 로거(nestjs-pino)가 준비될 때까지 부팅 로그를 버퍼링한다.
+  const app = await NestFactory.create(AppModule, { bufferLogs: true })
+  // Nest 의 기본 Logger 를 nestjs-pino 로 교체해 전 구간 구조화 로깅을 적용한다.
+  app.useLogger(app.get(Logger))
   app.getHttpAdapter().getInstance().disable('x-powered-by')
 
   app.use((_request: Request, response: Response, next: NextFunction) => {
