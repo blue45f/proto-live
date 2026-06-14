@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query'
 import {
   ArrowLeft,
   CornerDownRight,
@@ -7,7 +8,7 @@ import {
   Send,
   Trash2,
 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 
 import {
   addDiscussionComment,
@@ -82,25 +83,15 @@ function DiscussionList({
   onNavigateNew,
   onNavigateDetail,
 }: DiscussionHubProps) {
-  const [threads, setThreads] = useState<DiscussionSummary[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  // 기존: projectId 변경 시 1회 fetch(전환마다 로딩=null 로 리셋). react-query 가
+  // queryKey 별 캐시/로딩 상태를 관리하므로 동일한 마운트/전환 동작을 그대로 얻는다.
+  const { data, isError } = useQuery({
+    queryKey: ['discussions', 'project', projectId],
+    queryFn: () => fetchProjectDiscussions(projectId),
+  })
 
-  useEffect(() => {
-    let active = true
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setThreads(null)
-    setError(null)
-    fetchProjectDiscussions(projectId)
-      .then((list) => {
-        if (active) setThreads(list)
-      })
-      .catch(() => {
-        if (active) setError('토론을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.')
-      })
-    return () => {
-      active = false
-    }
-  }, [projectId])
+  const threads: DiscussionSummary[] | null = data ?? null
+  const error = isError ? '토론을 불러오지 못했습니다. 잠시 후 다시 시도해주세요.' : null
 
   return (
     <div className="space-y-4">
@@ -312,30 +303,23 @@ function DiscussionDetailView({
   onRequireLogin,
   onNavigateList,
 }: DiscussionHubProps & { discussionId: number }) {
-  const [detail, setDetail] = useState<DiscussionDetail | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [replyTo, setReplyTo] = useState<number | null>(null)
 
-  const load = useCallback(() => {
-    let active = true
-    setError(null)
-    fetchDiscussion(projectId, discussionId)
-      .then((data) => {
-        if (active) setDetail(data)
-      })
-      .catch(() => {
-        if (active) setError('토론을 찾을 수 없거나 불러오지 못했습니다.')
-      })
-    return () => {
-      active = false
-    }
-  }, [projectId, discussionId])
+  // 기존: projectId/discussionId 변경 시 1회 fetch + 댓글 추가/삭제 후 수동 재로드(load).
+  // react-query 의 queryKey + refetch 로 동일하게 동작한다.
+  const {
+    data: detail,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ['discussions', 'detail', projectId, discussionId],
+    queryFn: () => fetchDiscussion(projectId, discussionId),
+  })
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDetail(null)
-    return load()
-  }, [load])
+  const error = isError ? '토론을 찾을 수 없거나 불러오지 못했습니다.' : null
+  const load = useCallback(() => {
+    void refetch()
+  }, [refetch])
 
   const rootComments = useMemo(
     () => detail?.comments.filter((comment) => comment.parentId === null) ?? [],

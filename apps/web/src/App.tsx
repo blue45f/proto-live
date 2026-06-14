@@ -1,3 +1,4 @@
+import { QueryClientProvider } from '@tanstack/react-query'
 import { Plus, RefreshCw, Zap, Users, Mail } from 'lucide-react'
 import { Suspense, useEffect, useRef, useState } from 'react'
 
@@ -12,6 +13,7 @@ import { RouteFallback } from './components/RouteFallback'
 import ToastContainer from './components/ToastContainer'
 import { ProjectDiligencePanel } from './domains/projects/ProjectDiligencePanel'
 import { resolveRoleLabel } from './infrastructure/local-auth'
+import { createAppQueryClient } from './infrastructure/queryClient'
 import { lazyRetry } from './lib/lazy-retry'
 import { POLICY_PAGES } from './lib/termsdesk'
 import { routePath } from './router/route'
@@ -48,7 +50,20 @@ const DiscussionHub = lazyRetry(() =>
   import('./domains/community/DiscussionHub').then((m) => ({ default: m.DiscussionHub }))
 )
 
+// QueryClient 는 모듈 스코프 싱글턴으로 한 번만 생성한다(매 렌더마다 새로 만들면 캐시가
+// 날아가고 테스트 간 격리도 깨진다). 테스트는 <App /> 를 직접 렌더하므로 프로바이더를
+// 여기 두면 프로덕션·테스트가 동일하게 react-query 컨텍스트를 갖는다.
+const queryClient = createAppQueryClient()
+
 export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AppShell />
+    </QueryClientProvider>
+  )
+}
+
+function AppShell() {
   const {
     accessMode,
     accessModeOptions,
