@@ -1,4 +1,4 @@
-import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
+import { randomBytes, timingSafeEqual } from 'node:crypto'
 
 import {
   BadRequestException,
@@ -11,6 +11,7 @@ import {
   OnModuleInit,
   Optional,
 } from '@nestjs/common'
+import { JwtService } from '@nestjs/jwt'
 import axios, { AxiosResponse } from 'axios'
 
 import { getCurrentConsentTerms, type ConsentTerms } from './consent-terms'
@@ -97,12 +98,24 @@ export function resolveSessionSecret(env: Partial<NodeJS.ProcessEnv> = process.e
 
 const SESSION_SECRET = resolveSessionSecret()
 
-interface SignedSessionPayload {
+/** JWT 서명 알고리즘(대칭). 시크릿이 바뀌면 기존 세션은 자연스럽게 무효화된다. */
+const SESSION_JWT_ALGORITHM = 'HS256' as const
+
+/**
+ * 세션 토큰에 담는 커스텀 클레임. 표준 클레임(`exp`/`iat`)은 @nestjs/jwt 가
+ * `expiresIn` 옵션으로 자동 부여하므로 여기에는 포함하지 않는다.
+ */
+interface SessionTokenClaims {
   id: number
   email: string
   role: AuthSession['role']
   name: string
-  exp: number
+}
+
+/** 검증 후 디코드된 세션 페이로드(JWT 표준 `exp`/`iat` 는 초 단위). */
+type DecodedSessionPayload = Partial<SessionTokenClaims> & {
+  exp?: number
+  iat?: number
 }
 
 type AuthenticatedReviewInput = CreateProjectReviewDto & {
@@ -180,10 +193,16 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
   private nextNotificationId: number
   private nextReviewId: number
   private nextAuditLogId: number
+  private readonly jwtService: JwtService
 
-  // 영속 드라이버는 DI로 주입한다. 직접 `new ProjectsService()`(단위 테스트)에서는 파일 드라이버로 기본.
-  constructor(@Optional() @Inject(PROJECTS_STORE) store?: ProjectsStore) {
+  // 영속 드라이버와 JwtService 는 DI로 주입한다. 직접 `new ProjectsService()`(단위 테스트)에서는
+  // 파일 드라이버 + 동일 시크릿으로 구성한 JwtService 로 기본 fallback 한다(테스트 경로 락아웃 방지).
+  constructor(
+    @Optional() @Inject(PROJECTS_STORE) store?: ProjectsStore,
+    @Optional() jwtService?: JwtService
+  ) {
     this.store = store ?? new FileProjectsStore()
+    this.jwtService = jwtService ?? new JwtService({ secret: SESSION_SECRET })
     this.hydrate(createEmptyProjectsState())
   }
 
@@ -229,20 +248,7 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
     }
     this.assertUserCanAuthenticate(user)
 
-    const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000)
-    const session = this.toAuthSession(user, expiresAt)
-    const token = this.signSessionToken({
-      id: session.id,
-      email: session.email,
-      role: session.role,
-      name: session.name,
-      exp: expiresAt.getTime(),
-    })
-
-    return {
-      session,
-      cookie: this.createSessionCookie(token, SESSION_MAX_AGE_SECONDS),
-    }
+    return this.issueSession(user)
   }
 
   /** Google 로그인 사용 가능 여부(클라이언트 ID 설정 시). */
@@ -270,6 +276,14 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
     }
     const user = this.upsertGoogleUser(payload.email, payload.name)
     this.assertUserCanAuthenticate(user)
+    return this.issueSession(user)
+  }
+
+  /**
+   * 인증된 사용자에 대해 JWT 세션 토큰을 발급하고 httpOnly 쿠키와 함께 반환한다.
+   * 비밀번호/Google 양 경로가 동일한 만료·서명 정책을 공유하도록 단일화한다.
+   */
+  private issueSession(user: User): { session: AuthSession; cookie: string } {
     const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000)
     const session = this.toAuthSession(user, expiresAt)
     const token = this.signSessionToken({
@@ -277,7 +291,6 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
       email: session.email,
       role: session.role,
       name: session.name,
-      exp: expiresAt.getTime(),
     })
     return { session, cookie: this.createSessionCookie(token, SESSION_MAX_AGE_SECONDS) }
   }
@@ -1621,55 +1634,55 @@ export class ProjectsService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private signSessionToken(payload: SignedSessionPayload): string {
-    const body = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url')
-    const signature = createHmac('sha256', SESSION_SECRET).update(body).digest('base64url')
-    return `${body}.${signature}`
+  /**
+   * 세션 토큰을 JWT(HS256)로 서명한다. 표준 `exp`/`iat` 는 `expiresIn` 으로
+   * @nestjs/jwt 가 자동 부여한다(초 단위).
+   */
+  private signSessionToken(claims: SessionTokenClaims): string {
+    return this.jwtService.sign(claims, {
+      secret: SESSION_SECRET,
+      algorithm: SESSION_JWT_ALGORITHM,
+      expiresIn: SESSION_MAX_AGE_SECONDS,
+    })
   }
 
+  /**
+   * JWT 세션 토큰을 검증한다. 서명 불일치·만료·변조는 모두 예외로 처리되며,
+   * 여기서는 절대 throw 하지 않고 `null` 을 반환한다(쿠키 스킴 전환 시
+   * 기존 HMAC 토큰을 만나도 락아웃 없이 비로그인 상태로 떨어지게 함).
+   */
   private verifySessionToken(token: string): AuthSession | null {
-    const [body, signature] = token.split('.')
-    if (!body || !signature) {
-      return null
-    }
-
-    const expectedSignature = createHmac('sha256', SESSION_SECRET).update(body).digest('base64url')
-    if (!this.safeCompare(signature, expectedSignature)) {
-      return null
-    }
-
+    let parsed: DecodedSessionPayload
     try {
-      const parsed = JSON.parse(
-        Buffer.from(body, 'base64url').toString('utf8')
-      ) as Partial<SignedSessionPayload>
-      if (
-        typeof parsed.email !== 'string' ||
-        typeof parsed.id !== 'number' ||
-        typeof parsed.exp !== 'number' ||
-        (parsed.role !== 'maker' &&
-          parsed.role !== 'investor' &&
-          parsed.role !== 'member' &&
-          parsed.role !== 'admin')
-      ) {
-        return null
-      }
-
-      if (parsed.exp <= Date.now()) {
-        return null
-      }
-
-      const normalizedEmail = parsed.email.trim().toLowerCase()
-      const user = this.users.find(
-        (item) => item.id === parsed.id && item.email === normalizedEmail
-      )
-      if (!user || user.role !== parsed.role || this.getUserStatus(user) !== 'active') {
-        return null
-      }
-
-      return this.toAuthSession(user, new Date(parsed.exp))
+      parsed = this.jwtService.verify<DecodedSessionPayload>(token, {
+        secret: SESSION_SECRET,
+        algorithms: [SESSION_JWT_ALGORITHM],
+      })
     } catch {
+      // 만료(TokenExpiredError)·서명 불일치(JsonWebTokenError)·구(舊) HMAC 토큰 모두 여기로 온다.
       return null
     }
+
+    if (
+      typeof parsed.email !== 'string' ||
+      typeof parsed.id !== 'number' ||
+      typeof parsed.exp !== 'number' ||
+      (parsed.role !== 'maker' &&
+        parsed.role !== 'investor' &&
+        parsed.role !== 'member' &&
+        parsed.role !== 'admin')
+    ) {
+      return null
+    }
+
+    const normalizedEmail = parsed.email.trim().toLowerCase()
+    const user = this.users.find((item) => item.id === parsed.id && item.email === normalizedEmail)
+    if (!user || user.role !== parsed.role || this.getUserStatus(user) !== 'active') {
+      return null
+    }
+
+    // JWT `exp` 는 초 단위 → AuthSession.expiresAt(ISO)로 변환.
+    return this.toAuthSession(user, new Date(parsed.exp * 1000))
   }
 
   private readCookie(cookieHeader: string | undefined, name: string): string | null {
