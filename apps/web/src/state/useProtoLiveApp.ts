@@ -1,7 +1,6 @@
 import { isHTTPError } from 'ky'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import { toast } from '../components/ToastContainer'
 import { useFavorites } from '../domains/projects/useFavorites'
 import { useReviewComposer } from '../domains/projects/useReviewComposer'
 import { useUpvotedProjects } from '../domains/projects/useUpvotedProjects'
@@ -116,6 +115,7 @@ import {
   readFilterPreset,
   readProjectListViewMode,
 } from './storage'
+import { toast } from './stores/toastStore'
 
 export function useProtoLiveApp() {
   const filterPreset = useMemo(() => readFilterPreset(), [])

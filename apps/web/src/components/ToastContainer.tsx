@@ -1,29 +1,14 @@
 import * as Toast from '@radix-ui/react-toast'
 import { CheckCircle2, AlertTriangle, Info, X, Award } from 'lucide-react'
-import { type ReactNode, useCallback, useEffect, useState } from 'react'
+import { type ReactNode } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 
-export type ToastType = 'success' | 'error' | 'info' | 'match'
+import { type ToastType, toast, useToastStore } from '../state/stores/toastStore'
 
-interface ToastItem {
-  id: string
-  type: ToastType
-  title: string
-  message: string
-  duration?: number
-}
-
-interface ToastContextType {
-  addToast: (type: ToastType, title: string, message: string, duration?: number) => void
-}
-
-let globalAddToast: ToastContextType['addToast'] | null = null
-
+// 토스트 상태/디스패치는 zustand 스토어(state/stores/toastStore)로 이전됐다. 기존 임포트
+// 경로 호환을 위해 toast 헬퍼와 ToastType 타입을 그대로 재노출한다(동작 동일).
 // eslint-disable-next-line react-refresh/only-export-components
-export function toast(type: ToastType, title: string, message: string, duration?: number) {
-  if (globalAddToast) {
-    globalAddToast(type, title, message, duration)
-  }
-}
+export { toast, type ToastType }
 
 const toastConfig: Record<
   ToastType,
@@ -56,26 +41,9 @@ const toastConfig: Record<
 }
 
 export default function ToastContainer() {
-  const [toasts, setToasts] = useState<ToastItem[]>([])
-
-  const removeToast = useCallback((id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id))
-  }, [])
-
-  const addToast = useCallback(
-    (type: ToastType, title: string, message: string, duration = 4500) => {
-      const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
-      setToasts((prev) => [...prev, { id, type, title, message, duration }])
-    },
-    []
+  const { toasts, removeToast } = useToastStore(
+    useShallow((state) => ({ toasts: state.toasts, removeToast: state.removeToast }))
   )
-
-  useEffect(() => {
-    globalAddToast = addToast
-    return () => {
-      globalAddToast = null
-    }
-  }, [addToast])
 
   return (
     <Toast.Provider duration={4500} swipeDirection="right">

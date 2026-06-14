@@ -1,34 +1,24 @@
-import { useCallback, useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 
-import type { ProjectReview, ProjectReviewType } from '../../infrastructure/api'
+import { useReviewComposerStore } from './reviewComposerStore'
 
 /**
- * 리뷰 컴포저 도메인 훅. 거대 useProtoLiveApp에서 분리한 두 번째 슬라이스로,
- * 평가 타입/별점/본문/대댓글 대상 상태와 전체 리셋을 한곳에 모은다.
+ * 리뷰 컴포저 도메인 훅. 상태는 zustand 스토어(reviewComposerStore)로 이전됐고, 이 훅은
+ * 종전 호출 계약(평가 타입/별점/본문/대댓글 대상 + 리셋)을 그대로 보존하는 얇은 어댑터다.
  * 동작은 기존과 동일(특성화 테스트로 고정).
  */
 export function useReviewComposer() {
-  const [reviewType, setReviewType] = useState<ProjectReviewType>('review')
-  const [reviewRating, setReviewRating] = useState(5)
-  const [reviewBody, setReviewBody] = useState('')
-  const [replyToReview, setReplyToReview] = useState<ProjectReview | null>(null)
-
-  const resetReviewComposer = useCallback(() => {
-    setReviewType('review')
-    setReviewRating(5)
-    setReviewBody('')
-    setReplyToReview(null)
-  }, [])
-
-  return {
-    reviewType,
-    setReviewType,
-    reviewRating,
-    setReviewRating,
-    reviewBody,
-    setReviewBody,
-    replyToReview,
-    setReplyToReview,
-    resetReviewComposer,
-  }
+  return useReviewComposerStore(
+    useShallow((state) => ({
+      reviewType: state.reviewType,
+      setReviewType: state.setReviewType,
+      reviewRating: state.reviewRating,
+      setReviewRating: state.setReviewRating,
+      reviewBody: state.reviewBody,
+      setReviewBody: state.setReviewBody,
+      replyToReview: state.replyToReview,
+      setReplyToReview: state.setReplyToReview,
+      resetReviewComposer: state.resetReviewComposer,
+    }))
+  )
 }
