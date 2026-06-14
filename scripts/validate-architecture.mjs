@@ -21,7 +21,6 @@ const requiredPaths = [
   'docs/DEVELOPMENT.md',
   'pnpm-workspace.yaml',
   'eslint.config.mjs',
-  '.prettierrc',
   'commitlint.config.cjs',
   '.husky/pre-commit',
   '.husky/commit-msg',
@@ -62,7 +61,9 @@ if (exists('pnpm-workspace.yaml')) {
   const ws = read('pnpm-workspace.yaml')
   const globs = [...ws.matchAll(/^\s*-\s*['"]?([^'"\n]+?)['"]?\s*$/gm)]
     .map((m) => m[1].trim())
-    .filter((g) => g.includes('/'))
+    // path globs (apps/*, packages/*) only — exclude package specs from other
+    // list sections like minimumReleaseAgeExclude (e.g. @heejun/prettier-config@3.0.0)
+    .filter((g) => g.includes('/') && !g.includes('@'))
   for (const glob of globs) {
     const base = glob.replace(/\/\*+$/, '')
     if (!exists(base)) issues.push(`workspace dir missing: ${base} (from "${glob}")`)
@@ -89,6 +90,23 @@ if (exists('apps/web/vite.config.ts')) {
   }
 } else {
   issues.push('missing apps/web/vite.config.ts')
+}
+
+// Prettier no-semi convention is the project style. The standard is the shared
+// @heejun/prettier-config (no-semi); a local semi:false .prettierrc is also accepted.
+{
+  if (pkg.prettier === '@heejun/prettier-config') {
+    // shared no-semi preset — OK
+  } else if (exists('.prettierrc')) {
+    try {
+      const pr = JSON.parse(read('.prettierrc'))
+      if (pr.semi !== false) issues.push('.prettierrc must keep semi:false (no-semi convention)')
+    } catch {
+      issues.push('.prettierrc is not valid JSON')
+    }
+  } else {
+    issues.push('missing prettier config: .prettierrc or "prettier": "@heejun/prettier-config"')
+  }
 }
 
 if (issues.length) {
