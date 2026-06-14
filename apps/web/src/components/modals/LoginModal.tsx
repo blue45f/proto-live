@@ -1,8 +1,10 @@
-import React from 'react'
 import { Users } from 'lucide-react'
-import type { TestAccount } from '../../local-auth'
-import { Modal } from '../Modal'
+import React from 'react'
+
 import { GoogleSignInButton } from '../GoogleSignInButton'
+import { Modal } from '../Modal'
+
+import type { TestAccount } from '../../infrastructure/local-auth'
 
 type TestAccountsByRole = {
   maker: TestAccount[]

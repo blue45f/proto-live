@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import {
   AlertTriangle,
   BarChart3,
@@ -13,24 +12,10 @@ import {
   Sparkles,
   TrendingUp,
 } from 'lucide-react'
-import type {
-  AdminActionRecommendation,
-  AdminDashboardSnapshot,
-  AdminReportedReview,
-  AuditLog,
-  SeasonChallenge,
-} from '../../api'
+import { useState } from 'react'
+
 import {
-  ADMIN_DASHBOARD_TREND_KEY_DAYS,
-  DECIMAL_DIGITS,
-  MAX_SCENARIO_MULTIPLIER,
-  MIN_SCENARIO_MULTIPLIER,
-  REVENUE_MODEL_FIELDS,
-  REVENUE_PRESETS,
-  type RevenueModelConfig,
-} from '../../lib/revenue-config'
-import { PRIORITY_COPY } from '../../lib/format'
-import {
+  PRIORITY_COPY,
   formatCurrency,
   formatDaysSince,
   formatDriverValue,
@@ -49,6 +34,23 @@ import {
   isEqualPreset,
   maskEmail,
 } from '../../lib/format'
+import {
+  ADMIN_DASHBOARD_TREND_KEY_DAYS,
+  DECIMAL_DIGITS,
+  MAX_SCENARIO_MULTIPLIER,
+  MIN_SCENARIO_MULTIPLIER,
+  REVENUE_MODEL_FIELDS,
+  REVENUE_PRESETS,
+  type RevenueModelConfig,
+} from '../../lib/revenue-config'
+
+import type {
+  AdminActionRecommendation,
+  AdminDashboardSnapshot,
+  AdminReportedReview,
+  AuditLog,
+  SeasonChallenge,
+} from '../../infrastructure/api'
 
 type AdminTrendMetrics = {
   trend: AdminDashboardSnapshot['eventTrend14d']

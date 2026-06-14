@@ -1,6 +1,8 @@
 import { ArrowUpRight, ChevronUp } from 'lucide-react'
-import type { MakerProfile, Project } from '../../api'
+
 import { maturityCopy } from '../../lib/constants'
+
+import type { MakerProfile, Project } from '../../infrastructure/api'
 
 export function MakerProfileView({
   profile,

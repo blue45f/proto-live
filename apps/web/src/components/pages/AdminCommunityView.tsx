@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useState } from 'react'
 import {
   EyeOff,
   ImageOff,
@@ -9,12 +8,8 @@ import {
   ShieldAlert,
   Trash2,
 } from 'lucide-react'
-import type {
-  CommunityAttachment,
-  CommunityForbiddenTerm,
-  DiscussionSummary,
-  ForbiddenTermScope,
-} from '../../api'
+import { useCallback, useEffect, useState } from 'react'
+
 import {
   createForbiddenTerm,
   deleteForbiddenTerm,
@@ -24,9 +19,16 @@ import {
   moderateDiscussion,
   removeAdminAttachment,
   updateForbiddenTerm,
-} from '../../api'
+} from '../../infrastructure/api'
 import { discussionCategoryCopy } from '../../lib/constants'
 import { formatRelativeTime, maskEmail } from '../../lib/format'
+
+import type {
+  CommunityAttachment,
+  CommunityForbiddenTerm,
+  DiscussionSummary,
+  ForbiddenTermScope,
+} from '../../infrastructure/api'
 
 /**
  * 운영 콘솔 — 토론/첨부 모더레이션. 토론 숨김·복구·하드 삭제, 첨부 이미지 제거(레코드 보존).

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
 import {
   INQUIRY_CATEGORIES,
   INQUIRY_ENDPOINT,

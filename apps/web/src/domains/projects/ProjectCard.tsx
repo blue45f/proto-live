@@ -1,18 +1,20 @@
 import { ArrowUpRight, ChevronUp, Star } from 'lucide-react'
-import type { Project } from '../api'
+
 import {
   type ProjectListViewMode,
   buildToolLabel,
   maturityCopy,
   reviewTypeCopy,
   stackCopy,
-} from '../lib/constants'
+} from '../../lib/constants'
 import {
   formatRelativeTime,
   getResponseTimeTone,
   getValidationTone,
   maskEmail,
-} from '../lib/format'
+} from '../../lib/format'
+
+import type { Project } from '../../infrastructure/api'
 
 export function ProjectCard({
   project,

@@ -1,5 +1,6 @@
 import { createZodDto } from 'nestjs-zod'
 import { z } from 'zod'
+
 import { ProjectEventType } from '../project.models'
 
 const PROJECT_EVENT_TYPES = [

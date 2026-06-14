@@ -1,5 +1,5 @@
-import { useState } from 'react'
 import { ArrowRight, Sparkles, X } from 'lucide-react'
+import { useState } from 'react'
 
 const DISMISS_KEY = 'protolive:onboarding-tip:v1'
 

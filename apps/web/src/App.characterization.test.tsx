@@ -1,6 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+import App from './App'
+import * as api from './infrastructure/api'
 import { makeApiMock, adminSession, makerSession } from './test/api-mock'
 import {
   projectCareloop,
@@ -8,23 +11,22 @@ import {
   publicPrivacyPolicy,
   publicTermsPolicy,
 } from './test/fixtures'
+
 import type { PublicPolicy } from './lib/termsdesk'
 
 // Pure helpers (extractProjects/hasPagination/etc.) stay real via importActual
 // so App's derivation logic is still exercised; only the network functions are
 // swapped for the (singleton) mock. The factory imports the mock lazily so there
 // is no hoisting/initialization ordering problem.
-vi.mock('./api', async () => {
-  const actual = await vi.importActual<typeof import('./api')>('./api')
+vi.mock('./infrastructure/api', async () => {
+  const actual =
+    await vi.importActual<typeof import('./infrastructure/api')>('./infrastructure/api')
   const { makeApiMock: make } = await import('./test/api-mock')
   return { ...actual, ...make() }
 })
 
 // Same singleton instance the factory installed -> usable for clear/override.
 const mockApi = makeApiMock()
-
-import App from './App'
-import * as api from './api'
 
 function setPath(path: string) {
   window.history.pushState({}, '', path)

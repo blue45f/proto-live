@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
 import { AlertTriangle, ExternalLink, RefreshCw } from 'lucide-react'
-import type { PolicyView as PolicyViewKind } from '../../lib/constants'
+import { useEffect, useState } from 'react'
+
 import {
   POLICY_PAGES,
   fetchPublicPolicy,
@@ -10,6 +10,8 @@ import {
   shortContentHash,
   type PublicPolicy,
 } from '../../lib/termsdesk'
+
+import type { PolicyView as PolicyViewKind } from '../../lib/constants'
 
 type LoadState =
   | { status: 'loading' }

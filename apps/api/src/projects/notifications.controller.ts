@@ -1,8 +1,10 @@
 import { Body, Controller, Get, Post, Req } from '@nestjs/common'
-import type { Request } from 'express'
-import { ProjectsService } from './projects.service'
-import type { AppNotification } from './project.models'
+
 import { MarkNotificationsReadDto } from './dto/mark-notifications-read.dto'
+import { ProjectsService } from './projects.service'
+
+import type { AppNotification } from './project.models'
+import type { Request } from 'express'
 
 /**
  * 인앱 알림. 로그인 사용자(주로 메이커)가 자기 프로젝트에 받은 활동 알림을 조회/읽음 처리한다.

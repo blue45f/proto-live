@@ -1,9 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowLeft, Inbox, Loader2, Mail, Send } from 'lucide-react'
-import type { AuthSession, DmConversation, DmMessage } from '../../api'
-import { fetchConversationMessages, fetchConversations, sendDirectMessage } from '../../api'
+import { useCallback, useEffect, useRef, useState } from 'react'
+
+import { BodyText } from '../../domains/community/BodyText'
+import {
+  fetchConversationMessages,
+  fetchConversations,
+  sendDirectMessage,
+} from '../../infrastructure/api'
 import { formatRelativeTime, maskEmail } from '../../lib/format'
-import { BodyText } from '../community/BodyText'
+
+import type { AuthSession, DmConversation, DmMessage } from '../../infrastructure/api'
 
 const CONVERSATION_POLL_MS = 20000
 

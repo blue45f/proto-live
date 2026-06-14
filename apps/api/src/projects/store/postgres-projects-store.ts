@@ -1,11 +1,14 @@
 import { Logger } from '@nestjs/common'
+import { asc } from 'drizzle-orm'
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
-import { asc } from 'drizzle-orm'
-import type { ProjectsState } from '../project.models'
+
 import { deserializeState, serializeState, type SerializedProjectsState } from '../projects.store'
-import type { ProjectsStore, StoreReadiness } from './projects-store'
+
 import * as schema from './db/schema'
+
+import type { ProjectsState } from '../project.models'
+import type { ProjectsStore, StoreReadiness } from './projects-store'
 
 const WRITE_BEHIND_DEBOUNCE_MS = 150
 

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
+
 import { matchRoute, routePath } from './route'
 
 function setPath(path: string) {

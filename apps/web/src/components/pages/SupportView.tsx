@@ -1,5 +1,6 @@
-import { useState } from 'react'
 import { CheckCircle2, ExternalLink, LifeBuoy, Loader2, Send } from 'lucide-react'
+import { useState } from 'react'
+
 import {
   INQUIRY_BODY_MAX,
   INQUIRY_CATEGORIES,

@@ -1,5 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { isHTTPError } from 'ky'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
+import { toast } from '../components/ToastContainer'
+import { useFavorites } from '../domains/projects/useFavorites'
+import { useReviewComposer } from '../domains/projects/useReviewComposer'
+import { useUpvotedProjects } from '../domains/projects/useUpvotedProjects'
 import {
   API_BASE,
   AuditLog,
@@ -54,24 +59,14 @@ import {
   moderateProjectReview,
   reportProjectReview,
   validateLiveUrl,
-} from '../api'
+} from '../infrastructure/api'
 import {
   type AuthSession,
   type TestAccount,
   listTestAccounts,
   readSession,
   resolveRoleLabel,
-} from '../local-auth'
-import { toast } from '../components/ToastContainer'
-import {
-  type RevenueModelConfig,
-  DEFAULT_SCENARIO_MULTIPLIERS,
-  ADMIN_REVENUE_CONFIG_STORAGE_KEY,
-  ADMIN_REVENUE_SCENARIO_STORAGE_KEY,
-  ADMIN_REVENUE_TARGET_STORAGE_KEY,
-  ADMIN_DASHBOARD_POLL_INTERVAL_MS,
-  ADMIN_DASHBOARD_TREND_KEY_DAYS,
-} from '../lib/revenue-config'
+} from '../infrastructure/local-auth'
 import {
   type AppView,
   type PolicyView,
@@ -101,6 +96,17 @@ import {
   upsertProject,
 } from '../lib/format'
 import {
+  type RevenueModelConfig,
+  DEFAULT_SCENARIO_MULTIPLIERS,
+  ADMIN_REVENUE_CONFIG_STORAGE_KEY,
+  ADMIN_REVENUE_SCENARIO_STORAGE_KEY,
+  ADMIN_REVENUE_TARGET_STORAGE_KEY,
+  ADMIN_DASHBOARD_POLL_INTERVAL_MS,
+  ADMIN_DASHBOARD_TREND_KEY_DAYS,
+} from '../lib/revenue-config'
+import { matchRoute, navigate, routePath, type DiscussionRoute } from '../router/route'
+
+import {
   clampPageSize,
   clampRate,
   parseTagInput,
@@ -110,10 +116,6 @@ import {
   readFilterPreset,
   readProjectListViewMode,
 } from './storage'
-import { matchRoute, navigate, routePath, type DiscussionRoute } from '../router/route'
-import { useFavorites } from './useFavorites'
-import { useReviewComposer } from './useReviewComposer'
-import { useUpvotedProjects } from './useUpvotedProjects'
 
 export function useProtoLiveApp() {
   const filterPreset = useMemo(() => readFilterPreset(), [])

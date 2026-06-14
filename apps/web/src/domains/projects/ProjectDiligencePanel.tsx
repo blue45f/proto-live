@@ -13,15 +13,17 @@ import {
   TimerReset,
   X,
 } from 'lucide-react'
-import type { Project, ProjectEvent, ProjectEventType } from '../api'
-import { eventCopy } from '../lib/constants'
+
+import { eventCopy } from '../../lib/constants'
 import {
   formatRelativeTime,
   formatWon,
   getResponseTimeTone,
   getSignalQuality,
   getValidationTone,
-} from '../lib/format'
+} from '../../lib/format'
+
+import type { Project, ProjectEvent, ProjectEventType } from '../../infrastructure/api'
 
 export function ProjectDiligencePanel({
   project,

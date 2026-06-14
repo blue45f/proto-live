@@ -1,5 +1,7 @@
-import type { LucideIcon } from 'lucide-react'
 import { ArrowUpRight, Briefcase, Plus, RefreshCw, Sparkles } from 'lucide-react'
+
+import { DEFAULT_REVENUE_CONFIG, DEFAULT_REVENUE_TARGET } from './revenue-config'
+
 import type {
   AdminDashboardSnapshot,
   MarketConfig,
@@ -9,8 +11,8 @@ import type {
   ProjectMaturity,
   ProjectReviewType,
   ProjectStack,
-} from '../api'
-import { DEFAULT_REVENUE_CONFIG, DEFAULT_REVENUE_TARGET } from './revenue-config'
+} from '../infrastructure/api'
+import type { LucideIcon } from 'lucide-react'
 
 export type AppView =
   | 'market'

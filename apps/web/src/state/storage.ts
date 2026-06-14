@@ -1,4 +1,3 @@
-import type { ProjectListQuery } from '../api'
 import {
   FILTER_PRESET_STORAGE_KEY,
   FUNDING_SORT_OPTIONS,
@@ -19,6 +18,8 @@ import {
   MIN_SCENARIO_MULTIPLIER,
   type RevenueModelConfig,
 } from '../lib/revenue-config'
+
+import type { ProjectListQuery } from '../infrastructure/api'
 
 export function safeInt(value: string | null, fallback: number) {
   const parsed = Number.parseInt(value ?? '', 10)

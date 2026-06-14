@@ -1,9 +1,12 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { PolicyView } from './PolicyView'
-import type { PublicPolicy } from '../../lib/termsdesk'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
 import { publicPrivacyPolicy, publicTermsPolicy } from '../../test/fixtures'
+
+import { PolicyView } from './PolicyView'
+
+import type { PublicPolicy } from '../../lib/termsdesk'
 
 function okResponse(policy: PublicPolicy) {
   return { ok: true, json: async () => policy }

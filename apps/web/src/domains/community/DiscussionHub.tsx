@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   ArrowLeft,
   CornerDownRight,
@@ -8,7 +7,8 @@ import {
   Send,
   Trash2,
 } from 'lucide-react'
-import type { AuthSession, DiscussionDetail, DiscussionSummary } from '../../api'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+
 import {
   addDiscussionComment,
   createDiscussion,
@@ -16,18 +16,21 @@ import {
   deleteOwnDiscussion,
   fetchDiscussion,
   fetchProjectDiscussions,
-} from '../../api'
+} from '../../infrastructure/api'
 import {
   DISCUSSION_CATEGORY_IDS,
   discussionCategoryCopy,
   type DiscussionCategoryId,
 } from '../../lib/constants'
 import { formatRelativeTime, maskEmail } from '../../lib/format'
-import type { PreparedAttachment } from '../../lib/image'
-import type { DiscussionRoute } from '../../router/route'
+
 import { AttachmentGrid } from './AttachmentGrid'
 import { BodyText } from './BodyText'
 import { ImageAttachmentPicker } from './ImageAttachmentPicker'
+
+import type { AuthSession, DiscussionDetail, DiscussionSummary } from '../../infrastructure/api'
+import type { PreparedAttachment } from '../../lib/image'
+import type { DiscussionRoute } from '../../router/route'
 
 interface DiscussionHubProps {
   projectId: number

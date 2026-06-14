@@ -1,5 +1,5 @@
 import { vi } from 'vitest'
-import type { AuthSession } from '../api'
+
 import {
   adminDashboard,
   marketConfig,
@@ -9,9 +9,12 @@ import {
   projects,
 } from './fixtures'
 
+import type { AuthSession } from '../infrastructure/api'
+
 // ---------------------------------------------------------------------------
-// Hermetic mock of ./api. App.tsx talks to the NestJS backend exclusively
-// through the functions exported by ./api, so mocking that module gives a fully
+// Hermetic mock of the api client. App.tsx talks to the NestJS backend
+// exclusively through the functions exported by infrastructure/api, so mocking
+// that module gives a fully
 // offline test surface with no axios/network involvement. The pure, non-network
 // helpers (extractProjects / hasPagination / getApiErrorMessage / API_BASE and
 // the type re-exports) are preserved via importActual so the real derivation
@@ -19,8 +22,8 @@ import {
 //
 // Usage in a test file (must be at top level, hoisted by Vitest):
 //
-//   vi.mock('../api', async () => {
-//     const actual = await vi.importActual<typeof import('../api')>('../api');
+//   vi.mock('./infrastructure/api', async () => {
+//     const actual = await vi.importActual<typeof import('./infrastructure/api')>('./infrastructure/api');
 //     return { ...actual, ...makeApiMock() };
 //   });
 //

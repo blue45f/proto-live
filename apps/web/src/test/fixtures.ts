@@ -6,7 +6,7 @@ import type {
   ProjectEvent,
   ProjectReview,
   ValidationSnapshot,
-} from '../api'
+} from '../infrastructure/api'
 import type { PublicPolicy } from '../lib/termsdesk'
 
 // ---------------------------------------------------------------------------

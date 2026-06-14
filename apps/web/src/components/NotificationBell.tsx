@@ -1,8 +1,10 @@
-import { useState } from 'react'
 import * as Popover from '@radix-ui/react-popover'
 import { Bell, Briefcase, ChevronUp, MessageSquare, Star } from 'lucide-react'
-import type { AppNotification, NotificationType } from '../api'
+import { useState } from 'react'
+
 import { formatRelativeTime } from '../lib/format'
+
+import type { AppNotification, NotificationType } from '../infrastructure/api'
 
 const TYPE_ICON: Record<NotificationType, typeof Bell> = {
   review: MessageSquare,

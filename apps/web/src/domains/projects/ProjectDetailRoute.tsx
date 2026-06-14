@@ -1,4 +1,3 @@
-import React from 'react'
 import {
   Briefcase,
   ExternalLink,
@@ -9,23 +8,27 @@ import {
   Send,
   Sparkles,
 } from 'lucide-react'
-import type { AuthSession } from '../local-auth'
+import React from 'react'
+
+import { ShareButton } from '../../components/ShareButton'
+import { eventCopy, reviewTypeCopy } from '../../lib/constants'
+import {
+  formatRelativeTime,
+  getResponseTimeTone,
+  getValidationTone,
+  maskEmail,
+} from '../../lib/format'
+
+import { ProjectReviewWorkspace } from './ProjectReviewWorkspace'
+
 import type {
   Project,
   ProjectEvent,
   ProjectLogEntry,
   ProjectReview,
   ProjectReviewType,
-} from '../api'
-import { eventCopy, reviewTypeCopy } from '../lib/constants'
-import {
-  formatRelativeTime,
-  getResponseTimeTone,
-  getValidationTone,
-  maskEmail,
-} from '../lib/format'
-import { ProjectReviewWorkspace } from './ProjectReviewWorkspace'
-import { ShareButton } from './ShareButton'
+} from '../../infrastructure/api'
+import type { AuthSession } from '../../infrastructure/local-auth'
 
 export function ProjectDetailRoute({
   project,

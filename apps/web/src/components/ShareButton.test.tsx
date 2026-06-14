@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { describe, expect, it } from 'vitest'
+
 import { ShareButton } from './ShareButton'
 
 // Radix Popover 의 닫힘 규약을 공유 팝오버로 검증한다 — 트리거 클릭으로 열고,

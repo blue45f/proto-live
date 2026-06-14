@@ -1,4 +1,5 @@
 import { Layers3 } from 'lucide-react'
+
 import { differentiationRows } from '../lib/constants'
 
 export function DifferentiationPanel() {

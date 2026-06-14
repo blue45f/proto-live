@@ -1,20 +1,21 @@
-import { Suspense, useEffect, useRef, useState } from 'react'
 import { Plus, RefreshCw, Zap, Users, Mail } from 'lucide-react'
-import { resolveRoleLabel } from './local-auth'
-import ToastContainer from './components/ToastContainer'
-import { ProjectDiligencePanel } from './components/ProjectDiligencePanel'
-import { MarketView } from './components/pages/MarketView'
-import { NotificationBell } from './components/NotificationBell'
-import { RouteFallback } from './components/RouteFallback'
+import { Suspense, useEffect, useRef, useState } from 'react'
+
 import { LoginModal } from './components/modals/LoginModal'
 import { MatchModal } from './components/modals/MatchModal'
-import { SubmitProjectModal } from './components/modals/SubmitProjectModal'
-import { ReviewModal } from './components/modals/ReviewModal'
 import { PreviewModal } from './components/modals/PreviewModal'
-import { useProtoLiveApp } from './state/useProtoLiveApp'
+import { ReviewModal } from './components/modals/ReviewModal'
+import { SubmitProjectModal } from './components/modals/SubmitProjectModal'
+import { NotificationBell } from './components/NotificationBell'
+import { MarketView } from './components/pages/MarketView'
+import { RouteFallback } from './components/RouteFallback'
+import ToastContainer from './components/ToastContainer'
+import { ProjectDiligencePanel } from './domains/projects/ProjectDiligencePanel'
+import { resolveRoleLabel } from './infrastructure/local-auth'
 import { lazyRetry } from './lib/lazy-retry'
 import { POLICY_PAGES } from './lib/termsdesk'
 import { routePath } from './router/route'
+import { useProtoLiveApp } from './state/useProtoLiveApp'
 
 // 라우트 코드 스플리팅: 기본 랜딩(MarketView)은 첫 페인트 경로라 eager 로 유지하고,
 // 나머지 화면은 방문 시점에 청크를 불러온다. lazyRetry 는 재배포로 stale 해진 청크
@@ -44,7 +45,7 @@ const AdminMembersView = lazyRetry(() =>
   import('./components/pages/AdminMembersView').then((m) => ({ default: m.AdminMembersView }))
 )
 const DiscussionHub = lazyRetry(() =>
-  import('./components/community/DiscussionHub').then((m) => ({ default: m.DiscussionHub }))
+  import('./domains/community/DiscussionHub').then((m) => ({ default: m.DiscussionHub }))
 )
 
 export default function App() {

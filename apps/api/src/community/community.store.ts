@@ -8,8 +8,10 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { dirname, join } from 'node:path'
+
 import { Logger } from '@nestjs/common'
 import { Pool } from 'pg'
+
 import {
   CommunityState,
   SerializedCommunityState,

@@ -1,7 +1,8 @@
 import { Global, Logger, Module } from '@nestjs/common'
-import { PROJECTS_STORE, type ProjectsStore } from './projects-store'
+
 import { FileProjectsStore } from './file-projects-store'
 import { PostgresProjectsStore } from './postgres-projects-store'
+import { PROJECTS_STORE, type ProjectsStore } from './projects-store'
 
 /**
  * DATABASE_URL이 있으면 Postgres 드라이버를, 없으면 파일(JSON) 드라이버를 만든다.
