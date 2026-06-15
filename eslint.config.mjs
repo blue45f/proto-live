@@ -37,7 +37,7 @@ export default defineConfig(
     },
   },
 
-  // apps/web 레포 정책: 네이티브 window.confirm/alert/prompt 금지
+  // apps/web 레포 정책: 네이티브 globalThis.confirm/alert/prompt 금지
   // (포트폴리오 표준 — DEVELOPMENT.md §5.1). 브랜드 다이얼로그/toast/인라인
   // 알림으로 대체한다. 로컬 변수는 섀도잉이라 영향 없음.
   {
@@ -47,10 +47,10 @@ export default defineConfig(
         'error',
         {
           name: 'confirm',
-          message: '브랜드 확인 다이얼로그를 사용하세요 (window.confirm 금지).',
+          message: '브랜드 확인 다이얼로그를 사용하세요 (globalThis.confirm 금지).',
         },
-        { name: 'alert', message: 'toast/인라인 알림을 사용하세요 (window.alert 금지).' },
-        { name: 'prompt', message: '브랜드 입력 다이얼로그를 사용하세요 (window.prompt 금지).' },
+        { name: 'alert', message: 'toast/인라인 알림을 사용하세요 (globalThis.alert 금지).' },
+        { name: 'prompt', message: '브랜드 입력 다이얼로그를 사용하세요 (globalThis.prompt 금지).' },
       ],
     },
   },

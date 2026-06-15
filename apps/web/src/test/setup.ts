@@ -36,17 +36,17 @@ afterEach(() => {
   appQueryClient.clear()
 })
 
-// jsdom does not implement scrollTo; App.tsx calls window.scrollTo on every
+// jsdom does not implement scrollTo; App.tsx calls globalThis.scrollTo on every
 // route change (openProjectDetail / closeProjectDetail). Stub it so navigation
 // behavior can be exercised without unhandled errors.
-if (!window.scrollTo) {
+if (!globalThis.scrollTo) {
   ;(window as unknown as { scrollTo: () => void }).scrollTo = () => {}
 } else {
   vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
 }
 
 // jsdom lacks matchMedia; guard in case any dependency probes it.
-if (!window.matchMedia) {
+if (!globalThis.matchMedia) {
   ;(window as unknown as { matchMedia: (q: string) => unknown }).matchMedia = (query: string) => ({
     matches: false,
     media: query,

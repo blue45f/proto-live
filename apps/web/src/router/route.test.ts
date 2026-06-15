@@ -3,11 +3,11 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { matchRoute, routePath } from './route'
 
 function setPath(path: string) {
-  window.history.pushState({}, '', path)
+  globalThis.history.pushState({}, '', path)
 }
 
 afterEach(() => {
-  window.history.pushState({}, '', '/')
+  globalThis.history.pushState({}, '', '/')
 })
 
 describe('matchRoute: legal policy routes', () => {

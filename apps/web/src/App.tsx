@@ -7,6 +7,7 @@ import { MatchModal } from './components/modals/MatchModal'
 import { PreviewModal } from './components/modals/PreviewModal'
 import { ReviewModal } from './components/modals/ReviewModal'
 import { SubmitProjectModal } from './components/modals/SubmitProjectModal'
+import { FeedbackWidget } from './components/feedback/FeedbackWidget'
 import { NotificationBell } from './components/NotificationBell'
 import { MarketView } from './components/pages/MarketView'
 import { RouteFallback } from './components/RouteFallback'
@@ -583,7 +584,7 @@ function AppShell() {
             <div className="lg:col-span-2">
               <SupportView
                 contactEmail={session?.email}
-                originUrl={typeof window !== 'undefined' ? window.location.href : ''}
+                originUrl={typeof window !== 'undefined' ? globalThis.location.href : ''}
               />
             </div>
           ) : isMessagesView ? (
@@ -1039,6 +1040,12 @@ function AppShell() {
           </nav>
         </div>
       </footer>
+
+      {/* SurveyDesk 피드백 위젯(고정 플로팅 버튼). VITE_SURVEYDESK_URL 이 설정된
+          환경에서만 마운트한다 — 미설정(기본)이면 앱은 전혀 영향받지 않는다. */}
+      {import.meta.env.VITE_SURVEYDESK_URL && (
+        <FeedbackWidget appId="protolive" endpoint={import.meta.env.VITE_SURVEYDESK_URL} />
+      )}
     </div>
   )
 }

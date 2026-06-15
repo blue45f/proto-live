@@ -21,7 +21,7 @@ export function ShareButton({ url, title }: { url: string; title: string }) {
     try {
       await navigator.clipboard.writeText(url)
       setCopied(true)
-      window.setTimeout(() => setCopied(false), 2000)
+      globalThis.setTimeout(() => setCopied(false), 2000)
     } catch {
       setCopied(false)
     }

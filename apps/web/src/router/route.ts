@@ -131,7 +131,7 @@ export function matchRoute(): AppRoute {
     return MARKET_ROUTE
   }
 
-  const { pathname, search } = window.location
+  const { pathname, search } = globalThis.location
   const path = pathname.replace(/\/+$/, '') || '/'
   const query = new URLSearchParams(search)
 
@@ -179,5 +179,5 @@ export function navigate(path: string, state: unknown = {}): void {
   if (typeof window === 'undefined') {
     return
   }
-  window.history.pushState(state, '', path)
+  globalThis.history.pushState(state, '', path)
 }

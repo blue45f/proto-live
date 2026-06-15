@@ -12,7 +12,7 @@ import './index.css'
 const DesignSystemPage = lazy(() => import('./components/pages/DesignSystemPage'))
 
 const isDesignRoute =
-  typeof window !== 'undefined' && window.location.pathname.replace(/\/+$/, '') === '/design'
+  typeof window !== 'undefined' && globalThis.location.pathname.replace(/\/+$/, '') === '/design'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

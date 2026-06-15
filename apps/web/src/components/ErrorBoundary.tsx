@@ -51,7 +51,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               </button>
               <button
                 type="button"
-                onClick={() => window.location.reload()}
+                onClick={() => globalThis.location.reload()}
                 className="rounded-md border border-cyan-900/40 px-4 py-2 font-bold text-stone-200"
               >
                 새로고침

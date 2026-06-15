@@ -380,8 +380,8 @@ export function useProtoLiveApp() {
       setConversationId(route.conversationId)
     }
 
-    window.addEventListener('popstate', onPopState)
-    return () => window.removeEventListener('popstate', onPopState)
+    globalThis.addEventListener('popstate', onPopState)
+    return () => globalThis.removeEventListener('popstate', onPopState)
   }, [])
 
   // 등록 모달 상태 ↔ /submit URL 동기화. 최초 마운트는 건너뛰어 딥링크(/submit) URL을
@@ -1142,21 +1142,21 @@ export function useProtoLiveApp() {
   }, [projects, favoriteProjectIds, showFavoritesOnly])
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
+    const timer = globalThis.setTimeout(() => {
       setDebouncedSearch(searchQuery)
     }, 280)
 
-    return () => window.clearTimeout(timer)
+    return () => globalThis.clearTimeout(timer)
   }, [searchQuery])
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
+    const timer = globalThis.setTimeout(() => {
       setDebouncedAdminRevenueConfig(adminRevenueConfig)
       setDebouncedScenarioMultipliers(adminScenarioMultipliers)
       setDebouncedAdminRevenueTargetMonthly(adminRevenueTargetMonthly)
     }, 280)
 
-    return () => window.clearTimeout(timer)
+    return () => globalThis.clearTimeout(timer)
   }, [adminRevenueConfig, adminRevenueTargetMonthly, adminScenarioMultipliers])
 
   useEffect(() => {
@@ -1273,7 +1273,7 @@ export function useProtoLiveApp() {
 
     if (!ownsDedicatedPath) {
       const query = params.toString()
-      const normalizedPath = window.location.pathname.replace(/\/+$/, '') || '/'
+      const normalizedPath = globalThis.location.pathname.replace(/\/+$/, '') || '/'
       const pathSegments = normalizedPath.split('/').filter(Boolean)
       const isAdminPath =
         pathSegments.length > 0 && pathSegments[pathSegments.length - 1] === ADMIN_PATH_SEGMENT
@@ -1285,7 +1285,7 @@ export function useProtoLiveApp() {
         effectiveView === 'admin' ? `${basePath}/${ADMIN_PATH_SEGMENT}` : basePath || '/'
       const safePathname = `/${nextPathname}`.replace(/\/{2,}/g, '/').replace(/\/+$/, '') || '/'
 
-      window.history.replaceState({}, '', `${safePathname}${query ? `?${query}` : ''}`)
+      globalThis.history.replaceState({}, '', `${safePathname}${query ? `?${query}` : ''}`)
     }
 
     localStorage.setItem(
@@ -1623,7 +1623,7 @@ export function useProtoLiveApp() {
       return
     }
 
-    const url = `${window.location.origin}${window.location.pathname}${window.location.search}`
+    const url = `${globalThis.location.origin}${globalThis.location.pathname}${globalThis.location.search}`
     try {
       await navigator.clipboard.writeText(url)
       toast('success', '필터 링크 복사', '현재 조회 조건 링크가 클립보드에 복사되었습니다.')
@@ -1900,9 +1900,9 @@ export function useProtoLiveApp() {
   )
 
   useEffect(() => {
-    window.addEventListener('keydown', handleGlobalShortcut)
+    globalThis.addEventListener('keydown', handleGlobalShortcut)
     return () => {
-      window.removeEventListener('keydown', handleGlobalShortcut)
+      globalThis.removeEventListener('keydown', handleGlobalShortcut)
     }
   }, [handleGlobalShortcut])
 
@@ -2418,7 +2418,7 @@ export function useProtoLiveApp() {
     setView('market')
     if (typeof window !== 'undefined') {
       navigate(routePath.detail(projectId), { projectId })
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      globalThis.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [])
 
@@ -2434,7 +2434,7 @@ export function useProtoLiveApp() {
     setReplyToReview(null)
     if (typeof window !== 'undefined') {
       navigate(routePath.market())
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      globalThis.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [setReplyToReview])
 
@@ -2444,7 +2444,7 @@ export function useProtoLiveApp() {
     setView('market')
     if (typeof window !== 'undefined') {
       navigate(routePath.maker(makerId), { makerId })
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      globalThis.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [])
 
@@ -2452,7 +2452,7 @@ export function useProtoLiveApp() {
     setMakerProfileId(null)
     if (typeof window !== 'undefined') {
       navigate(routePath.market())
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      globalThis.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [])
 
@@ -2464,7 +2464,7 @@ export function useProtoLiveApp() {
     closeModalStack()
     if (typeof window !== 'undefined') {
       navigate(routePath.about())
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      globalThis.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [closeModalStack])
 
@@ -2477,7 +2477,7 @@ export function useProtoLiveApp() {
       closeModalStack()
       if (typeof window !== 'undefined') {
         navigate(routePath.policy(policyView))
-        window.scrollTo({ top: 0, behavior: 'smooth' })
+        globalThis.scrollTo({ top: 0, behavior: 'smooth' })
       }
     },
     [closeModalStack]
@@ -2493,7 +2493,7 @@ export function useProtoLiveApp() {
     closeModalStack()
     if (typeof window !== 'undefined') {
       navigate(routePath.support())
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      globalThis.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [closeModalStack])
 
@@ -2507,7 +2507,7 @@ export function useProtoLiveApp() {
     closeModalStack()
     if (typeof window !== 'undefined') {
       navigate(routePath.messages())
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      globalThis.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [closeModalStack])
 
@@ -2530,7 +2530,7 @@ export function useProtoLiveApp() {
     setDiscussionRoute({ mode: 'list' })
     if (typeof window !== 'undefined') {
       navigate(routePath.discussions(projectId), { projectId, discussion: { mode: 'list' } })
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      globalThis.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [])
 
@@ -2538,7 +2538,7 @@ export function useProtoLiveApp() {
     setDiscussionRoute({ mode: 'new' })
     if (typeof window !== 'undefined') {
       navigate(routePath.discussionNew(projectId), { projectId, discussion: { mode: 'new' } })
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      globalThis.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [])
 
@@ -2549,7 +2549,7 @@ export function useProtoLiveApp() {
         projectId,
         discussion: { mode: 'detail', discussionId },
       })
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      globalThis.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [])
 
@@ -2557,7 +2557,7 @@ export function useProtoLiveApp() {
     setDiscussionRoute(null)
     if (typeof window !== 'undefined') {
       navigate(routePath.detail(projectId), { projectId })
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      globalThis.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [])
 
@@ -2581,7 +2581,7 @@ export function useProtoLiveApp() {
               ? routePath.adminMembers()
               : `/${ADMIN_PATH_SEGMENT}`
         navigate(path)
-        window.scrollTo({ top: 0, behavior: 'smooth' })
+        globalThis.scrollTo({ top: 0, behavior: 'smooth' })
       }
     },
     [closeModalStack, handleRequireAdminAccess]
@@ -2595,7 +2595,7 @@ export function useProtoLiveApp() {
     closeModalStack()
     if (typeof window !== 'undefined') {
       navigate(routePath.market())
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      globalThis.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [closeModalStack])
 
@@ -2617,10 +2617,10 @@ export function useProtoLiveApp() {
         })
     }
     load()
-    const timer = window.setInterval(load, 60000)
+    const timer = globalThis.setInterval(load, 60000)
     return () => {
       active = false
-      window.clearInterval(timer)
+      globalThis.clearInterval(timer)
     }
   }, [session])
 
@@ -2646,10 +2646,10 @@ export function useProtoLiveApp() {
         })
     }
     load()
-    const timer = window.setInterval(load, 90000)
+    const timer = globalThis.setInterval(load, 90000)
     return () => {
       active = false
-      window.clearInterval(timer)
+      globalThis.clearInterval(timer)
     }
   }, [session])
 

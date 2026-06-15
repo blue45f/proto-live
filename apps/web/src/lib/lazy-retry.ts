@@ -24,7 +24,7 @@ export function lazyRetry<T extends ComponentType<any>>(factory: () => Promise<{
     } catch (error) {
       if (!sessionStorage.getItem(RETRY_KEY)) {
         sessionStorage.setItem(RETRY_KEY, '1')
-        window.location.reload()
+        globalThis.location.reload()
         // reload 가 끝날 때까지 Suspense fallback 을 유지한다(영원히 pending).
         return new Promise<{ default: T }>(() => {})
       }

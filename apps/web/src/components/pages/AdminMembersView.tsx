@@ -90,7 +90,7 @@ function MemberRow({ member, onSaved }: { member: AdminMember; onSaved: () => vo
   async function handleLifecycle(action: 'suspend' | 'restore' | 'withdraw') {
     let reason: string | undefined
     if (action === 'suspend') {
-      const prompted = window.prompt('정지 사유를 입력하세요. 비워두면 기본 사유로 저장됩니다.')
+      const prompted = globalThis.prompt('정지 사유를 입력하세요. 비워두면 기본 사유로 저장됩니다.')
       if (prompted === null) {
         return
       }
@@ -98,7 +98,7 @@ function MemberRow({ member, onSaved }: { member: AdminMember; onSaved: () => vo
     }
     if (
       action === 'withdraw' &&
-      !window.confirm(
+      !globalThis.confirm(
         '이 회원을 탈퇴 처리할까요? 비밀번호와 공개 이름이 제거되고 로그인할 수 없습니다.'
       )
     ) {

@@ -110,7 +110,7 @@ export function ProjectDetailRoute({
   const tags = project.tags ?? []
   const shareUrl =
     typeof window !== 'undefined'
-      ? `${window.location.origin}/projects/${project.id}`
+      ? `${globalThis.location.origin}/projects/${project.id}`
       : `/projects/${project.id}`
 
   // 프로젝트 상세에 JSON-LD 구조화 데이터를 주입한다(검색 리치 결과 + 공유 미리보기 보강).

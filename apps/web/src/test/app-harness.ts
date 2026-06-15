@@ -8,7 +8,7 @@ const mockApi = makeApiMock()
 
 /** history.pushState 로 시작 경로를 세팅한다. */
 export function setPath(path: string) {
-  window.history.pushState({}, '', path)
+  globalThis.history.pushState({}, '', path)
 }
 
 /** 매 테스트 전 깨끗한 시장 라우트 + 로그아웃 세션 + mock 호출기록 초기화. */
@@ -20,5 +20,5 @@ export function resetAppHarness() {
 
 /** 매 테스트 후 루트 경로로 되돌린다(전역 stub 해제는 호출부에서 필요 시 추가). */
 export function restoreAppHarness() {
-  window.history.pushState({}, '', '/')
+  globalThis.history.pushState({}, '', '/')
 }

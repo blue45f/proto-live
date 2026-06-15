@@ -94,7 +94,7 @@ describe('App characterization: project detail routing', () => {
     await user.click(detailButtons[0])
 
     expect(await screen.findByRole('button', { name: '목록으로 돌아가기' })).toBeInTheDocument()
-    expect(window.location.pathname).toBe(`/projects/${projectMealmap.id}`)
+    expect(globalThis.location.pathname).toBe(`/projects/${projectMealmap.id}`)
   })
 
   it('returns to the list (root path) when the back button is pressed', async () => {
@@ -105,7 +105,7 @@ describe('App characterization: project detail routing', () => {
     const back = await screen.findByRole('button', { name: '목록으로 돌아가기' })
     await user.click(back)
 
-    await waitFor(() => expect(window.location.pathname).toBe('/'))
+    await waitFor(() => expect(globalThis.location.pathname).toBe('/'))
     // List filter UI (search box) is back.
     expect(
       await screen.findByPlaceholderText('이름, 설명, URL, 카테고리, 태그 검색')
@@ -121,8 +121,8 @@ describe('App characterization: project detail routing', () => {
     expect(await screen.findByRole('button', { name: '목록으로 돌아가기' })).toBeInTheDocument()
 
     // Simulate the browser Back button: revert URL then fire popstate.
-    window.history.pushState({}, '', '/')
-    window.dispatchEvent(new PopStateEvent('popstate'))
+    globalThis.history.pushState({}, '', '/')
+    globalThis.dispatchEvent(new PopStateEvent('popstate'))
 
     await waitFor(() =>
       expect(screen.queryByRole('button', { name: '목록으로 돌아가기' })).not.toBeInTheDocument()
@@ -281,7 +281,7 @@ describe('App characterization: about page', () => {
 
     await user.click(screen.getByRole('button', { name: '소개' }))
 
-    await waitFor(() => expect(window.location.pathname).toBe('/about'))
+    await waitFor(() => expect(globalThis.location.pathname).toBe('/about'))
     expect(await screen.findByText('어느 단계든 환영합니다')).toBeInTheDocument()
   })
 })
@@ -305,7 +305,7 @@ describe('App characterization: market hero CTA', () => {
 
     await user.click(screen.getByRole('button', { name: '작동 방식 보기' }))
 
-    await waitFor(() => expect(window.location.pathname).toBe('/about'))
+    await waitFor(() => expect(globalThis.location.pathname).toBe('/about'))
     expect(await screen.findByText('커뮤니티가 먼저, 투자는 사다리 위에')).toBeInTheDocument()
   })
 })
@@ -335,7 +335,7 @@ describe('App characterization: legal policy pages', () => {
 
     await user.click(termsLink)
 
-    await waitFor(() => expect(window.location.pathname).toBe('/terms'))
+    await waitFor(() => expect(globalThis.location.pathname).toBe('/terms'))
     expect(await screen.findByRole('heading', { name: '이용약관', level: 2 })).toBeInTheDocument()
     // 신뢰 표면: 버전·해시 축약이 페이지 하단에 그대로 노출된다.
     expect(await screen.findByText('12b390fde0d4')).toBeInTheDocument()
@@ -367,7 +367,7 @@ describe('App characterization: legal policy pages', () => {
 
     await user.click(supportLink)
     expect(await screen.findByRole('heading', { name: '문의하기', level: 2 })).toBeInTheDocument()
-    expect(window.location.pathname).toBe('/support')
+    expect(globalThis.location.pathname).toBe('/support')
   })
 })
 

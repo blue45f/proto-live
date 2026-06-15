@@ -478,10 +478,10 @@ function sanitizeApiBase(raw: string): string {
 
 function getBrowserOriginApiBase() {
   const protocol =
-    typeof window !== 'undefined' && window.location?.protocol ? window.location.protocol : 'http:'
+    typeof window !== 'undefined' && globalThis.location?.protocol ? globalThis.location.protocol : 'http:'
   const host =
-    typeof window !== 'undefined' && window.location?.hostname
-      ? window.location.hostname
+    typeof window !== 'undefined' && globalThis.location?.hostname
+      ? globalThis.location.hostname
       : 'localhost'
 
   return sanitizeApiBase(`${protocol}//${host}:${DEFAULT_API_PORT}/api`)

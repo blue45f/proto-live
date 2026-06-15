@@ -23,7 +23,7 @@ const readMatchDemoLogs = (): MatchDemoLog[] => {
   if (typeof window === 'undefined') return []
 
   try {
-    const raw = window.localStorage.getItem(MATCH_DEMO_LOG_KEY)
+    const raw = globalThis.localStorage.getItem(MATCH_DEMO_LOG_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw)
     if (!Array.isArray(parsed)) return []
@@ -51,7 +51,7 @@ const appendMatchDemoLog = (action: MatchDemoAction, label: string, detail?: str
       ...readMatchDemoLogs(),
       { id: makeMatchDemoLogId(), at: Date.now(), action, label, detail },
     ].slice(-MATCH_DEMO_LOG_LIMIT)
-    window.localStorage.setItem(MATCH_DEMO_LOG_KEY, JSON.stringify(next))
+    globalThis.localStorage.setItem(MATCH_DEMO_LOG_KEY, JSON.stringify(next))
   } catch {
     // Local rehearsal log is best-effort.
   }

@@ -233,7 +233,7 @@ export function readFilterPreset(): RawFilterSnapshot {
     stored = {}
   }
 
-  const url = new URL(window.location.href)
+  const url = new URL(globalThis.location.href)
   const saved = {
     q: url.searchParams.get('q') ?? null,
     category: url.searchParams.get('category') ?? null,

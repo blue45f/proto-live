@@ -3,22 +3,22 @@
 // per visited URL) and activate prunes caches left behind by older versions.
 const CACHE_NAME = 'proto-live-pwa-v2'
 
-self.addEventListener('install', () => {
-  self.skipWaiting()
+globalThis.addEventListener('install', () => {
+  globalThis.skipWaiting()
 })
 
-self.addEventListener('activate', (event) => {
+globalThis.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
       .keys()
       .then((keys) =>
         Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
       )
-      .then(() => self.clients.claim())
+      .then(() => globalThis.clients.claim())
   )
 })
 
-self.addEventListener('fetch', (event) => {
+globalThis.addEventListener('fetch', (event) => {
   const { request } = event
   if (request.mode === 'navigate') {
     event.respondWith(

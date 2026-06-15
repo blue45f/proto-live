@@ -73,7 +73,7 @@ export function AdminCommunityView() {
   ): Promise<void> {
     if (
       action === 'delete' &&
-      !window.confirm('이 토론과 댓글·첨부를 완전히 삭제할까요? 복구할 수 없습니다.')
+      !globalThis.confirm('이 토론과 댓글·첨부를 완전히 삭제할까요? 복구할 수 없습니다.')
     ) {
       return
     }
