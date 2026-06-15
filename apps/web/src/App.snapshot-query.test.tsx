@@ -3,11 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import App from './App'
 import * as api from './infrastructure/api'
-import { makeApiMock, adminSession } from './test/api-mock'
+import { adminSession } from './test/api-mock'
+import { resetAppHarness, restoreAppHarness, setPath } from './test/app-harness'
 import { projectMealmap } from './test/fixtures'
 
 // Same hermetic api mock the other characterization suites use: only the network
-// functions are swapped, pure helpers stay real via importActual.
+// functions are swapped, pure helpers stay real via importActual. (vi.mock must be
+// hoisted per-file, so it stays here; the rest of the scaffolding is shared.)
 vi.mock('./infrastructure/api', async () => {
   const actual =
     await vi.importActual<typeof import('./infrastructure/api')>('./infrastructure/api')
@@ -15,21 +17,8 @@ vi.mock('./infrastructure/api', async () => {
   return { ...actual, ...make() }
 })
 
-const mockApi = makeApiMock()
-
-function setPath(path: string) {
-  window.history.pushState({}, '', path)
-}
-
-beforeEach(() => {
-  setPath('/')
-  localStorage.clear()
-  Object.values(mockApi).forEach((fn) => fn.mockClear())
-})
-
-afterEach(() => {
-  window.history.pushState({}, '', '/')
-})
+beforeEach(resetAppHarness)
+afterEach(restoreAppHarness)
 
 // 서버 상태 react-query 마이그레이션 가드. loadSnapshot 의 분기(뷰 게이팅)와
 // apiOnline/loadError 파생, 그리고 폴링·재요청 의미가 그대로 유지되는지 고정한다.

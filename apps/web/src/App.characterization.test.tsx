@@ -4,7 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import App from './App'
 import * as api from './infrastructure/api'
-import { makeApiMock, adminSession, makerSession } from './test/api-mock'
+import { adminSession, makerSession } from './test/api-mock'
+import { resetAppHarness, restoreAppHarness, setPath } from './test/app-harness'
 import {
   projectCareloop,
   projectMealmap,
@@ -25,25 +26,10 @@ vi.mock('./infrastructure/api', async () => {
   return { ...actual, ...make() }
 })
 
-// Same singleton instance the factory installed -> usable for clear/override.
-const mockApi = makeApiMock()
-
-function setPath(path: string) {
-  window.history.pushState({}, '', path)
-}
-
-beforeEach(() => {
-  // Reset to a clean market route + logged-out session before every test.
-  setPath('/')
-  localStorage.clear()
-  Object.values(mockApi).forEach((fn) => fn.mockClear())
-  // Re-apply default resolved values cleared by mockClear (mockClear keeps the
-  // implementation, so defaults from makeApiMock persist; nothing to redo).
-})
-
-afterEach(() => {
-  window.history.pushState({}, '', '/')
-})
+// Reset to a clean market route + logged-out session before every test.
+// (mockClear keeps the implementation, so makeApiMock defaults persist.)
+beforeEach(resetAppHarness)
+afterEach(restoreAppHarness)
 
 async function renderAppLoaded() {
   const result = render(<App />)

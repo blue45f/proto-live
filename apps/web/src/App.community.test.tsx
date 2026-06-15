@@ -4,7 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import App from './App'
 import * as api from './infrastructure/api'
-import { makeApiMock, makerSession } from './test/api-mock'
+import { makerSession } from './test/api-mock'
+import { resetAppHarness, restoreAppHarness, setPath } from './test/app-harness'
 import { projectMealmap } from './test/fixtures'
 
 vi.mock('./infrastructure/api', async () => {
@@ -14,21 +15,11 @@ vi.mock('./infrastructure/api', async () => {
   return { ...actual, ...make() }
 })
 
-const mockApi = makeApiMock()
-
-function setPath(path: string) {
-  window.history.pushState({}, '', path)
-}
-
-beforeEach(() => {
-  setPath('/')
-  localStorage.clear()
-  Object.values(mockApi).forEach((fn) => fn.mockClear())
-})
+beforeEach(resetAppHarness)
 
 afterEach(() => {
   vi.unstubAllGlobals()
-  window.history.pushState({}, '', '/')
+  restoreAppHarness()
 })
 
 describe('community: project discussion split routes', () => {
