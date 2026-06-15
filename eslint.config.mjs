@@ -78,6 +78,9 @@ export default defineConfig(
           'apps/web/src/router/**/*',
           'apps/web/src/components/pages/**/*',
           'apps/web/src/state/useProtoLiveApp.ts',
+          // useProtoLiveApp 의 서버 상태(react-query) 패치 계층 — 훅과 동일하게
+          // infrastructure/api 를 직접 호출하므로 app 으로 분류한다.
+          'apps/web/src/state/snapshotQueries.ts',
         ],
         mode: 'full',
       },
