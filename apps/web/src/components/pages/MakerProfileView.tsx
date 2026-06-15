@@ -1,8 +1,47 @@
-import { ArrowUpRight, ChevronUp } from 'lucide-react'
+import { ArrowUpRight, ChevronUp, Sparkles, TrendingUp, Users } from 'lucide-react'
 
 import { maturityCopy } from '../../lib/constants'
+import { formatWon } from '../../lib/format'
 
-import type { MakerProfile, Project } from '../../infrastructure/api'
+import type { MakerProfile, Project, ProjectMaturity } from '../../infrastructure/api'
+
+type ProfileSummary = {
+  total: number
+  totalUpvotes: number
+  verifiedCount: number
+  investorCount: number
+  committedAmountMax: number
+  maturityCounts: Record<ProjectMaturity, number>
+}
+
+function summarizeProjects(projects: Project[]): ProfileSummary {
+  const maturityCounts: Record<ProjectMaturity, number> = { early: 0, building: 0, live: 0 }
+
+  let totalUpvotes = 0
+  let verifiedCount = 0
+  let investorCount = 0
+  let committedAmountMax = 0
+
+  for (const project of projects) {
+    totalUpvotes += project.upvoteCount ?? 0
+    investorCount += project.investorCount ?? 0
+    committedAmountMax += project.committedAmountMax ?? 0
+    if (project.validation?.success) {
+      verifiedCount += 1
+    }
+    const maturity = project.maturity ?? 'live'
+    maturityCounts[maturity] += 1
+  }
+
+  return {
+    total: projects.length,
+    totalUpvotes,
+    verifiedCount,
+    investorCount,
+    committedAmountMax,
+    maturityCounts,
+  }
+}
 
 export function MakerProfileView({
   profile,
@@ -15,6 +54,8 @@ export function MakerProfileView({
   onBack: () => void
   onOpenProject: (project: Project) => void
 }) {
+  const summary = profile ? summarizeProjects(profile.projects) : null
+
   return (
     <section className="space-y-5 rounded-2xl border border-stone-800 bg-stone-950/55 p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -46,6 +87,63 @@ export function MakerProfileView({
               공개된 프로젝트 {profile.projects.length}개
             </p>
           </div>
+
+          {summary && summary.total > 0 && (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-xl border border-stone-800 bg-stone-950/45 p-3">
+                <p className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.12em] text-stone-500">
+                  <Sparkles className="h-3.5 w-3.5 text-lime-200" />
+                  라이브 검증
+                </p>
+                <p className="mt-1.5 text-xl font-black text-stone-50">
+                  {summary.verifiedCount}
+                  <span className="ml-1 text-xs font-bold text-stone-500">/ {summary.total}</span>
+                </p>
+              </div>
+              <div className="rounded-xl border border-stone-800 bg-stone-950/45 p-3">
+                <p className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.12em] text-stone-500">
+                  <ChevronUp className="h-3.5 w-3.5 text-cyan-200" />
+                  누적 추천
+                </p>
+                <p className="mt-1.5 text-xl font-black text-stone-50">{summary.totalUpvotes}</p>
+              </div>
+              <div className="rounded-xl border border-stone-800 bg-stone-950/45 p-3">
+                <p className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.12em] text-stone-500">
+                  <Users className="h-3.5 w-3.5 text-amber-200" />
+                  투자 관심
+                </p>
+                <p className="mt-1.5 text-xl font-black text-stone-50">{summary.investorCount}</p>
+              </div>
+              <div className="rounded-xl border border-stone-800 bg-stone-950/45 p-3">
+                <p className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.12em] text-stone-500">
+                  <TrendingUp className="h-3.5 w-3.5 text-amber-200" />
+                  관심 투자금
+                </p>
+                <p className="mt-1.5 text-xl font-black text-stone-50">
+                  {formatWon(summary.committedAmountMax)}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {summary && summary.total > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {(['live', 'building', 'early'] as const).map((maturity) =>
+                summary.maturityCounts[maturity] > 0 ? (
+                  <span
+                    key={maturity}
+                    className={
+                      'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-black ' +
+                      maturityCopy[maturity].tone
+                    }
+                  >
+                    {maturityCopy[maturity].label}
+                    <span className="opacity-70">{summary.maturityCounts[maturity]}</span>
+                  </span>
+                ) : null
+              )}
+            </div>
+          )}
 
           {profile.projects.length === 0 ? (
             <p className="rounded-lg border border-dashed border-stone-700 bg-stone-950/45 p-4 text-sm text-stone-400">

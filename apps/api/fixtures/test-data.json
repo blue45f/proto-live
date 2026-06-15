@@ -1,8 +1,8 @@
 {
-  "version": 2,
-  "description": "ProtoLive 쇼케이스 시드 — 메이커(히준)가 실제 라이브 운영 중인 바이브코딩 서비스들.",
+  "version": 3,
+  "description": "ProtoLive 로컬 시드 — 다중 메이커/투자자/멤버, 투자 사다리 활동, 전 카테고리 브레드스. 모든 비밀번호는 로컬 데모용 목 값.",
   "environment": "demo",
-  "createdAt": "2026-06-05T00:00:00.000Z",
+  "createdAt": "2026-06-15T04:09:13.720Z",
   "accounts": [
     {
       "id": 1,
@@ -19,7 +19,7 @@
       "password": "pass-mock-admin",
       "role": "admin",
       "name": "프로토라이브 운영자",
-      "description": "커뮤니티 운영·큐레이션",
+      "description": "커뮤니티 운영·큐레이션·투자 사다리 관리",
       "notes": "운영자"
     },
     {
@@ -30,6 +30,78 @@
       "name": "커뮤니티 멤버",
       "description": "피드백을 남기는 멤버",
       "notes": "리뷰어"
+    },
+    {
+      "id": 4,
+      "email": "maker-a@protolive.local",
+      "password": "pass-mock-makerA",
+      "role": "maker",
+      "name": "서연 (메이커 A)",
+      "description": "핀테크·생산성 도구를 만드는 솔로 메이커",
+      "notes": "다중 메이커 비교용"
+    },
+    {
+      "id": 5,
+      "email": "maker-b@protolive.local",
+      "password": "pass-mock-makerB",
+      "role": "maker",
+      "name": "도윤 (메이커 B)",
+      "description": "XR·커머스 실험을 즐기는 메이커",
+      "notes": "초기 단계 빌드 다수"
+    },
+    {
+      "id": 6,
+      "email": "maker-c@protolive.local",
+      "password": "pass-mock-makerC",
+      "role": "maker",
+      "name": "하늘 (메이커 C)",
+      "description": "게임·소셜 프로토타입 제작자",
+      "notes": "게임 스택 검증용"
+    },
+    {
+      "id": 7,
+      "email": "investor-a@protolive.local",
+      "password": "pass-mock-invA",
+      "role": "investor",
+      "name": "강 파트너 (투자자 A)",
+      "description": "시드 단계 SaaS·핀테크 투자",
+      "notes": "제안 플로우 검증용"
+    },
+    {
+      "id": 8,
+      "email": "investor-b@protolive.local",
+      "password": "pass-mock-invB",
+      "role": "investor",
+      "name": "윤 심사역 (투자자 B)",
+      "description": "프리시드~시드, 도구·인프라 선호",
+      "notes": "다수 제안 분산용"
+    },
+    {
+      "id": 9,
+      "email": "investor-c@protolive.local",
+      "password": "pass-mock-invC",
+      "role": "investor",
+      "name": "문 어소시에이트 (투자자 C)",
+      "description": "커뮤니티·콘텐츠 버티컬 투자",
+      "notes": "고빈도 제안 시나리오"
+    },
+    {
+      "id": 10,
+      "email": "reviewer-a@protolive.local",
+      "password": "pass-mock-revA",
+      "role": "member",
+      "name": "지민 (리뷰어 A)",
+      "description": "꼼꼼하게 사용성 피드백을 남기는 얼리어답터",
+      "notes": "리뷰·아이디어 작성용"
+    },
+    {
+      "id": 11,
+      "email": "reviewer-b@protolive.local",
+      "password": "pass-mock-revB",
+      "role": "member",
+      "name": "태오 (리뷰어 B)",
+      "description": "응원과 별점을 자주 남기는 멤버",
+      "notes": "서포트/업보트 분산용"
     }
   ],
   "projects": [
@@ -46,21 +118,22 @@
       "vibeCoded": true,
       "builtWith": ["claude-code", "cursor"],
       "tags": ["웹툰", "웹소설", "통합인덱스", "콘텐츠"],
-      "protectionNoticeAccepted": true,
       "thumbnail": "/thumbnails/toonspectrum.jpg",
-      "investorCount": 0,
-      "matchCount": 0,
-      "committedAmountMin": 0,
-      "committedAmountMax": 0,
+      "featured": true,
+      "createdAt": "2026-05-10T13:09:13.720Z",
       "validation": {
         "success": true,
         "status": 200,
         "message": "라이브 사이트 확인 통과",
         "responseTimeMs": 180,
-        "finalUrl": "https://toonspectrum.vercel.app/",
-        "checkedAt": "2026-06-04T23:00:00.000Z"
+        "checkedAt": "2026-06-04T13:09:13.720Z",
+        "finalUrl": "https://toonspectrum.vercel.app/"
       },
-      "createdAt": "2026-05-10T09:00:00.000Z"
+      "protectionNoticeAccepted": true,
+      "investorCount": 0,
+      "matchCount": 0,
+      "committedAmountMin": 0,
+      "committedAmountMax": 0
     },
     {
       "id": 2,
@@ -75,21 +148,22 @@
       "vibeCoded": true,
       "builtWith": ["claude-code", "cursor"],
       "tags": ["이력서", "AI", "채용", "생산성"],
-      "protectionNoticeAccepted": true,
       "thumbnail": "/thumbnails/resume-gongbang.jpg",
-      "investorCount": 0,
-      "matchCount": 0,
-      "committedAmountMin": 0,
-      "committedAmountMax": 0,
+      "featured": true,
+      "createdAt": "2026-05-18T13:09:13.720Z",
       "validation": {
         "success": true,
         "status": 200,
         "message": "라이브 사이트 확인 통과",
         "responseTimeMs": 210,
-        "finalUrl": "https://resume-gongbang.vercel.app/",
-        "checkedAt": "2026-06-04T23:00:00.000Z"
+        "checkedAt": "2026-06-04T13:09:13.720Z",
+        "finalUrl": "https://resume-gongbang.vercel.app/"
       },
-      "createdAt": "2026-05-18T09:00:00.000Z"
+      "protectionNoticeAccepted": true,
+      "investorCount": 0,
+      "matchCount": 0,
+      "committedAmountMin": 0,
+      "committedAmountMax": 0
     },
     {
       "id": 3,
@@ -104,21 +178,21 @@
       "vibeCoded": true,
       "builtWith": ["claude-code"],
       "tags": ["약관", "버전관리", "변조방지", "동의증거"],
-      "protectionNoticeAccepted": true,
       "thumbnail": "/thumbnails/termsdesk.jpg",
-      "investorCount": 0,
-      "matchCount": 0,
-      "committedAmountMin": 0,
-      "committedAmountMax": 0,
+      "createdAt": "2026-05-22T13:09:13.720Z",
       "validation": {
         "success": true,
         "status": 200,
         "message": "라이브 사이트 확인 통과",
         "responseTimeMs": 165,
-        "finalUrl": "https://termsdesk.vercel.app/",
-        "checkedAt": "2026-06-04T23:00:00.000Z"
+        "checkedAt": "2026-06-04T13:09:13.720Z",
+        "finalUrl": "https://termsdesk.vercel.app/"
       },
-      "createdAt": "2026-05-22T09:00:00.000Z"
+      "protectionNoticeAccepted": true,
+      "investorCount": 0,
+      "matchCount": 0,
+      "committedAmountMin": 0,
+      "committedAmountMax": 0
     },
     {
       "id": 4,
@@ -133,21 +207,21 @@
       "vibeCoded": true,
       "builtWith": ["claude-code", "cursor"],
       "tags": ["디버깅", "녹화", "리플레이", "개발도구"],
-      "protectionNoticeAccepted": true,
       "thumbnail": "/thumbnails/remote-devtools.jpg",
-      "investorCount": 0,
-      "matchCount": 0,
-      "committedAmountMin": 0,
-      "committedAmountMax": 0,
+      "createdAt": "2026-05-28T13:09:13.720Z",
       "validation": {
         "success": true,
         "status": 200,
         "message": "라이브 사이트 확인 통과",
         "responseTimeMs": 240,
-        "finalUrl": "https://remote-devtools.vercel.app/",
-        "checkedAt": "2026-06-04T23:00:00.000Z"
+        "checkedAt": "2026-06-04T13:09:13.720Z",
+        "finalUrl": "https://remote-devtools.vercel.app/"
       },
-      "createdAt": "2026-05-28T09:00:00.000Z"
+      "protectionNoticeAccepted": true,
+      "investorCount": 0,
+      "matchCount": 0,
+      "committedAmountMin": 0,
+      "committedAmountMax": 0
     },
     {
       "id": 5,
@@ -162,96 +236,1094 @@
       "vibeCoded": true,
       "builtWith": ["claude-code"],
       "tags": ["SEO", "SSR", "렌더링", "게이트웨이"],
-      "protectionNoticeAccepted": true,
       "thumbnail": "/thumbnails/spa-seo-gateway.jpg",
-      "investorCount": 0,
-      "matchCount": 0,
-      "committedAmountMin": 0,
-      "committedAmountMax": 0,
+      "createdAt": "2026-06-01T13:09:13.720Z",
       "validation": {
         "success": true,
         "status": 200,
         "message": "라이브 사이트 확인 통과",
         "responseTimeMs": 150,
-        "finalUrl": "https://spa-seo-gateway.vercel.app/",
-        "checkedAt": "2026-06-04T23:00:00.000Z"
+        "checkedAt": "2026-06-04T13:09:13.720Z",
+        "finalUrl": "https://spa-seo-gateway.vercel.app/"
       },
-      "createdAt": "2026-06-01T09:00:00.000Z"
+      "protectionNoticeAccepted": true,
+      "investorCount": 0,
+      "matchCount": 0,
+      "committedAmountMin": 0,
+      "committedAmountMax": 0
+    },
+    {
+      "id": 6,
+      "userId": 4,
+      "title": "쪼개기",
+      "category": "FinTech",
+      "accessMode": "screened",
+      "description": "모임 정산을 자동으로 쪼개고 누가 얼마를 보내야 하는지 한눈에 정리. 영수증 사진을 올리면 항목까지 자동 분배한다.",
+      "liveUrl": "https://jjogaegi.example.com/",
+      "maturity": "building",
+      "stack": "app",
+      "vibeCoded": true,
+      "builtWith": ["cursor", "v0"],
+      "tags": ["정산", "핀테크", "모임", "자동화"],
+      "featured": true,
+      "createdAt": "2026-05-26T13:09:13.720Z",
+      "validation": {
+        "success": true,
+        "status": 200,
+        "message": "라이브 사이트 확인 통과",
+        "responseTimeMs": 320,
+        "checkedAt": "2026-06-05T13:09:13.720Z"
+      },
+      "protectionNoticeAccepted": true,
+      "investorCount": 0,
+      "matchCount": 0,
+      "committedAmountMin": 0,
+      "committedAmountMax": 0
+    },
+    {
+      "id": 7,
+      "userId": 4,
+      "title": "데일리포커스",
+      "category": "AI & SaaS",
+      "accessMode": "open",
+      "description": "하루 3가지 핵심 일에만 집중하게 돕는 미니멀 생산성 앱. AI가 일정을 보고 오늘의 우선순위를 제안한다.",
+      "liveUrl": "https://dailyfocus.example.com/",
+      "maturity": "live",
+      "stack": "web",
+      "vibeCoded": true,
+      "builtWith": ["claude-code", "lovable"],
+      "tags": ["생산성", "AI", "집중", "할일"],
+      "createdAt": "2026-06-06T13:09:13.720Z",
+      "validation": {
+        "success": true,
+        "status": 200,
+        "message": "라이브 사이트 확인 통과",
+        "responseTimeMs": 190,
+        "checkedAt": "2026-06-07T13:09:13.720Z"
+      },
+      "protectionNoticeAccepted": true,
+      "investorCount": 0,
+      "matchCount": 0,
+      "committedAmountMin": 0,
+      "committedAmountMax": 0
+    },
+    {
+      "id": 8,
+      "userId": 5,
+      "title": "AR 룸플래너",
+      "category": "XR & E-Commerce",
+      "accessMode": "open",
+      "description": "휴대폰 카메라로 방을 비추면 가구를 실제 크기로 배치해보고 바로 구매까지 연결되는 AR 쇼핑 데모.",
+      "liveUrl": "https://ar-roomplanner.example.com/",
+      "maturity": "early",
+      "stack": "app",
+      "vibeCoded": true,
+      "builtWith": ["cursor"],
+      "tags": ["AR", "커머스", "가구", "쇼핑"],
+      "createdAt": "2026-06-09T13:09:13.720Z",
+      "validation": {
+        "success": true,
+        "status": 200,
+        "message": "라이브 사이트 확인 통과",
+        "responseTimeMs": 410,
+        "checkedAt": "2026-06-10T13:09:13.720Z"
+      },
+      "protectionNoticeAccepted": true,
+      "investorCount": 0,
+      "matchCount": 0,
+      "committedAmountMin": 0,
+      "committedAmountMax": 0
+    },
+    {
+      "id": 9,
+      "userId": 5,
+      "title": "온체인 길드",
+      "category": "Web3 & Community",
+      "accessMode": "screened",
+      "description": "취향 기반 커뮤니티를 온체인 멤버십으로 묶어 기여도에 따라 보상을 분배하는 길드 운영 도구의 초기 프로토타입.",
+      "liveUrl": "https://onchain-guild.example.com/",
+      "maturity": "early",
+      "stack": "web",
+      "vibeCoded": true,
+      "builtWith": ["claude-code", "bolt"],
+      "tags": ["web3", "커뮤니티", "멤버십", "온체인"],
+      "createdAt": "2026-06-11T13:09:13.720Z",
+      "validation": {
+        "success": false,
+        "status": 503,
+        "message": "응답 지연으로 재확인 필요",
+        "responseTimeMs": 540,
+        "checkedAt": "2026-06-12T13:09:13.720Z"
+      },
+      "protectionNoticeAccepted": true,
+      "investorCount": 0,
+      "matchCount": 0,
+      "committedAmountMin": 0,
+      "committedAmountMax": 0
+    },
+    {
+      "id": 10,
+      "userId": 6,
+      "title": "한줄게임",
+      "category": "Social",
+      "accessMode": "open",
+      "description": "친구들과 한 줄씩 이어 써서 황당한 이야기를 완성하는 실시간 파티 게임. 방을 만들고 링크만 공유하면 끝.",
+      "liveUrl": "https://oneline-game.example.com/",
+      "maturity": "live",
+      "stack": "game",
+      "vibeCoded": true,
+      "builtWith": ["v0", "cursor"],
+      "tags": ["게임", "파티", "실시간", "소셜"],
+      "featured": true,
+      "createdAt": "2026-06-03T13:09:13.720Z",
+      "validation": {
+        "success": true,
+        "status": 200,
+        "message": "라이브 사이트 확인 통과",
+        "responseTimeMs": 170,
+        "checkedAt": "2026-06-06T13:09:13.720Z"
+      },
+      "protectionNoticeAccepted": true,
+      "investorCount": 0,
+      "matchCount": 0,
+      "committedAmountMin": 0,
+      "committedAmountMax": 0
+    },
+    {
+      "id": 11,
+      "userId": 6,
+      "title": "픽셀 정원",
+      "category": "Social",
+      "accessMode": "open",
+      "description": "매일 한 칸씩 픽셀을 칠해 함께 정원을 키우는 잔잔한 협동 캔버스. 출석할수록 정원이 풍성해진다.",
+      "liveUrl": "https://pixel-garden.example.com/",
+      "maturity": "building",
+      "stack": "game",
+      "vibeCoded": true,
+      "builtWith": ["claude-code"],
+      "tags": ["픽셀", "협동", "캔버스", "소셜"],
+      "createdAt": "2026-06-08T13:09:13.720Z",
+      "validation": {
+        "success": true,
+        "status": 200,
+        "message": "라이브 사이트 확인 통과",
+        "responseTimeMs": 200,
+        "checkedAt": "2026-06-09T13:09:13.720Z"
+      },
+      "protectionNoticeAccepted": true,
+      "investorCount": 0,
+      "matchCount": 0,
+      "committedAmountMin": 0,
+      "committedAmountMax": 0
+    },
+    {
+      "id": 12,
+      "userId": 4,
+      "title": "동네 책장",
+      "category": "Other",
+      "accessMode": "screened",
+      "description": "이웃끼리 안 읽는 책을 등록하고 빌려보는 동네 단위 책 공유 서비스. 위치 기반으로 가까운 책장을 보여준다.",
+      "liveUrl": "https://neighbor-shelf.example.com/",
+      "maturity": "early",
+      "stack": "web",
+      "vibeCoded": true,
+      "builtWith": ["lovable"],
+      "tags": ["공유", "도서", "로컬", "커뮤니티"],
+      "createdAt": "2026-06-13T13:09:13.720Z",
+      "validation": {
+        "success": true,
+        "status": 200,
+        "message": "라이브 사이트 확인 통과",
+        "responseTimeMs": 260,
+        "checkedAt": "2026-06-14T13:09:13.720Z"
+      },
+      "protectionNoticeAccepted": true,
+      "investorCount": 0,
+      "matchCount": 0,
+      "committedAmountMin": 0,
+      "committedAmountMax": 0
     }
   ],
-  "proposals": [],
+  "upvotes": [
+    {
+      "id": 1,
+      "projectId": 1,
+      "email": "member@protolive.local",
+      "createdAt": "2026-06-05T13:09:13.720Z"
+    },
+    {
+      "id": 2,
+      "projectId": 1,
+      "email": "reviewer-a@protolive.local",
+      "createdAt": "2026-06-06T13:09:13.720Z"
+    },
+    {
+      "id": 3,
+      "projectId": 1,
+      "email": "reviewer-b@protolive.local",
+      "createdAt": "2026-06-07T13:09:13.720Z"
+    },
+    {
+      "id": 4,
+      "projectId": 1,
+      "email": "maker-a@protolive.local",
+      "createdAt": "2026-06-08T13:09:13.720Z"
+    },
+    {
+      "id": 5,
+      "projectId": 1,
+      "email": "maker-b@protolive.local",
+      "createdAt": "2026-06-09T13:09:13.720Z"
+    },
+    {
+      "id": 6,
+      "projectId": 1,
+      "email": "maker-c@protolive.local",
+      "createdAt": "2026-06-10T13:09:13.720Z"
+    },
+    {
+      "id": 7,
+      "projectId": 1,
+      "email": "investor-a@protolive.local",
+      "createdAt": "2026-06-11T13:09:13.720Z"
+    },
+    {
+      "id": 8,
+      "projectId": 1,
+      "email": "investor-b@protolive.local",
+      "createdAt": "2026-06-12T13:09:13.720Z"
+    },
+    {
+      "id": 9,
+      "projectId": 2,
+      "email": "member@protolive.local",
+      "createdAt": "2026-06-05T13:09:13.720Z"
+    },
+    {
+      "id": 10,
+      "projectId": 2,
+      "email": "reviewer-a@protolive.local",
+      "createdAt": "2026-06-06T13:09:13.720Z"
+    },
+    {
+      "id": 11,
+      "projectId": 2,
+      "email": "reviewer-b@protolive.local",
+      "createdAt": "2026-06-07T13:09:13.720Z"
+    },
+    {
+      "id": 12,
+      "projectId": 2,
+      "email": "maker-a@protolive.local",
+      "createdAt": "2026-06-08T13:09:13.720Z"
+    },
+    {
+      "id": 13,
+      "projectId": 2,
+      "email": "maker-b@protolive.local",
+      "createdAt": "2026-06-09T13:09:13.720Z"
+    },
+    {
+      "id": 14,
+      "projectId": 2,
+      "email": "maker-c@protolive.local",
+      "createdAt": "2026-06-10T13:09:13.720Z"
+    },
+    {
+      "id": 15,
+      "projectId": 2,
+      "email": "investor-a@protolive.local",
+      "createdAt": "2026-06-11T13:09:13.720Z"
+    },
+    {
+      "id": 16,
+      "projectId": 3,
+      "email": "member@protolive.local",
+      "createdAt": "2026-06-05T13:09:13.720Z"
+    },
+    {
+      "id": 17,
+      "projectId": 3,
+      "email": "reviewer-a@protolive.local",
+      "createdAt": "2026-06-06T13:09:13.720Z"
+    },
+    {
+      "id": 18,
+      "projectId": 3,
+      "email": "reviewer-b@protolive.local",
+      "createdAt": "2026-06-07T13:09:13.720Z"
+    },
+    {
+      "id": 19,
+      "projectId": 4,
+      "email": "member@protolive.local",
+      "createdAt": "2026-06-05T13:09:13.720Z"
+    },
+    {
+      "id": 20,
+      "projectId": 4,
+      "email": "reviewer-a@protolive.local",
+      "createdAt": "2026-06-06T13:09:13.720Z"
+    },
+    {
+      "id": 21,
+      "projectId": 5,
+      "email": "member@protolive.local",
+      "createdAt": "2026-06-05T13:09:13.720Z"
+    },
+    {
+      "id": 22,
+      "projectId": 5,
+      "email": "reviewer-a@protolive.local",
+      "createdAt": "2026-06-06T13:09:13.720Z"
+    },
+    {
+      "id": 23,
+      "projectId": 5,
+      "email": "reviewer-b@protolive.local",
+      "createdAt": "2026-06-07T13:09:13.720Z"
+    },
+    {
+      "id": 24,
+      "projectId": 6,
+      "email": "member@protolive.local",
+      "createdAt": "2026-06-05T13:09:13.720Z"
+    },
+    {
+      "id": 25,
+      "projectId": 6,
+      "email": "reviewer-a@protolive.local",
+      "createdAt": "2026-06-06T13:09:13.720Z"
+    },
+    {
+      "id": 26,
+      "projectId": 6,
+      "email": "reviewer-b@protolive.local",
+      "createdAt": "2026-06-07T13:09:13.720Z"
+    },
+    {
+      "id": 27,
+      "projectId": 6,
+      "email": "maker-a@protolive.local",
+      "createdAt": "2026-06-08T13:09:13.720Z"
+    },
+    {
+      "id": 28,
+      "projectId": 6,
+      "email": "maker-b@protolive.local",
+      "createdAt": "2026-06-09T13:09:13.720Z"
+    },
+    {
+      "id": 29,
+      "projectId": 6,
+      "email": "maker-c@protolive.local",
+      "createdAt": "2026-06-10T13:09:13.720Z"
+    },
+    {
+      "id": 30,
+      "projectId": 7,
+      "email": "member@protolive.local",
+      "createdAt": "2026-06-05T13:09:13.720Z"
+    },
+    {
+      "id": 31,
+      "projectId": 7,
+      "email": "reviewer-a@protolive.local",
+      "createdAt": "2026-06-06T13:09:13.720Z"
+    },
+    {
+      "id": 32,
+      "projectId": 7,
+      "email": "reviewer-b@protolive.local",
+      "createdAt": "2026-06-07T13:09:13.720Z"
+    },
+    {
+      "id": 33,
+      "projectId": 7,
+      "email": "maker-a@protolive.local",
+      "createdAt": "2026-06-08T13:09:13.720Z"
+    },
+    {
+      "id": 34,
+      "projectId": 8,
+      "email": "member@protolive.local",
+      "createdAt": "2026-06-05T13:09:13.720Z"
+    },
+    {
+      "id": 35,
+      "projectId": 9,
+      "email": "member@protolive.local",
+      "createdAt": "2026-06-05T13:09:13.720Z"
+    },
+    {
+      "id": 36,
+      "projectId": 10,
+      "email": "member@protolive.local",
+      "createdAt": "2026-06-05T13:09:13.720Z"
+    },
+    {
+      "id": 37,
+      "projectId": 10,
+      "email": "reviewer-a@protolive.local",
+      "createdAt": "2026-06-06T13:09:13.720Z"
+    },
+    {
+      "id": 38,
+      "projectId": 10,
+      "email": "reviewer-b@protolive.local",
+      "createdAt": "2026-06-07T13:09:13.720Z"
+    },
+    {
+      "id": 39,
+      "projectId": 10,
+      "email": "maker-a@protolive.local",
+      "createdAt": "2026-06-08T13:09:13.720Z"
+    },
+    {
+      "id": 40,
+      "projectId": 10,
+      "email": "maker-b@protolive.local",
+      "createdAt": "2026-06-09T13:09:13.720Z"
+    },
+    {
+      "id": 41,
+      "projectId": 10,
+      "email": "maker-c@protolive.local",
+      "createdAt": "2026-06-10T13:09:13.720Z"
+    },
+    {
+      "id": 42,
+      "projectId": 11,
+      "email": "member@protolive.local",
+      "createdAt": "2026-06-05T13:09:13.720Z"
+    },
+    {
+      "id": 43,
+      "projectId": 11,
+      "email": "reviewer-a@protolive.local",
+      "createdAt": "2026-06-06T13:09:13.720Z"
+    }
+  ],
+  "proposals": [
+    {
+      "id": 1,
+      "projectId": 1,
+      "investorEmail": "investor-a@protolive.local",
+      "fundingRangeId": "seed-100-300",
+      "message": "통합 인덱스 트래픽과 리텐션 지표가 인상적입니다. 시드 단계 미팅을 제안드립니다.",
+      "legalNoticeAccepted": true,
+      "privacyConsentAccepted": true,
+      "riskNoticeAccepted": true,
+      "status": "contacted",
+      "createdAt": "2026-06-06T13:09:13.720Z"
+    },
+    {
+      "id": 2,
+      "projectId": 1,
+      "investorEmail": "investor-c@protolive.local",
+      "fundingRangeId": "seed-50-100",
+      "message": "콘텐츠 버티컬에 관심이 큽니다. 데이터 파이프라인 구조를 더 듣고 싶어요.",
+      "legalNoticeAccepted": true,
+      "privacyConsentAccepted": true,
+      "riskNoticeAccepted": true,
+      "status": "submitted",
+      "createdAt": "2026-06-08T13:09:13.720Z"
+    },
+    {
+      "id": 3,
+      "projectId": 2,
+      "investorEmail": "investor-a@protolive.local",
+      "fundingRangeId": "seed-50-100",
+      "message": "채용 SaaS는 우리 포트폴리오 핵심입니다. 리텐션·전환 지표 공유 가능할까요?",
+      "legalNoticeAccepted": true,
+      "privacyConsentAccepted": true,
+      "riskNoticeAccepted": true,
+      "status": "contacted",
+      "createdAt": "2026-06-07T13:09:13.720Z"
+    },
+    {
+      "id": 4,
+      "projectId": 2,
+      "investorEmail": "investor-b@protolive.local",
+      "fundingRangeId": "pre-seed-30-50",
+      "message": "AI 피드백 품질이 좋네요. 프리시드 라운드 참여 검토 중입니다.",
+      "legalNoticeAccepted": true,
+      "privacyConsentAccepted": true,
+      "riskNoticeAccepted": true,
+      "status": "submitted",
+      "createdAt": "2026-06-09T13:09:13.720Z"
+    },
+    {
+      "id": 5,
+      "projectId": 6,
+      "investorEmail": "investor-b@protolive.local",
+      "fundingRangeId": "pre-seed-10-30",
+      "message": "정산 자동화 UX가 깔끔합니다. 초기 사용자 반응 데이터를 보고 싶습니다.",
+      "legalNoticeAccepted": true,
+      "privacyConsentAccepted": true,
+      "riskNoticeAccepted": true,
+      "status": "submitted",
+      "createdAt": "2026-06-10T13:09:13.720Z"
+    },
+    {
+      "id": 6,
+      "projectId": 10,
+      "investorEmail": "investor-c@protolive.local",
+      "fundingRangeId": "pre-seed-30-50",
+      "message": "실시간 파티 게임의 바이럴 계수가 궁금합니다. 미팅 잡고 싶어요.",
+      "legalNoticeAccepted": true,
+      "privacyConsentAccepted": true,
+      "riskNoticeAccepted": true,
+      "status": "submitted",
+      "createdAt": "2026-06-11T13:09:13.720Z"
+    },
+    {
+      "id": 7,
+      "projectId": 10,
+      "investorEmail": "investor-a@protolive.local",
+      "fundingRangeId": "pre-seed-10-30",
+      "message": "소셜 게임 카테고리 확장 가능성을 높게 봅니다.",
+      "legalNoticeAccepted": true,
+      "privacyConsentAccepted": true,
+      "riskNoticeAccepted": true,
+      "status": "submitted",
+      "createdAt": "2026-06-12T13:09:13.720Z"
+    },
+    {
+      "id": 8,
+      "projectId": 7,
+      "investorEmail": "investor-b@protolive.local",
+      "fundingRangeId": "pre-seed-10-30",
+      "message": "생산성 앱 초기 지표가 견조합니다. 프리시드 관심 있습니다.",
+      "legalNoticeAccepted": true,
+      "privacyConsentAccepted": true,
+      "riskNoticeAccepted": true,
+      "status": "submitted",
+      "createdAt": "2026-06-13T13:09:13.720Z"
+    },
+    {
+      "id": 9,
+      "projectId": 3,
+      "investorEmail": "investor-c@protolive.local",
+      "fundingRangeId": "seed-50-100",
+      "message": "약관 증거 인프라는 B2B 확장성이 큽니다. 셀프호스팅 도입 사례를 듣고 싶어요.",
+      "legalNoticeAccepted": true,
+      "privacyConsentAccepted": true,
+      "riskNoticeAccepted": true,
+      "status": "closed",
+      "createdAt": "2026-06-09T13:09:13.720Z"
+    }
+  ],
   "events": [
     {
       "id": 1,
       "projectId": 1,
       "type": "create",
-      "createdAt": "2026-05-10T09:00:00.000Z"
+      "createdAt": "2026-05-10T14:09:13.720Z"
     },
     {
       "id": 2,
       "projectId": 2,
       "type": "create",
-      "createdAt": "2026-05-18T09:00:00.000Z"
+      "createdAt": "2026-05-18T14:09:13.720Z"
     },
     {
       "id": 3,
       "projectId": 3,
       "type": "create",
-      "createdAt": "2026-05-22T09:00:00.000Z"
+      "createdAt": "2026-05-22T14:09:13.720Z"
     },
     {
       "id": 4,
       "projectId": 4,
       "type": "create",
-      "createdAt": "2026-05-28T09:00:00.000Z"
+      "createdAt": "2026-05-28T14:09:13.720Z"
     },
     {
       "id": 5,
       "projectId": 5,
       "type": "create",
-      "createdAt": "2026-06-01T09:00:00.000Z"
+      "createdAt": "2026-06-01T14:09:13.720Z"
+    },
+    {
+      "id": 6,
+      "projectId": 6,
+      "type": "create",
+      "createdAt": "2026-05-26T14:09:13.720Z"
+    },
+    {
+      "id": 7,
+      "projectId": 7,
+      "type": "create",
+      "createdAt": "2026-06-06T14:09:13.720Z"
+    },
+    {
+      "id": 8,
+      "projectId": 8,
+      "type": "create",
+      "createdAt": "2026-06-09T14:09:13.720Z"
+    },
+    {
+      "id": 9,
+      "projectId": 9,
+      "type": "create",
+      "createdAt": "2026-06-11T14:09:13.720Z"
+    },
+    {
+      "id": 10,
+      "projectId": 10,
+      "type": "create",
+      "createdAt": "2026-06-03T14:09:13.720Z"
+    },
+    {
+      "id": 11,
+      "projectId": 11,
+      "type": "create",
+      "createdAt": "2026-06-08T14:09:13.720Z"
+    },
+    {
+      "id": 12,
+      "projectId": 12,
+      "type": "create",
+      "createdAt": "2026-06-13T14:09:13.720Z"
+    },
+    {
+      "id": 13,
+      "projectId": 1,
+      "type": "preview",
+      "createdAt": "2026-06-13T15:09:13.720Z"
+    },
+    {
+      "id": 14,
+      "projectId": 1,
+      "type": "preview",
+      "createdAt": "2026-06-12T17:09:13.720Z"
+    },
+    {
+      "id": 15,
+      "projectId": 2,
+      "type": "preview",
+      "createdAt": "2026-06-12T15:09:13.720Z"
+    },
+    {
+      "id": 16,
+      "projectId": 2,
+      "type": "preview",
+      "createdAt": "2026-06-11T17:09:13.720Z"
+    },
+    {
+      "id": 17,
+      "projectId": 3,
+      "type": "preview",
+      "createdAt": "2026-06-11T15:09:13.720Z"
+    },
+    {
+      "id": 18,
+      "projectId": 3,
+      "type": "preview",
+      "createdAt": "2026-06-10T17:09:13.720Z"
+    },
+    {
+      "id": 19,
+      "projectId": 5,
+      "type": "preview",
+      "createdAt": "2026-06-09T15:09:13.720Z"
+    },
+    {
+      "id": 20,
+      "projectId": 5,
+      "type": "preview",
+      "createdAt": "2026-06-13T17:09:13.720Z"
+    },
+    {
+      "id": 21,
+      "projectId": 6,
+      "type": "preview",
+      "createdAt": "2026-06-08T15:09:13.720Z"
+    },
+    {
+      "id": 22,
+      "projectId": 6,
+      "type": "preview",
+      "createdAt": "2026-06-12T17:09:13.720Z"
+    },
+    {
+      "id": 23,
+      "projectId": 7,
+      "type": "preview",
+      "createdAt": "2026-06-07T15:09:13.720Z"
+    },
+    {
+      "id": 24,
+      "projectId": 7,
+      "type": "preview",
+      "createdAt": "2026-06-11T17:09:13.720Z"
+    },
+    {
+      "id": 25,
+      "projectId": 10,
+      "type": "preview",
+      "createdAt": "2026-06-13T15:09:13.720Z"
+    },
+    {
+      "id": 26,
+      "projectId": 10,
+      "type": "preview",
+      "createdAt": "2026-06-13T17:09:13.720Z"
+    },
+    {
+      "id": 27,
+      "projectId": 11,
+      "type": "preview",
+      "createdAt": "2026-06-12T15:09:13.720Z"
+    },
+    {
+      "id": 28,
+      "projectId": 11,
+      "type": "preview",
+      "createdAt": "2026-06-12T17:09:13.720Z"
+    },
+    {
+      "id": 29,
+      "projectId": 1,
+      "type": "outbound",
+      "createdAt": "2026-06-13T18:09:13.720Z"
+    },
+    {
+      "id": 30,
+      "projectId": 2,
+      "type": "outbound",
+      "createdAt": "2026-06-12T18:09:13.720Z"
+    },
+    {
+      "id": 31,
+      "projectId": 6,
+      "type": "outbound",
+      "createdAt": "2026-06-14T18:09:13.720Z"
+    },
+    {
+      "id": 32,
+      "projectId": 10,
+      "type": "outbound",
+      "createdAt": "2026-06-10T18:09:13.720Z"
+    },
+    {
+      "id": 33,
+      "projectId": 7,
+      "type": "outbound",
+      "createdAt": "2026-06-13T18:09:13.720Z"
+    },
+    {
+      "id": 34,
+      "projectId": 1,
+      "type": "match",
+      "createdAt": "2026-06-13T19:09:13.720Z"
+    },
+    {
+      "id": 35,
+      "projectId": 2,
+      "type": "match",
+      "createdAt": "2026-06-12T19:09:13.720Z"
+    },
+    {
+      "id": 36,
+      "projectId": 6,
+      "type": "match",
+      "createdAt": "2026-06-13T19:09:13.720Z"
+    },
+    {
+      "id": 37,
+      "projectId": 10,
+      "type": "match",
+      "createdAt": "2026-06-14T19:09:13.720Z"
+    },
+    {
+      "id": 38,
+      "projectId": 3,
+      "type": "match",
+      "createdAt": "2026-06-11T19:09:13.720Z"
+    },
+    {
+      "id": 39,
+      "projectId": 3,
+      "type": "refresh",
+      "createdAt": "2026-06-11T20:09:13.720Z"
+    },
+    {
+      "id": 40,
+      "projectId": 4,
+      "type": "refresh",
+      "createdAt": "2026-06-14T20:09:13.720Z"
+    },
+    {
+      "id": 41,
+      "projectId": 5,
+      "type": "refresh",
+      "createdAt": "2026-06-13T20:09:13.720Z"
     }
   ],
   "reviews": [
     {
       "id": 1,
-      "projectId": 1,
       "parentId": null,
+      "status": "visible",
+      "reportCount": 0,
+      "reportedBy": [],
+      "projectId": 1,
       "authorEmail": "member@protolive.local",
       "authorRole": "member",
       "type": "review",
       "rating": 5,
       "body": "플랫폼을 가로질러 한 번에 보는 게 진짜 편해요. 연재 캘린더가 특히 좋네요.",
-      "createdAt": "2026-05-26T08:30:00.000Z"
+      "createdAt": "2026-06-05T12:09:13.720Z"
     },
     {
       "id": 2,
-      "projectId": 2,
       "parentId": null,
-      "authorEmail": "member@protolive.local",
+      "status": "visible",
+      "reportCount": 0,
+      "reportedBy": [],
+      "projectId": 1,
+      "authorEmail": "reviewer-a@protolive.local",
+      "authorRole": "member",
+      "type": "review",
+      "rating": 4,
+      "body": "가격비교 정확도가 높아요. 다만 일부 플랫폼은 갱신이 조금 느린 듯합니다.",
+      "createdAt": "2026-06-07T13:09:13.720Z"
+    },
+    {
+      "id": 3,
+      "parentId": 1,
+      "status": "visible",
+      "reportCount": 0,
+      "reportedBy": [],
+      "projectId": 1,
+      "authorEmail": "maker-heejun@protolive.local",
+      "authorRole": "maker",
+      "type": "review",
+      "rating": null,
+      "body": "연재 캘린더 좋게 봐주셔서 감사합니다! 곧 알림 기능도 붙일게요.",
+      "createdAt": "2026-06-08T14:09:13.720Z"
+    },
+    {
+      "id": 4,
+      "parentId": null,
+      "status": "visible",
+      "reportCount": 0,
+      "reportedBy": [],
+      "projectId": 2,
+      "authorEmail": "reviewer-a@protolive.local",
       "authorRole": "member",
       "type": "idea",
       "rating": null,
       "body": "직무별 추천 문구 템플릿이 있으면 초안 잡기 더 빠를 것 같아요.",
-      "createdAt": "2026-05-30T10:00:00.000Z"
+      "createdAt": "2026-06-06T15:09:13.720Z"
     },
     {
-      "id": 3,
-      "projectId": 4,
+      "id": 5,
       "parentId": null,
-      "authorEmail": "member@protolive.local",
+      "status": "visible",
+      "reportCount": 0,
+      "reportedBy": [],
+      "projectId": 2,
+      "authorEmail": "investor-a@protolive.local",
+      "authorRole": "investor",
+      "type": "review",
+      "rating": 5,
+      "body": "버전 관리 UX가 깔끔합니다. 채용 담당자 입장에서도 받아보기 편하겠어요.",
+      "createdAt": "2026-06-09T16:09:13.720Z"
+    },
+    {
+      "id": 6,
+      "parentId": null,
+      "status": "visible",
+      "reportCount": 0,
+      "reportedBy": [],
+      "projectId": 4,
+      "authorEmail": "reviewer-b@protolive.local",
       "authorRole": "member",
       "type": "support",
       "rating": null,
       "body": "초기 단계지만 세션 리플레이 방향이 명확해서 응원합니다.",
-      "createdAt": "2026-06-02T11:15:00.000Z"
+      "createdAt": "2026-06-10T15:09:13.720Z"
+    },
+    {
+      "id": 7,
+      "parentId": null,
+      "status": "visible",
+      "reportCount": 0,
+      "reportedBy": [],
+      "projectId": 6,
+      "authorEmail": "member@protolive.local",
+      "authorRole": "member",
+      "type": "review",
+      "rating": 4,
+      "body": "영수증 자동 분배가 신기해요. 카드 분할만 더 정교해지면 완벽할 듯.",
+      "createdAt": "2026-06-10T17:09:13.720Z"
+    },
+    {
+      "id": 8,
+      "parentId": null,
+      "status": "visible",
+      "reportCount": 0,
+      "reportedBy": [],
+      "projectId": 6,
+      "authorEmail": "reviewer-b@protolive.local",
+      "authorRole": "member",
+      "type": "idea",
+      "rating": null,
+      "body": "정기 모임용 반복 정산 기능이 있으면 좋겠어요.",
+      "createdAt": "2026-06-11T13:09:13.720Z"
+    },
+    {
+      "id": 9,
+      "parentId": null,
+      "status": "visible",
+      "reportCount": 0,
+      "reportedBy": [],
+      "projectId": 10,
+      "authorEmail": "reviewer-a@protolive.local",
+      "authorRole": "member",
+      "type": "review",
+      "rating": 5,
+      "body": "친구들이랑 했더니 빵 터졌어요. 방 만들기 진짜 쉬움.",
+      "createdAt": "2026-06-10T00:09:13.720Z"
+    },
+    {
+      "id": 10,
+      "parentId": null,
+      "status": "visible",
+      "reportCount": 0,
+      "reportedBy": [],
+      "projectId": 10,
+      "authorEmail": "member@protolive.local",
+      "authorRole": "member",
+      "type": "support",
+      "rating": null,
+      "body": "카테고리 확장 기대됩니다. 시즌 테마 모드도 보고 싶어요!",
+      "createdAt": "2026-06-13T01:09:13.720Z"
+    },
+    {
+      "id": 11,
+      "parentId": null,
+      "status": "visible",
+      "reportCount": 0,
+      "reportedBy": [],
+      "projectId": 7,
+      "authorEmail": "reviewer-b@protolive.local",
+      "authorRole": "member",
+      "type": "review",
+      "rating": 4,
+      "body": "오늘 할 일 3개만 보여주는 게 오히려 집중에 도움돼요.",
+      "createdAt": "2026-06-13T12:09:13.720Z"
+    },
+    {
+      "id": 12,
+      "parentId": null,
+      "status": "reported",
+      "reportCount": 2,
+      "reportedBy": ["member@protolive.local", "maker-b@protolive.local"],
+      "projectId": 8,
+      "authorEmail": "reviewer-b@protolive.local",
+      "authorRole": "member",
+      "type": "review",
+      "rating": 2,
+      "body": "AR 정렬이 자주 틀어져요. 아직 초기라 그런가 봅니다.",
+      "reportReasons": [
+        {
+          "reporterEmail": "member@protolive.local",
+          "reason": "근거 없는 비방 같아요",
+          "createdAt": "2026-06-13T14:09:13.720Z"
+        }
+      ],
+      "lastReportedAt": "2026-06-13T14:09:13.720Z",
+      "createdAt": "2026-06-12T13:09:13.720Z"
+    },
+    {
+      "id": 13,
+      "parentId": null,
+      "status": "hidden",
+      "reportCount": 3,
+      "reportedBy": [
+        "member@protolive.local",
+        "maker-b@protolive.local",
+        "reviewer-b@protolive.local"
+      ],
+      "projectId": 9,
+      "authorEmail": "reviewer-a@protolive.local",
+      "authorRole": "member",
+      "type": "review",
+      "rating": 1,
+      "body": "[운영자에 의해 숨김 처리된 리뷰]",
+      "moderatedBy": "admin@protolive.local",
+      "moderationNote": "커뮤니티 가이드 위반(스팸)으로 숨김",
+      "lastModeratedAt": "2026-06-14T16:09:13.720Z",
+      "createdAt": "2026-06-13T18:09:13.720Z"
     }
   ],
-  "auditLogs": [],
-  "nextUserId": 4,
-  "nextProjectId": 6,
-  "nextProposalId": 1,
-  "nextEventId": 6,
-  "nextReviewId": 4,
-  "nextAuditLogId": 1
+  "auditLogs": [
+    {
+      "id": 1,
+      "action": "match_compliance_accepted",
+      "actorEmail": "investor-a@protolive.local",
+      "targetType": "match",
+      "targetId": 1,
+      "projectId": 1,
+      "message": "투자 관심 제안 시 법적 고지·개인정보·위험 고지에 동의함",
+      "createdAt": "2026-06-06T19:09:13.720Z"
+    },
+    {
+      "id": 2,
+      "action": "match_compliance_accepted",
+      "actorEmail": "investor-c@protolive.local",
+      "targetType": "match",
+      "targetId": 9,
+      "projectId": 3,
+      "message": "투자 관심 제안 시 법적 고지·개인정보·위험 고지에 동의함",
+      "createdAt": "2026-06-09T20:09:13.720Z"
+    },
+    {
+      "id": 3,
+      "action": "review_reported",
+      "actorEmail": "member@protolive.local",
+      "targetType": "review",
+      "targetId": 12,
+      "projectId": 8,
+      "message": "리뷰가 신고되었습니다(근거 없는 비방).",
+      "createdAt": "2026-06-13T14:09:13.720Z"
+    },
+    {
+      "id": 4,
+      "action": "review_hidden_auto",
+      "actorEmail": "system@protolive.local",
+      "targetType": "review",
+      "targetId": 13,
+      "projectId": 9,
+      "message": "신고 누적 임계 초과로 리뷰가 자동 숨김 처리되었습니다.",
+      "createdAt": "2026-06-14T15:09:13.720Z"
+    },
+    {
+      "id": 5,
+      "action": "review_moderated",
+      "actorEmail": "admin@protolive.local",
+      "targetType": "review",
+      "targetId": 13,
+      "projectId": 9,
+      "message": "운영자가 리뷰를 숨김으로 확정했습니다(스팸).",
+      "createdAt": "2026-06-14T16:09:13.720Z"
+    }
+  ],
+  "challenge": {
+    "title": "이번 주 챌린지: 30분 만에 만든 라이브 데모",
+    "description": "주말 동안 바이브코딩으로 만든 작은 라이브 빌드를 공유하세요. 거칠어도 좋습니다 — 떠 있기만 하면 됩니다.",
+    "endsAt": "2026-06-19T03:09:13.720Z",
+    "updatedAt": "2026-06-07T13:09:13.720Z"
+  },
+  "nextUserId": 12,
+  "nextProjectId": 13,
+  "nextUpvoteId": 44,
+  "nextProposalId": 10,
+  "nextEventId": 42,
+  "nextReviewId": 14,
+  "nextAuditLogId": 6
 }

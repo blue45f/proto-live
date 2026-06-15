@@ -9,6 +9,7 @@ import {
 } from '../../lib/constants'
 import {
   formatRelativeTime,
+  formatWon,
   getResponseTimeTone,
   getValidationTone,
   maskEmail,
@@ -51,6 +52,12 @@ export function ProjectCard({
   const latestReview = project.reviewSummary?.latest
   const isCardView = viewMode === 'cards'
   const isReviewView = viewMode === 'reviews'
+  const committedRangeText =
+    project.committedAmountMax > 0
+      ? project.committedAmountMin > 0 && project.committedAmountMin !== project.committedAmountMax
+        ? formatWon(project.committedAmountMin) + '~' + formatWon(project.committedAmountMax)
+        : formatWon(project.committedAmountMax)
+      : null
 
   return (
     <article
@@ -213,10 +220,15 @@ export function ProjectCard({
               </p>
             </div>
           )}
-          <div className="mt-3 flex flex-wrap gap-2 text-xs text-stone-500">
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-stone-500">
             <span>리뷰 {project.reviewSummary?.rootCount ?? 0}</span>
             <span>답글 {project.reviewSummary?.replyCount ?? 0}</span>
             <span>투자 관심 {project.matchCount}</span>
+            {committedRangeText && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/30 bg-amber-300/10 px-2 py-0.5 font-black text-amber-100">
+                관심 투자금 {committedRangeText}
+              </span>
+            )}
             <span>
               최근{' '}
               {formatRelativeTime(

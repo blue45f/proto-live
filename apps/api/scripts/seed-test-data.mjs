@@ -30,12 +30,15 @@ const DEFAULT_STATE = {
   projects: [],
   proposals: [],
   events: [],
+  upvotes: [],
   reviews: [],
   auditLogs: [],
+  challenge: null,
   nextUserId: 1,
   nextProjectId: 1,
   nextProposalId: 1,
   nextEventId: 1,
+  nextUpvoteId: 1,
   nextReviewId: 1,
   nextAuditLogId: 1,
 }
@@ -46,12 +49,15 @@ function createDefaultState() {
     projects: [],
     proposals: [],
     events: [],
+    upvotes: [],
     reviews: [],
     auditLogs: [],
+    challenge: null,
     nextUserId: DEFAULT_STATE.nextUserId,
     nextProjectId: DEFAULT_STATE.nextProjectId,
     nextProposalId: DEFAULT_STATE.nextProposalId,
     nextEventId: DEFAULT_STATE.nextEventId,
+    nextUpvoteId: DEFAULT_STATE.nextUpvoteId,
     nextReviewId: DEFAULT_STATE.nextReviewId,
     nextAuditLogId: DEFAULT_STATE.nextAuditLogId,
   }
@@ -180,12 +186,15 @@ function loadStoreState() {
     projects: Array.isArray(parsed.projects) ? parsed.projects : [],
     proposals: Array.isArray(parsed.proposals) ? parsed.proposals : [],
     events: Array.isArray(parsed.events) ? parsed.events : [],
+    upvotes: Array.isArray(parsed.upvotes) ? parsed.upvotes : [],
     reviews: Array.isArray(parsed.reviews) ? parsed.reviews : [],
     auditLogs: Array.isArray(parsed.auditLogs) ? parsed.auditLogs : [],
+    challenge: parsed.challenge && typeof parsed.challenge === 'object' ? parsed.challenge : null,
     nextUserId: safeParseInt(parsed.nextUserId, DEFAULT_STATE.nextUserId),
     nextProjectId: safeParseInt(parsed.nextProjectId, DEFAULT_STATE.nextProjectId),
     nextProposalId: safeParseInt(parsed.nextProposalId, DEFAULT_STATE.nextProposalId),
     nextEventId: safeParseInt(parsed.nextEventId, DEFAULT_STATE.nextEventId),
+    nextUpvoteId: safeParseInt(parsed.nextUpvoteId, DEFAULT_STATE.nextUpvoteId),
     nextReviewId: safeParseInt(parsed.nextReviewId, DEFAULT_STATE.nextReviewId),
     nextAuditLogId: safeParseInt(parsed.nextAuditLogId, DEFAULT_STATE.nextAuditLogId),
   }
@@ -231,12 +240,15 @@ function loadFixture(path) {
     projects: normalizeProjects(Array.isArray(parsed.projects) ? parsed.projects : []),
     proposals: normalizeProposals(Array.isArray(parsed.proposals) ? parsed.proposals : []),
     events: normalizeEvents(Array.isArray(parsed.events) ? parsed.events : []),
+    upvotes: normalizeUpvotes(Array.isArray(parsed.upvotes) ? parsed.upvotes : []),
     reviews: normalizeReviews(Array.isArray(parsed.reviews) ? parsed.reviews : []),
     auditLogs: normalizeAuditLogs(Array.isArray(parsed.auditLogs) ? parsed.auditLogs : []),
+    challenge: normalizeChallenge(parsed.challenge),
     nextUserId: safeParseInt(parsed.nextUserId, null),
     nextProjectId: safeParseInt(parsed.nextProjectId, null),
     nextProposalId: safeParseInt(parsed.nextProposalId, null),
     nextEventId: safeParseInt(parsed.nextEventId, null),
+    nextUpvoteId: safeParseInt(parsed.nextUpvoteId, null),
     nextReviewId: safeParseInt(parsed.nextReviewId, null),
     nextAuditLogId: safeParseInt(parsed.nextAuditLogId, null),
   }
@@ -286,7 +298,9 @@ function normalizeProjects(projects) {
       return {
         id,
         userId,
-        ownerEmail,
+        // ownerEmail은 시드 시점 소유자 해석용 임시 키로, 영속 전에 제거된다. null을 항상 싣으면
+        // 재실행 때 upsert diff에 잡혀 멱등성이 깨지므로 값이 있을 때만 포함한다.
+        ...(ownerEmail ? { ownerEmail } : {}),
         title,
         description,
         liveUrl,
@@ -295,10 +309,9 @@ function normalizeProjects(projects) {
         accessMode: validatedAccessMode,
         protectionNoticeAccepted: safeBoolean(entry?.protectionNoticeAccepted, true),
         thumbnail: safeString(entry?.thumbnail, null),
-        investorCount: safeParseInt(entry?.investorCount, 0),
-        matchCount: safeParseInt(entry?.matchCount, 0),
-        committedAmountMin: safeParseInt(entry?.committedAmountMin, 0),
-        committedAmountMax: safeParseInt(entry?.committedAmountMax, 0),
+        // investorCount/matchCount/committedAmount*은 reconcileProjectMetrics가 제안에서 단일
+        // 소스로 재계산한다. fixture에 0(기본값)으로 들어오면 재실행 시 upsert가 매번 "변경됨"으로
+        // 잡혀 멱등성이 깨지므로, 정규화 단계에서는 의도적으로 싣지 않는다.
         validation: {
           success: safeBoolean(rawValidation.success, false),
           ...(typeof status === 'number' ? { status } : {}),
@@ -320,9 +333,58 @@ function normalizeProjects(projects) {
           : {}),
         ...(typeof entry?.vibeCoded === 'boolean' ? { vibeCoded: entry.vibeCoded } : {}),
         ...(entry?.stack ? { stack: safeString(entry.stack) } : {}),
+        // 투자 사다리: 운영자가 검증된 상위 빌드를 투자 검토 대상으로 큐레이션한 표식.
+        ...(typeof entry?.featured === 'boolean' ? { featured: entry.featured } : {}),
       }
     })
     .filter(Boolean)
+}
+
+function normalizeUpvotes(upvotes) {
+  return upvotes
+    .map((entry) => {
+      const id = safeParseInt(entry?.id, null)
+      const projectId = safeParseInt(entry?.projectId, null)
+      const email = normalizeEmail(entry?.email)
+
+      if (!Number.isInteger(id) || id <= 0) {
+        return null
+      }
+      if (!Number.isInteger(projectId) || projectId <= 0) {
+        return null
+      }
+      if (!email) {
+        return null
+      }
+
+      return {
+        id,
+        projectId,
+        email,
+        createdAt: safeDateIso(entry?.createdAt, new Date().toISOString()),
+      }
+    })
+    .filter(Boolean)
+}
+
+function normalizeChallenge(value) {
+  if (!value || typeof value !== 'object') {
+    return null
+  }
+
+  const title = safeString(value.title, null)
+  const description = safeString(value.description, null)
+  if (!title || !description) {
+    return null
+  }
+
+  const endsAt = value.endsAt ? safeDateIso(value.endsAt, null) : null
+  return {
+    title,
+    description,
+    ...(endsAt ? { endsAt } : {}),
+    updatedAt: safeDateIso(value.updatedAt, new Date().toISOString()),
+  }
 }
 
 function normalizeProposals(proposals) {
@@ -534,6 +596,7 @@ function updateNextIdsFromItems(state, fixtureState) {
     ...state.proposals.map((proposal) => safeParseInt(proposal.id, 0))
   )
   const maxEventId = Math.max(0, ...state.events.map((event) => safeParseInt(event.id, 0)))
+  const maxUpvoteId = Math.max(0, ...state.upvotes.map((upvote) => safeParseInt(upvote.id, 0)))
   const maxReviewId = Math.max(0, ...state.reviews.map((review) => safeParseInt(review.id, 0)))
   const maxAuditLogId = Math.max(0, ...state.auditLogs.map((entry) => safeParseInt(entry.id, 0)))
 
@@ -563,6 +626,13 @@ function updateNextIdsFromItems(state, fixtureState) {
     safeParseInt(fixtureState.nextEventId, 0),
     maxEventId + 1,
     DEFAULT_STATE.nextEventId
+  )
+
+  state.nextUpvoteId = Math.max(
+    state.nextUpvoteId ?? DEFAULT_STATE.nextUpvoteId,
+    safeParseInt(fixtureState.nextUpvoteId, 0),
+    maxUpvoteId + 1,
+    DEFAULT_STATE.nextUpvoteId
   )
 
   state.nextReviewId = Math.max(
@@ -608,7 +678,27 @@ function reconcileProjectMetrics(state) {
 }
 
 function seed(state, fixtureState) {
-  const summary = { users: 0, projects: 0, proposals: 0, events: 0, reviews: 0, auditLogs: 0 }
+  const summary = {
+    users: 0,
+    projects: 0,
+    proposals: 0,
+    events: 0,
+    upvotes: 0,
+    reviews: 0,
+    auditLogs: 0,
+    challenge: 0,
+  }
+
+  // 이전 버전 시드가 만든 스토어에는 upvotes/challenge가 없을 수 있어 안전하게 보강한다.
+  if (!Array.isArray(state.upvotes)) {
+    state.upvotes = []
+  }
+  if (!('challenge' in state)) {
+    state.challenge = null
+  }
+  if (!Number.isInteger(state.nextUpvoteId)) {
+    state.nextUpvoteId = DEFAULT_STATE.nextUpvoteId
+  }
 
   const usersByEmail = new Map()
   for (const user of state.users) {
@@ -727,6 +817,25 @@ function seed(state, fixtureState) {
   state.events = eventResult.items
   summary.events = eventResult.changed
 
+  // 업보트는 (projectId,email) 1인 1표가 불변식이라 id 외에 조합 키로도 중복을 막는다.
+  const existingUpvoteKeys = new Set(
+    state.upvotes.map((upvote) => `${upvote.projectId}::${normalizeEmail(upvote.email)}`)
+  )
+  const upvoteCandidates = fixtureState.upvotes.filter((upvote) => {
+    if (!validProjectIds.has(upvote.projectId)) {
+      return false
+    }
+    const key = `${upvote.projectId}::${upvote.email}`
+    if (existingUpvoteKeys.has(key)) {
+      return false
+    }
+    existingUpvoteKeys.add(key)
+    return true
+  })
+  const upvoteResult = upsertById(state.upvotes, upvoteCandidates)
+  state.upvotes = upvoteResult.items
+  summary.upvotes = upvoteResult.changed
+
   const reviewCandidates = fixtureState.reviews.filter((review) =>
     validProjectIds.has(review.projectId)
   )
@@ -737,6 +846,14 @@ function seed(state, fixtureState) {
   const auditLogResult = upsertById(state.auditLogs, fixtureState.auditLogs)
   state.auditLogs = auditLogResult.items
   summary.auditLogs = auditLogResult.changed
+
+  // 시즌 챌린지는 단일 활성 — fixture에 있으면 최신값으로 교체한다(없으면 기존 유지).
+  if (fixtureState.challenge) {
+    if (JSON.stringify(state.challenge) !== JSON.stringify(fixtureState.challenge)) {
+      state.challenge = fixtureState.challenge
+      summary.challenge = 1
+    }
+  }
 
   reconcileProjectMetrics(state)
   state.projects = state.projects.map((project) => {
@@ -785,13 +902,17 @@ async function main() {
     summary.projects +
     summary.proposals +
     summary.events +
+    summary.upvotes +
     summary.reviews +
-    summary.auditLogs
+    summary.auditLogs +
+    summary.challenge
 
   if (changed === 0 && !isReset) {
     console.log('변경 항목이 없어 시드를 건너뜁니다.')
     return
   }
+
+  const summaryLine = `사용자 ${summary.users}개, 프로젝트 ${summary.projects}개, 제안 ${summary.proposals}개, 이벤트 ${summary.events}개, 업보트 ${summary.upvotes}개, 리뷰 ${summary.reviews}개, 감사 로그 ${summary.auditLogs}개, 챌린지 ${summary.challenge}개`
 
   if (isDryRun) {
     console.log(
@@ -799,9 +920,7 @@ async function main() {
         ? '리셋 드라이 런 실행: 파일이 변경되지 않습니다.'
         : '드라이 런 실행: 파일이 변경되지 않습니다.'
     )
-    console.log(
-      `예상 변경 항목: 사용자 ${summary.users}개, 프로젝트 ${summary.projects}개, 제안 ${summary.proposals}개, 이벤트 ${summary.events}개, 리뷰 ${summary.reviews}개, 감사 로그 ${summary.auditLogs}개`
-    )
+    console.log(`예상 변경 항목: ${summaryLine}`)
     return
   }
 
@@ -812,7 +931,7 @@ async function main() {
     writeStoreState(beforeState)
   }
   console.log(
-    `${isReset ? '테스트 데이터 리셋 완료' : '테스트 데이터 시드 완료'}(${target}): 사용자 ${summary.users}개, 프로젝트 ${summary.projects}개, 제안 ${summary.proposals}개, 이벤트 ${summary.events}개, 리뷰 ${summary.reviews}개, 감사 로그 ${summary.auditLogs}개 동기화`
+    `${isReset ? '테스트 데이터 리셋 완료' : '테스트 데이터 시드 완료'}(${target}): ${summaryLine} 동기화`
   )
 }
 
