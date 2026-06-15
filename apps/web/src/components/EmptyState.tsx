@@ -12,7 +12,7 @@ export function EmptyState({
   hasActiveFilters: boolean
 }) {
   return (
-    <div className="rounded-xl border border-dashed border-stone-700 bg-stone-950/50 p-8 text-center">
+    <div className="protolive-empty rounded-xl border border-dashed border-stone-700 p-8 text-center">
       <div className="mx-auto grid h-14 w-14 place-items-center rounded-lg bg-lime-300 text-slate-950">
         <ShieldCheck className="h-7 w-7" />
       </div>
@@ -38,6 +38,11 @@ export function EmptyState({
       >
         <Plus className="h-4 w-4" />첫 빌드 공유하기
       </button>
+      {!apiOnline && (
+        <p className="mx-auto mt-3 max-w-xs text-xs leading-5 text-amber-100">
+          서버에 연결되지 않아 지금은 등록할 수 없어요. 잠시 후 다시 시도해 주세요.
+        </p>
+      )}
       {hasActiveFilters && (
         <button
           type="button"

@@ -56,8 +56,9 @@ export default defineConfig(
   },
 
   // 라우트 테이블은 매처/빌더 + 상수 혼재라 컴포넌트 전용 규칙을 적용하지 않는다.
+  // main.tsx 는 fast-refresh 대상이 아닌 진입점(createRoot + pathname 분기 마운트)이라 함께 제외.
   {
-    files: ['apps/web/src/router/route.ts'],
+    files: ['apps/web/src/router/route.ts', 'apps/web/src/main.tsx'],
     rules: { 'react-refresh/only-export-components': 'off' },
   },
 
