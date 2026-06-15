@@ -1006,7 +1006,7 @@ function AppShell() {
                 event.preventDefault()
                 openPolicy('terms')
               }}
-              className="hover:text-stone-100"
+              className="rounded px-1 py-0.5 transition hover:text-stone-100"
             >
               이용약관
             </a>
@@ -1017,7 +1017,7 @@ function AppShell() {
                 event.preventDefault()
                 openPolicy('privacy')
               }}
-              className="hover:text-stone-100"
+              className="rounded px-1 py-0.5 transition hover:text-stone-100"
             >
               개인정보처리방침
             </a>
@@ -1028,9 +1028,13 @@ function AppShell() {
                 event.preventDefault()
                 openSupport()
               }}
-              className="hover:text-stone-100"
+              className="rounded px-1 py-0.5 transition hover:text-stone-100"
             >
               문의
+            </a>
+            {/* 살아있는 디자인 시스템 가이드. pathname 분기로 마운트되는 독립 페이지라 일반 링크. */}
+            <a href="/design" className="rounded px-1 py-0.5 transition hover:text-stone-100">
+              디자인 시스템
             </a>
           </nav>
         </div>
