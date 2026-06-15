@@ -1,15 +1,19 @@
 import { Plus, ShieldCheck, X } from 'lucide-react'
 
+type ActiveFilter = { id: string; label: string; onClear: () => void }
+
 export function EmptyState({
   apiOnline,
   onCreate,
   onResetFilters,
   hasActiveFilters,
+  activeFilters = [],
 }: {
   apiOnline: boolean
   onCreate: () => void
   onResetFilters: () => void
   hasActiveFilters: boolean
+  activeFilters?: ActiveFilter[]
 }) {
   return (
     <div className="protolive-empty rounded-xl border border-dashed border-stone-700 p-8 text-center">
@@ -21,14 +25,29 @@ export function EmptyState({
       </h3>
       {hasActiveFilters ? (
         <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-stone-400">
-          현재 필터로는 보여줄 빌드가 없습니다. 조건을 넓히거나 필터를 초기화하면 더 많은 빌드를
-          만날 수 있습니다.
+          현재 필터로는 보여줄 빌드가 없습니다. 아래 조건을 하나씩 풀거나 필터를 초기화하면 더 많은
+          빌드를 만날 수 있습니다.
         </p>
       ) : (
         <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-stone-400">
           바이브코딩으로 만든 첫 빌드를 공유해 보세요. 거칠어도 괜찮습니다. 진짜 떠 있는 데모면
           커뮤니티 피드백부터 시작됩니다. 라이브 검증을 통과한 빌드만 노출됩니다.
         </p>
+      )}
+      {hasActiveFilters && activeFilters.length > 0 && (
+        <div className="mx-auto mt-4 flex max-w-xl flex-wrap justify-center gap-2">
+          {activeFilters.map((filter) => (
+            <button
+              key={filter.id}
+              type="button"
+              onClick={filter.onClear}
+              className="inline-flex min-h-8 items-center gap-2 rounded-full border border-cyan-300/40 bg-cyan-300/10 px-3 text-xs font-black text-cyan-100 transition hover:bg-cyan-300/20"
+            >
+              <span>{filter.label}</span>
+              <X className="h-3.5 w-3.5" />
+            </button>
+          ))}
+        </div>
       )}
       <button
         type="button"

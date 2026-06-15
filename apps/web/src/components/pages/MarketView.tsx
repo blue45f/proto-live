@@ -288,7 +288,7 @@ export function MarketView(props: {
       description: challenge.description,
       startAt: new Date(deadline.getTime() - 60 * 60 * 1000),
       endAt: deadline,
-      url: window.location.origin,
+      url: globalThis.location.origin,
     })
   }
 
@@ -937,6 +937,7 @@ export function MarketView(props: {
                 onCreate={onCreate}
                 onResetFilters={onResetFilters}
                 hasActiveFilters={activeFilterCount > 0}
+                activeFilters={activeFilters}
               />
             ) : (
               <div
