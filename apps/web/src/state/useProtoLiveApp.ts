@@ -1,3 +1,4 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { isHTTPError } from 'ky'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -27,15 +28,9 @@ import {
   createMatchProposal,
   createProject,
   createProjectReview,
-  fetchMarketConfig,
-  fetchAdminDashboard,
   fetchAdminAuditLogs,
-  fetchAdminReportedReviews,
-  fetchAdminRevenueProjection,
   fetchAuthSession,
-  fetchMarketStats,
   extractProjects,
-  fetchProjects,
   fetchProjectById,
   fetchProjectEvents,
   fetchProjectLog,
@@ -106,6 +101,14 @@ import {
 import { matchRoute, navigate, routePath, type DiscussionRoute } from '../router/route'
 
 import {
+  type AdminSnapshotPayload,
+  snapshotKeys,
+  fetchAdminSnapshotQuery,
+  fetchConfigQuery,
+  fetchProjectsQuery,
+  fetchStatsQuery,
+} from './snapshotQueries'
+import {
   clampPageSize,
   clampRate,
   parseTagInput,
@@ -119,18 +122,17 @@ import { toast } from './stores/toastStore'
 
 export function useProtoLiveApp() {
   const filterPreset = useMemo(() => readFilterPreset(), [])
+  const queryClient = useQueryClient()
 
   const [projects, setProjects] = useState<Project[]>([])
   const [stats, setStats] = useState<MarketStats>(EMPTY_STATS)
   const [config, setConfig] = useState<MarketConfig>(EMPTY_CONFIG)
   const [adminDashboard, setAdminDashboard] =
     useState<AdminDashboardSnapshot>(EMPTY_ADMIN_DASHBOARD)
-  const [adminDashboardError, setAdminDashboardError] = useState('')
-  const [apiOnline, setApiOnline] = useState(false)
-  const [isInitialLoading, setIsInitialLoading] = useState(true)
+  // apiOnline / loadError / adminDashboardError / isInitialLoading 는 더 이상 useState 가
+  // 아니라 아래 react-query 활성 쿼리 상태에서 파생한다(loadSnapshot 분기 의미 보존).
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [isApplyingAllAdminRecommendations, setIsApplyingAllAdminRecommendations] = useState(false)
-  const [loadError, setLoadError] = useState('')
   const [view, setView] = useState<AppView>(() => matchRoute().view)
   const [detailProjectId, setDetailProjectId] = useState<number | null>(
     () => matchRoute().projectId
@@ -933,97 +935,182 @@ export function useProtoLiveApp() {
     }
   }, [isApplyingAllAdminRecommendations, orderedAdminRecommendations, applyAdminRecommendation])
 
+  // 서버 상태(스냅샷)는 react-query 가 가져온다. 기존 단일 loadSnapshot 이 묶어 받던
+  // 자원을 쿼리 단위로 나누되, 가시 동작은 그대로 보존한다:
+  //   - 폴링: refetchInterval 로 기존 setInterval 주기를 그대로 재현(시장/운영 분리)
+  //   - 뷰 게이팅: enabled 로 기존 isAdminView 분기를 그대로 재현
+  //   - 자동 재시도/포커스 재요청 없음, staleTime 0 은 공유 QueryClient 기본값과 동일
+  // 가져온 데이터는 아래 동기화 effect 가 기존 useState 스토어에 그대로 흘려보내,
+  // 공개 반환 인터페이스와 낙관적 setProjects 의미를 한 글자도 바꾸지 않는다.
+  const marketPollIntervalMs = config.refreshIntervalMs || 30000
+  const snapshotPollIntervalMs = isAdminView
+    ? ADMIN_DASHBOARD_POLL_INTERVAL_MS
+    : marketPollIntervalMs
+
+  // refetchIntervalInBackground: 기존 setInterval(loadSnapshot) 은 탭이 숨겨져도 계속
+  // 돌았으므로, 백그라운드에서도 폴링을 멈추지 않게 명시해 동일 주기를 보존한다.
+  const configQuery = useQuery({
+    queryKey: snapshotKeys.config,
+    queryFn: fetchConfigQuery,
+    refetchInterval: snapshotPollIntervalMs,
+    refetchIntervalInBackground: true,
+  })
+  const statsQuery = useQuery({
+    queryKey: snapshotKeys.stats,
+    queryFn: fetchStatsQuery,
+    refetchInterval: snapshotPollIntervalMs,
+    refetchIntervalInBackground: true,
+  })
+  const projectsQuery = useQuery({
+    queryKey: snapshotKeys.projects(projectQuery),
+    queryFn: () => fetchProjectsQuery(projectQuery),
+    enabled: !isAdminView,
+    refetchInterval: marketPollIntervalMs,
+    refetchIntervalInBackground: true,
+  })
+  const adminSnapshotQuery = useQuery({
+    queryKey: snapshotKeys.adminSnapshot(adminRevenueProjectionParams),
+    queryFn: () => fetchAdminSnapshotQuery(adminRevenueProjectionParams),
+    enabled: isAdminView,
+    refetchInterval: ADMIN_DASHBOARD_POLL_INTERVAL_MS,
+    refetchIntervalInBackground: true,
+  })
+
+  // 현재 뷰에서 실제로 활성인 쿼리들(시장이면 projects, 운영이면 adminSnapshot).
+  // 기존 loadSnapshot 은 config·stats·(분기 자원)을 한 try/catch 로 묶었으므로,
+  // apiOnline/loadError 도 이 활성 쿼리 집합의 성공/실패에서 동일하게 파생한다.
+  const conditionalQuery = isAdminView ? adminSnapshotQuery : projectsQuery
+  const activeQueries = [configQuery, statsQuery, conditionalQuery]
+
+  // config 성공 → 스토어 반영 + 최초 funding range 부트스트랩(기존 동작 보존).
+  useEffect(() => {
+    if (!configQuery.data) {
+      return
+    }
+    const configData = configQuery.data
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setConfig(configData)
+    setFundingRangeId((current) =>
+      !current && configData.fundingRanges.length > 0
+        ? (configData.fundingRanges[2]?.id ?? configData.fundingRanges[0].id)
+        : current
+    )
+  }, [configQuery.data])
+
+  useEffect(() => {
+    if (statsQuery.data) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setStats(statsQuery.data)
+    }
+  }, [statsQuery.data])
+
+  // 시장 목록 성공 → projects + projectMeta 반영, adminDashboard 는 비운다(기존 분기 동작).
+  useEffect(() => {
+    if (isAdminView || !projectsQuery.data) {
+      return
+    }
+    const projectsPayload = projectsQuery.data
+    const projectPayload = extractProjects(projectsPayload)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setProjects(projectPayload)
+    if (hasPagination(projectsPayload)) {
+      setProjectMeta({
+        total: projectsPayload.total,
+        page: projectsPayload.page,
+        totalPages: projectsPayload.totalPages,
+        hasPrev: projectsPayload.hasPrev,
+        hasNext: projectsPayload.hasNext,
+        limit: projectsPayload.limit,
+      })
+    } else {
+      setProjectMeta({
+        total: projectPayload.length,
+        page: 1,
+        totalPages: 1,
+        hasPrev: false,
+        hasNext: false,
+        limit: projectPayload.length,
+      })
+    }
+    setAdminDashboard(EMPTY_ADMIN_DASHBOARD)
+  }, [isAdminView, projectsQuery.data])
+
+  // 운영 콘솔 번들 성공 → 대시보드(+수익)/신고리뷰/감사로그 반영(기존 분기 동작).
+  useEffect(() => {
+    if (!isAdminView || !adminSnapshotQuery.data) {
+      return
+    }
+    const { dashboard, revenue, reportedReviews, auditLogs }: AdminSnapshotPayload =
+      adminSnapshotQuery.data
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAdminDashboard({ ...dashboard, revenue })
+    setAdminReportedReviews(reportedReviews)
+    setAdminAuditLogs(auditLogs)
+  }, [isAdminView, adminSnapshotQuery.data])
+
+  // apiOnline/loadError/adminDashboardError 파생 — 기존 단일 try/catch 의미를 보존한다.
+  // 활성 쿼리 중 하나라도 성공 데이터가 있으면 "연결됨"으로 본다(기존엔 성공 시 setApiOnline(true)).
+  // 응답 있는 에러(HTTP 4xx/5xx)는 온라인 유지 + 메시지, 네트워크 단절은 오프라인 + 안내문구.
+  const firstActiveError = activeQueries.find((query) => query.error)?.error ?? null
+  const hasAnyActiveSuccess = activeQueries.some((query) => query.data !== undefined)
+  const apiOnline = firstActiveError
+    ? isHTTPError(firstActiveError) && Boolean(firstActiveError.response)
+    : hasAnyActiveSuccess
+  const offlineMessage = `백엔드 API에 연결할 수 없습니다. 현재 요청 대상: ${API_BASE}. 서버 실행 후 다시 시도하세요.`
+  const loadError = firstActiveError
+    ? isHTTPError(firstActiveError) && Boolean(firstActiveError.response)
+      ? getApiErrorMessage(firstActiveError, '요청 처리 중 오류가 발생했습니다.')
+      : offlineMessage
+    : ''
+  const adminDashboardError = isAdminView ? loadError : ''
+
+  // 최초 로딩 래치: 기존 loadSnapshot 의 finally 는 setIsInitialLoading(false) 만 했고
+  // 한 번 false 가 되면 다시 true 로 돌아가지 않았다(첫 로드 1회성 스켈레톤).
+  // react-query isPending 을 그대로 쓰면 운영→시장 첫 전환 시 다시 보류로 보일 수 있어,
+  // "한 번 정착하면 영구 false" 의 원래 의미를 보존한다(렌더 중 ref 접근 금지라 state+effect).
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const activeQueriesSettled = activeQueries.every((query) => !query.isPending)
+  useEffect(() => {
+    if (activeQueriesSettled) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsInitialLoading(false)
+    }
+  }, [activeQueriesSettled])
+
+  // 명령형 갱신: 기존 호출부(handleRefreshAll/handleSubmitProject 등)는 await loadSnapshot()
+  // 으로 재동기화를 기다렸다. 활성 쿼리들의 refetch 를 그대로 await 해 동일 의미를 유지한다.
+  // showLoading 일 때만 isRefreshing 을 토글하고, 실패 시 토스트를 띄우던 동작도 보존한다.
   const loadSnapshot = useCallback(
     async (showLoading = false) => {
       if (showLoading) setIsRefreshing(true)
-
+      const conditionalKey = isAdminView
+        ? snapshotKeys.adminSnapshot(adminRevenueProjectionParams)
+        : snapshotKeys.projects(projectQuery)
       try {
-        const shouldFetchMarketProjects = !isAdminView
-        const [configData, statsData] = await Promise.all([fetchMarketConfig(), fetchMarketStats()])
-
-        setConfig(configData)
-        setStats(statsData)
-        setAdminDashboardError('')
-
-        if (shouldFetchMarketProjects) {
-          const projectsPayload = await fetchProjects(projectQuery)
-          const projectPayload = extractProjects(projectsPayload)
-          setProjects(projectPayload)
-          if (hasPagination(projectsPayload)) {
-            setProjectMeta({
-              total: projectsPayload.total,
-              page: projectsPayload.page,
-              totalPages: projectsPayload.totalPages,
-              hasPrev: projectsPayload.hasPrev,
-              hasNext: projectsPayload.hasNext,
-              limit: projectsPayload.limit,
-            })
-          } else {
-            setProjectMeta({
-              total: projectPayload.length,
-              page: 1,
-              totalPages: 1,
-              hasPrev: false,
-              hasNext: false,
-              limit: projectPayload.length,
-            })
-          }
-
-          setAdminDashboard(EMPTY_ADMIN_DASHBOARD)
-        } else {
-          const [dashboardPayload, revenueProjection, reportedReviewsPayload, auditLogsPayload] =
-            await Promise.all([
-              fetchAdminDashboard(),
-              fetchAdminRevenueProjection(adminRevenueProjectionParams),
-              fetchAdminReportedReviews(),
-              fetchAdminAuditLogs(30),
-            ])
-
-          setAdminDashboard({
-            ...dashboardPayload,
-            revenue: revenueProjection,
-          })
-          setAdminReportedReviews(reportedReviewsPayload)
-          setAdminAuditLogs(auditLogsPayload)
-        }
-
-        setApiOnline(true)
-        setLoadError('')
-
-        if (!fundingRangeId && configData.fundingRanges.length > 0) {
-          setFundingRangeId(configData.fundingRanges[2]?.id ?? configData.fundingRanges[0].id)
-        }
-      } catch (error) {
-        const hasResponseError = isHTTPError(error) && Boolean(error.response)
-        const message = getApiErrorMessage(error, '요청 처리 중 오류가 발생했습니다.')
-
-        if (hasResponseError) {
-          setApiOnline(true)
-          setLoadError(message)
-          if (isAdminView) {
-            setAdminDashboardError(message)
-          }
-        } else {
-          setApiOnline(false)
-          setLoadError(
-            `백엔드 API에 연결할 수 없습니다. 현재 요청 대상: ${API_BASE}. 서버 실행 후 다시 시도하세요.`
-          )
-          if (isAdminView) {
-            setAdminDashboardError(
-              `백엔드 API에 연결할 수 없습니다. 현재 요청 대상: ${API_BASE}. 서버 실행 후 다시 시도하세요.`
-            )
-          }
-        }
-
+        await Promise.all([
+          queryClient.refetchQueries({ queryKey: snapshotKeys.config }),
+          queryClient.refetchQueries({ queryKey: snapshotKeys.stats }),
+          queryClient.refetchQueries({ queryKey: conditionalKey }),
+        ])
         if (showLoading) {
-          toast('error', '요청 실패', hasResponseError ? message : `요청 대상: ${API_BASE}`)
+          // refetch 직후 캐시 상태에서 최신 에러를 읽어, 기존 loadSnapshot(true) 의
+          // 실패 토스트(HTTP 응답 에러 vs 네트워크 단절)를 그대로 재현한다.
+          const failed =
+            queryClient.getQueryState(snapshotKeys.config)?.error ??
+            queryClient.getQueryState(snapshotKeys.stats)?.error ??
+            queryClient.getQueryState(conditionalKey)?.error ??
+            null
+          if (failed) {
+            const hasResponseError = isHTTPError(failed) && Boolean(failed.response)
+            const message = getApiErrorMessage(failed, '요청 처리 중 오류가 발생했습니다.')
+            toast('error', '요청 실패', hasResponseError ? message : `요청 대상: ${API_BASE}`)
+          }
         }
       } finally {
-        setIsInitialLoading(false)
-        setIsRefreshing(false)
+        if (showLoading) setIsRefreshing(false)
       }
     },
-    [adminRevenueProjectionParams, fundingRangeId, isAdminView, projectQuery]
+    [adminRevenueProjectionParams, isAdminView, projectQuery, queryClient]
   )
 
   const loadProjectEvents = useCallback(async (projectId: number) => {
@@ -1819,23 +1906,9 @@ export function useProtoLiveApp() {
     }
   }, [handleGlobalShortcut])
 
-  useEffect(() => {
-    const initialize = async () => {
-      await loadSnapshot()
-    }
-    void initialize()
-  }, [loadSnapshot])
-
-  useEffect(() => {
-    const timer = window.setInterval(
-      () => {
-        void loadSnapshot()
-      },
-      isAdminView ? ADMIN_DASHBOARD_POLL_INTERVAL_MS : config.refreshIntervalMs || 30000
-    )
-
-    return () => window.clearInterval(timer)
-  }, [config.refreshIntervalMs, isAdminView, loadSnapshot])
+  // 최초 마운트 로딩과 고정 간격 폴링은 위 useQuery 의 자동 마운트 fetch + refetchInterval 이
+  // 그대로 담당한다(기존 setInterval(loadSnapshot) 두 effect 를 대체). 뷰 게이팅(enabled)과
+  // 주기(admin=30s / market=config.refreshIntervalMs||30s)도 거기서 동일하게 보존한다.
 
   async function handleVerifyUrl() {
     if (!liveUrl.trim()) {
