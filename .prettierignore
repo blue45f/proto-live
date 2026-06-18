@@ -11,3 +11,8 @@ apps/api/dist
 apps/api/dist-test
 .vercel
 apps/web/og-card.html
+# 벤더링된 단일 파일 위젯(업스트림 원본 복붙) — 포맷 검사 대상 외(eslint ignore 와 일치).
+**/components/feedback/**
+**/components/deskcloud/**
+
+apps/toss

@@ -15,6 +15,8 @@ export default defineConfig(
     '**/*.d.ts',
     '**/*.tsbuildinfo',
     '**/*.config.{js,mjs,cjs,ts}',
+
+    'apps/toss/**',
     'db/**',
     '**/public/**',
   ]),
