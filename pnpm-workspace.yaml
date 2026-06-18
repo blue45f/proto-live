@@ -3,9 +3,19 @@ packages:
 
 # pnpm 11 build-script approvals (CI on pnpm 11.4.0 fails with
 # ERR_PNPM_IGNORED_BUILDS otherwise). Mirrors the sibling repos' convention.
+onlyBuiltDependencies:
+  - '@nestjs/core'
+  - '@sentry/cli'
+  - '@swc/core'
+  - esbuild
+  - protobufjs
+  - unrs-resolver
 allowBuilds:
   '@nestjs/core': true
+  '@sentry/cli': true
+  '@swc/core': true
   esbuild: true
+  protobufjs: true
   unrs-resolver: true
 
 minimumReleaseAgeExclude:
