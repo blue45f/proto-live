@@ -15,6 +15,8 @@ export default defineConfig(
     '**/*.d.ts',
     '**/*.tsbuildinfo',
     '**/*.config.{js,mjs,cjs,ts}',
+
+    'apps/toss/**',
     'db/**',
     '**/public/**',
     // 벤더링된 단일 파일 위젯(업스트림 원본을 그대로 복붙) — strict 린트 대상 외.
