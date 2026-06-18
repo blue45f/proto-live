@@ -2,12 +2,16 @@ import { QueryClientProvider } from '@tanstack/react-query'
 import { Plus, RefreshCw, Zap, Users, Mail } from 'lucide-react'
 import { Suspense, useEffect, useRef, useState } from 'react'
 
+import {
+  DeskCloudFloatingWidgets,
+  DeskCloudHeaderWidgets,
+} from './components/deskcloud/DeskCloudWidgets'
+import { FeedbackWidget } from './components/feedback/FeedbackWidget'
 import { LoginModal } from './components/modals/LoginModal'
 import { MatchModal } from './components/modals/MatchModal'
 import { PreviewModal } from './components/modals/PreviewModal'
 import { ReviewModal } from './components/modals/ReviewModal'
 import { SubmitProjectModal } from './components/modals/SubmitProjectModal'
-import { FeedbackWidget } from './components/feedback/FeedbackWidget'
 import { NotificationBell } from './components/NotificationBell'
 import { MarketView } from './components/pages/MarketView'
 import { RouteFallback } from './components/RouteFallback'
@@ -488,6 +492,9 @@ function AppShell() {
                 onOpen={openNotification}
               />
             ) : null}
+            {/* NotifyDesk 알림 벨(DeskCloud) — VITE_NOTIFYDESK_URL 설정 + 로그인 시에만.
+                앱 자체 알림 벨과 별개 컴포넌트라 충돌하지 않는다. */}
+            <DeskCloudHeaderWidgets recipientId={session ? `user_${session.id}` : null} />
             {isAuthenticated ? (
               <div className="protolive-user-chip inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg border border-stone-700/80 bg-stone-900/70 px-3 py-2 text-xs font-black sm:rounded-full">
                 <span className="hidden max-w-28 truncate xl:inline">{session?.name}</span>
@@ -1046,6 +1053,14 @@ function AppShell() {
       {import.meta.env.VITE_SURVEYDESK_URL && (
         <FeedbackWidget appId="protolive" endpoint={import.meta.env.VITE_SURVEYDESK_URL} />
       )}
+
+      {/* DeskCloud 위젯 묶음(체인지로그·검색 ⌘K·커뮤니티·후기·채팅). 각 desk 는
+          자기 VITE_*_URL 이 설정된 환경에서만 렌더된다 — 미설정(기본)이면 앱은
+          전혀 영향받지 않는다. 사용자 식별이 필요한 위젯은 로그인 시에만 마운트. */}
+      <DeskCloudFloatingWidgets
+        memberId={session ? `user_${session.id}` : null}
+        memberName={session?.name}
+      />
     </div>
   )
 }

@@ -478,7 +478,9 @@ function sanitizeApiBase(raw: string): string {
 
 function getBrowserOriginApiBase() {
   const protocol =
-    typeof window !== 'undefined' && globalThis.location?.protocol ? globalThis.location.protocol : 'http:'
+    typeof window !== 'undefined' && globalThis.location?.protocol
+      ? globalThis.location.protocol
+      : 'http:'
   const host =
     typeof window !== 'undefined' && globalThis.location?.hostname
       ? globalThis.location.hostname

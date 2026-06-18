@@ -22,7 +22,7 @@ let gisPromise: Promise<void> | null = null
 
 function loadGis(): Promise<void> {
   if (typeof window === 'undefined') return Promise.resolve()
-  if (globalThis.google?.accounts?.id) return Promise.resolve()
+  if (window.google?.accounts?.id) return Promise.resolve()
   if (gisPromise) return gisPromise
   gisPromise = new Promise<void>((resolve, reject) => {
     const s = document.createElement('script')
@@ -55,13 +55,13 @@ export function GoogleSignInButton({
   useEffect(() => {
     let cancelled = false
     void loadGis().then(() => {
-      if (cancelled || !ref.current || !globalThis.google?.accounts?.id) return
-      globalThis.google.accounts.id.initialize({
+      if (cancelled || !ref.current || !window.google?.accounts?.id) return
+      window.google.accounts.id.initialize({
         client_id: clientId,
         callback: (resp) => cbRef.current(resp.credential),
       })
       ref.current.innerHTML = ''
-      globalThis.google.accounts.id.renderButton(ref.current, {
+      window.google.accounts.id.renderButton(ref.current, {
         type: 'standard',
         theme: 'filled_black',
         size: 'large',

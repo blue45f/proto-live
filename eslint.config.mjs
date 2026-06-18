@@ -17,6 +17,11 @@ export default defineConfig(
     '**/*.config.{js,mjs,cjs,ts}',
     'db/**',
     '**/public/**',
+    // 벤더링된 단일 파일 위젯(업스트림 원본을 그대로 복붙) — strict 린트 대상 외.
+    // 업스트림 갱신 시 파일째 교체하므로 로컬 수정 금지(소스 헤더 참조).
+    // SurveyDesk(FeedbackWidget) + DeskCloud(체인지로그·알림·검색·커뮤니티·후기·채팅).
+    '**/components/feedback/**',
+    '**/components/deskcloud/**',
   ]),
 
   // 공유 베이스(TS + import 위생 + 커스텀 규칙 + prettier 충돌 비활성).
@@ -50,7 +55,10 @@ export default defineConfig(
           message: '브랜드 확인 다이얼로그를 사용하세요 (globalThis.confirm 금지).',
         },
         { name: 'alert', message: 'toast/인라인 알림을 사용하세요 (globalThis.alert 금지).' },
-        { name: 'prompt', message: '브랜드 입력 다이얼로그를 사용하세요 (globalThis.prompt 금지).' },
+        {
+          name: 'prompt',
+          message: '브랜드 입력 다이얼로그를 사용하세요 (globalThis.prompt 금지).',
+        },
       ],
     },
   },
