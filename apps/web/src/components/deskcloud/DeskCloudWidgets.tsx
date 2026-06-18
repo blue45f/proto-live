@@ -19,18 +19,48 @@
  */
 import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
 
+import { navigate } from '../../router/route'
+
 import { ChangelogWidget } from './changelog/ChangelogWidget'
 import { ChatWidget } from './chat/ChatWidget'
 import { CommunityBoard } from './community/CommunityBoard'
 import { DeskNotificationBell } from './notify/DeskNotificationBell'
 import { TestimonialWall } from './review/ReviewWidgets'
-import { SearchPalette } from './search/SearchPalette'
+import { SearchPalette, type SearchHit } from './search/SearchPalette'
 
 const env = import.meta.env
 
 /** VITE_<DESK>_PK 가 있으면 사용, 없으면 데모 키. publishable 키는 브라우저 노출 안전. */
 function pk(value: string | undefined): string {
   return value && value.length > 0 ? value : 'pk_demo'
+}
+
+/**
+ * SearchDesk 결과 선택 핸들러. 같은 출처(앱 내부) 경로면 핸드롤 라우터로 SPA 내비게이션
+ * (history.pushState + popstate 재해석)해 풀 페이지 리로드를 피하고, 외부/교차 출처
+ * URL 이면 기존대로 풀 내비게이션한다. url 이 없으면 아무것도 하지 않는다.
+ */
+function navigateToSearchHit(hit: SearchHit): void {
+  const url = hit.url
+  if (!url) return
+  if (typeof window === 'undefined') return
+
+  let target: URL
+  try {
+    target = new URL(url, window.location.origin)
+  } catch {
+    // 파싱 불가한 값은 안전하게 풀 내비게이션으로 위임.
+    window.location.assign(url)
+    return
+  }
+
+  // 같은 출처면 SPA 라우팅: pushState 후 popstate 를 합성 발행해 앱이 라우트를 재해석한다.
+  if (target.origin === window.location.origin) {
+    navigate(target.pathname + target.search + target.hash)
+    window.dispatchEvent(new PopStateEvent('popstate'))
+    return
+  }
+  window.location.assign(target.href)
 }
 
 /**
@@ -211,11 +241,13 @@ export function DeskCloudFloatingWidgets({
         />
       ) : null}
 
-      {/* SearchDesk — 전역 ⌘K 명령 팔레트(핫키 자체 등록, 평소엔 비가시). */}
+      {/* SearchDesk — 전역 ⌘K 명령 팔레트(핫키 자체 등록, 평소엔 비가시).
+          결과 선택 시 앱 내부 경로는 SPA 라우팅(풀 리로드 없음)으로 이동한다. */}
       {searchOn ? (
         <SearchPalette
           publishableKey={pk(env.VITE_SEARCHDESK_PK)}
           endpoint={env.VITE_SEARCHDESK_URL}
+          onSelect={navigateToSearchHit}
         />
       ) : null}
 

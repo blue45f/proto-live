@@ -37,7 +37,7 @@ export function AboutView({ onCreate, onBrowse }: { onCreate: () => void; onBrow
           className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-lime-300/15 blur-3xl"
         />
         <div className="relative max-w-3xl">
-          <p className="inline-flex items-center gap-2 rounded-full border border-lime-300/30 bg-lime-300/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-lime-200">
+          <p className="inline-flex items-center gap-2 rounded-full border border-lime-300/30 bg-lime-300/10 px-3 py-1 text-xs font-bold tracking-tight text-lime-200">
             <Sparkles className="h-3.5 w-3.5" />
             메이커 라운지 · 바이브코딩 커뮤니티
           </p>
@@ -46,7 +46,7 @@ export function AboutView({ onCreate, onBrowse }: { onCreate: () => void; onBrow
             <br />
             <span className="text-lime-300">살아있는 채로</span> 공유하세요
           </h2>
-          <p className="mt-5 max-w-2xl text-base leading-relaxed text-stone-300 sm:text-lg">
+          <p className="protolive-measure mt-5 text-base leading-relaxed text-stone-300 sm:text-lg">
             AI로 만든 데모·프로토타입·갓 시작한 초기 빌드를 그대로 올리고, 커뮤니티 피드백을 받는
             곳입니다. 완성을 기다릴 필요 없이, 진짜 떠 있는 순간부터 함께 다듬습니다.
           </p>
