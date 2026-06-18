@@ -98,7 +98,14 @@ export function ProjectDetailPage({ id = '' }: { id?: string }) {
       {Header}
       <div className="rise" style={{ padding: '0 20px 110px' }}>
         <div style={{ padding: '0 0 4px' }}>
-          <Cover gradient={undefined} src={p.thumbnail} alt={p.title} height={172} radius={16} />
+          <Cover
+            gradient={undefined}
+            src={p.thumbnail}
+            alt={p.title}
+            seed={p.title}
+            height={172}
+            radius={16}
+          />
         </div>
         <div style={{ paddingTop: 16 }}>
           <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>

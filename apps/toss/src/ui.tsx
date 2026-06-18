@@ -103,20 +103,33 @@ export function Cover({
   alt,
   height = 150,
   radius = 12,
+  seed,
 }: {
   gradient?: string[]
   src?: string | null
   alt: string
   height?: number
   radius?: number
+  seed?: string
 }) {
+  // 이미지가 없으면 seed 기반 결정적 그라데이션 + 모노그램으로 브랜드 플레이스홀더를 그려요.
+  const hue = (seed ?? alt).split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 360
   const grad =
     gradient && gradient.length >= 2
       ? `linear-gradient(140deg, ${gradient[0]}, ${gradient[1]})`
-      : theme.surfaceAlt
+      : `linear-gradient(140deg, oklch(0.52 0.11 ${hue}), oklch(0.3 0.07 ${hue}))`
+  const mono = (seed ?? alt).trim().charAt(0).toUpperCase()
   return (
     <div
-      style={{ height, borderRadius: radius, overflow: 'hidden', background: grad, flexShrink: 0 }}
+      style={{
+        height,
+        borderRadius: radius,
+        overflow: 'hidden',
+        background: grad,
+        flexShrink: 0,
+        display: 'grid',
+        placeItems: 'center',
+      }}
     >
       {src ? (
         <img
@@ -128,6 +141,17 @@ export function Cover({
             ;(e.currentTarget as HTMLImageElement).style.display = 'none'
           }}
         />
+      ) : mono ? (
+        <span
+          aria-hidden
+          style={{
+            fontSize: Math.max(15, Math.round(height * 0.34)),
+            fontWeight: 800,
+            color: 'rgba(255,255,255,0.92)',
+          }}
+        >
+          {mono}
+        </span>
       ) : null}
     </div>
   )

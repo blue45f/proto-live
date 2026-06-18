@@ -4,6 +4,14 @@ export const API_BASE = (
   import.meta.env.VITE_API_BASE_URL || 'https://proto-live.vercel.app'
 ).replace(/\/+$/, '')
 
+// thumbnail은 원본 API가 `/thumbnails/x.jpg` 상대경로로 주므로 API origin을 붙여 절대경로로 만들어요.
+const toAbsolute = (v: unknown): string | null =>
+  typeof v === 'string' && v
+    ? v.startsWith('http')
+      ? v
+      : `${API_BASE}${v.startsWith('/') ? '' : '/'}${v}`
+    : null
+
 // 투자 관련 필드(investorCount/committedAmount/ladderEligible 등)는 의도적으로 매핑하지 않아요(평가 특화).
 export interface Project {
   id: string
@@ -29,7 +37,7 @@ const norm = (r: Record<string, unknown>): Project => ({
   category: typeof r.category === 'string' ? r.category : undefined,
   maturity: typeof r.maturity === 'string' ? r.maturity : undefined,
   liveUrl: typeof r.liveUrl === 'string' ? r.liveUrl : undefined,
-  thumbnail: typeof r.thumbnail === 'string' ? r.thumbnail : null,
+  thumbnail: toAbsolute(r.thumbnail),
   signalScore: typeof r.signalScore === 'number' ? r.signalScore : undefined,
   upvoteCount: typeof r.upvoteCount === 'number' ? r.upvoteCount : undefined,
   reviewSummary: (r.reviewSummary as Project['reviewSummary']) ?? null,
