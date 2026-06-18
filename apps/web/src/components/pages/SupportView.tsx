@@ -12,6 +12,7 @@ import {
   type InquiryCategory,
   type InquiryReceipt,
 } from '../../lib/inquiries'
+import { FeedbackPanel } from '../deskcloud/FeedbackPanel'
 
 /**
  * 인앱 문의 폼 — TermsDesk 중앙 문의 접수(POST /api/public/proto-live/inquiries)로 보낸다.
@@ -220,6 +221,10 @@ export function SupportView({
           문의 보내기
         </button>
       </form>
+
+      {/* SurveyDesk 네이티브 만족도 설문(DeskCloud). VITE_SURVEYDESK_URL 설정 + 활성
+          설문이 있을 때만 폼 아래에 1차 기능으로 붙는다 — 미설정/없음이면 문의 폼만 남는다. */}
+      <FeedbackPanel userEmail={contactEmail} />
     </div>
   )
 }

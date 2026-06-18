@@ -1,6 +1,8 @@
 import { ArrowRight, MessageSquare, ShieldCheck, Sparkles, TrendingUp, Zap } from 'lucide-react'
 
 import { BUILD_TOOLS, maturityCopy } from '../../lib/constants'
+import { TestimonialsSection } from '../deskcloud/TestimonialsSection'
+import { WhatsNewSection } from '../deskcloud/WhatsNewSection'
 
 import type { ProjectMaturity } from '../../infrastructure/api'
 
@@ -162,6 +164,14 @@ export function AboutView({ onCreate, onBrowse }: { onCreate: () => void; onBrow
           ))}
         </ul>
       </section>
+
+      {/* ReviewDesk 네이티브 후기(DeskCloud). VITE_REVIEWDESK_URL 설정 + 승인된 후기가
+          있을 때만 렌더된다 — 미설정/없음이면 통째로 숨겨져 소개 페이지 흐름을 해치지 않는다. */}
+      <TestimonialsSection />
+
+      {/* ChangelogDesk 네이티브 "최근 업데이트"(DeskCloud). VITE_CHANGELOGDESK_URL 설정 +
+          게시된 항목이 있을 때만 렌더된다 — 미설정/없음이면 통째로 숨겨진다. */}
+      <WhatsNewSection />
 
       {/* 마무리 CTA */}
       <section className="flex flex-col items-start gap-4 rounded-3xl border border-lime-300/25 bg-lime-300/[0.06] px-6 py-10 sm:flex-row sm:items-center sm:justify-between sm:px-10">

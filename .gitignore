@@ -14,3 +14,7 @@ apps/api/data/
 !apps/web/src/infrastructure/data/
 .idea/
 .vercel/
+# 앱인토스(app-in-toss) 빌드 산출물 — granite 빌드 캐시 + 패키지 번들(.ait). 생성물이라
+# 추적하지 않는다(dist 와 동급). 소스에서 재생성되므로 포맷/커밋 대상에서 제외.
+apps/toss/.granite/
+apps/toss/*.ait
