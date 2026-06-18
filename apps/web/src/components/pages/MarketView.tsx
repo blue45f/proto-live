@@ -35,6 +35,7 @@ import {
 } from '../../lib/constants'
 import { formatChallengeDday, formatRelativeTime } from '../../lib/format'
 import { downloadIcs } from '../../lib/ics'
+import { SponsoredProjects } from '../deskcloud/SponsoredProjects'
 import { DifferentiationPanel } from '../DifferentiationPanel'
 import { EmptyState } from '../EmptyState'
 import { OnboardingTip } from '../OnboardingTip'
@@ -327,6 +328,8 @@ export function MarketView(props: {
             </div>
           </section>
         )}
+        {/* 추천(Sponsored) 프로젝트 — 네이티브 AdDesk 레일; 피드에서 서빙될 때만 렌더 */}
+        {!detailProjectId && <SponsoredProjects />}
         <div className="grid gap-4">
           <section className="protolive-hero overflow-hidden rounded-2xl p-5 sm:p-7">
             <div className="grid min-w-0 gap-5">

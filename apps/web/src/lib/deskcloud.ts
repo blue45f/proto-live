@@ -18,11 +18,13 @@
  *   네이티브 연동 대상에서 의도적으로 제외한다(아래 enabled 플래그에 없음).
  */
 import {
+  createAdClient,
   createChangelogClient,
   createNotifyClient,
   createReviewClient,
   createSearchClient,
   createSurveyClient,
+  type AdClient,
   type ChangelogClient,
   type NotifyClient,
   type ReviewClient,
@@ -49,6 +51,7 @@ export const deskEnabled = {
   review: Boolean(url(env.VITE_REVIEWDESK_URL)),
   notify: Boolean(url(env.VITE_NOTIFYDESK_URL)),
   search: Boolean(url(env.VITE_SEARCHDESK_URL)),
+  ad: Boolean(url(env.VITE_ADDESK_URL)),
 } as const
 
 /**
@@ -74,6 +77,25 @@ export function getReviewClient(): ReviewClient | null {
   if (!endpoint) return null
   return createReviewClient({ endpoint, publishableKey: pk(env.VITE_REVIEWDESK_PK) })
 }
+
+/** AdDesk 클라이언트(추천·스폰서 프로젝트 배너) — URL env 미설정이면 null. */
+export function getAdClient(): AdClient | null {
+  const endpoint = url(env.VITE_ADDESK_URL)
+  if (!endpoint) return null
+  return createAdClient({ endpoint, publishableKey: pk(env.VITE_ADDESK_PK) })
+}
+
+/**
+ * 마켓 "추천(Sponsored)" 레일이 서빙하는 슬롯 키들(슬롯당 1 크리에이티브).
+ * VITE_ADDESK_SLOTS(콤마 구분)로 배포별 오버라이드. 활성 크리에이티브를 반환하는
+ * 슬롯만 렌더되므로, 미설정 슬롯(과 AdDesk OFF 전체)은 보이지 않는다.
+ */
+export const adSlots: string[] = (
+  env.VITE_ADDESK_SLOTS ?? 'market-spotlight-1,market-spotlight-2,market-spotlight-3'
+)
+  .split(',')
+  .map((s: string) => s.trim())
+  .filter(Boolean)
 
 /** NotifyDesk 공개 클라이언트 — 수신자 인박스 읽기 + 읽음 처리. 미설정 시 null. */
 export function getNotifyClient(): NotifyClient | null {
