@@ -1,6 +1,8 @@
 import { ArrowRight, MessageSquare, ShieldCheck, Sparkles, TrendingUp, Zap } from 'lucide-react'
 
 import { BUILD_TOOLS, maturityCopy } from '../../lib/constants'
+import { TestimonialsSection } from '../deskcloud/TestimonialsSection'
+import { WhatsNewSection } from '../deskcloud/WhatsNewSection'
 
 import type { ProjectMaturity } from '../../infrastructure/api'
 
@@ -37,7 +39,7 @@ export function AboutView({ onCreate, onBrowse }: { onCreate: () => void; onBrow
           className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-lime-300/15 blur-3xl"
         />
         <div className="relative max-w-3xl">
-          <p className="inline-flex items-center gap-2 rounded-full border border-lime-300/30 bg-lime-300/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-lime-200">
+          <p className="inline-flex items-center gap-2 rounded-full border border-lime-300/30 bg-lime-300/10 px-3 py-1 text-xs font-bold tracking-tight text-lime-200">
             <Sparkles className="h-3.5 w-3.5" />
             메이커 라운지 · 바이브코딩 커뮤니티
           </p>
@@ -46,7 +48,7 @@ export function AboutView({ onCreate, onBrowse }: { onCreate: () => void; onBrow
             <br />
             <span className="text-lime-300">살아있는 채로</span> 공유하세요
           </h2>
-          <p className="mt-5 max-w-2xl text-base leading-relaxed text-stone-300 sm:text-lg">
+          <p className="protolive-measure mt-5 text-base leading-relaxed text-stone-300 sm:text-lg">
             AI로 만든 데모·프로토타입·갓 시작한 초기 빌드를 그대로 올리고, 커뮤니티 피드백을 받는
             곳입니다. 완성을 기다릴 필요 없이, 진짜 떠 있는 순간부터 함께 다듬습니다.
           </p>
@@ -162,6 +164,14 @@ export function AboutView({ onCreate, onBrowse }: { onCreate: () => void; onBrow
           ))}
         </ul>
       </section>
+
+      {/* ReviewDesk 네이티브 후기(DeskCloud). VITE_REVIEWDESK_URL 설정 + 승인된 후기가
+          있을 때만 렌더된다 — 미설정/없음이면 통째로 숨겨져 소개 페이지 흐름을 해치지 않는다. */}
+      <TestimonialsSection />
+
+      {/* ChangelogDesk 네이티브 "최근 업데이트"(DeskCloud). VITE_CHANGELOGDESK_URL 설정 +
+          게시된 항목이 있을 때만 렌더된다 — 미설정/없음이면 통째로 숨겨진다. */}
+      <WhatsNewSection />
 
       {/* 마무리 CTA */}
       <section className="flex flex-col items-start gap-4 rounded-3xl border border-lime-300/25 bg-lime-300/[0.06] px-6 py-10 sm:flex-row sm:items-center sm:justify-between sm:px-10">

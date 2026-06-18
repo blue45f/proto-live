@@ -53,7 +53,7 @@ export function EmptyState({
         type="button"
         onClick={onCreate}
         disabled={!apiOnline}
-        className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg bg-lime-300 px-4 text-sm font-black text-slate-950 disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-stone-400"
+        className="protolive-btn protolive-btn-primary mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg bg-lime-300 px-4 text-sm font-black text-slate-950 transition hover:bg-lime-200 active:translate-y-px disabled:cursor-not-allowed disabled:bg-stone-700 disabled:text-stone-400"
       >
         <Plus className="h-4 w-4" />첫 빌드 공유하기
       </button>

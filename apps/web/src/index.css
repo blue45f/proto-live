@@ -759,6 +759,28 @@
 }
 
 /* ============================================================
+   Reading rhythm: even line breaks + comfortable measure.
+   - Headings balance so a two-line title splits evenly instead
+     of leaving one orphaned word on line two.
+   - Prose paragraphs use `pretty` to avoid a single short last
+     line (widow). Both degrade gracefully where unsupported.
+   - `.protolive-measure` caps long-form prose near a 60–68ch
+     measure so Korean body copy stays in the comfortable band
+     even on wide viewports (overrides only the max-width).
+   These are typography-only; they do not touch any color token. */
+.protolive-shell :is(h1, h2, h3, h4) {
+  text-wrap: balance;
+}
+
+.protolive-shell p {
+  text-wrap: pretty;
+}
+
+.protolive-shell .protolive-measure {
+  max-width: 62ch;
+}
+
+/* ============================================================
    Live-telemetry signature motion (SignalTimeline).
    Transform + opacity + filter only; the whole block collapses
    under prefers-reduced-motion below.
