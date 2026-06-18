@@ -1,7 +1,15 @@
 import { Button } from '@toss/tds-mobile'
 import { useEffect, useState } from 'react'
 
-import { fetchProjects, getProject, type Project } from '../lib/api'
+import {
+  fetchProjects,
+  getProject,
+  coverUrl,
+  MATURITY_LABEL,
+  BUILT_WITH_LABEL,
+  STACK_LABEL,
+  type Project,
+} from '../lib/api'
 import { shareMessage } from '../lib/toss'
 import { navigate } from '../router'
 import { theme } from '../theme'
@@ -58,7 +66,6 @@ export function ProjectDetailPage({ id = '' }: { id?: string }) {
       </button>
     </header>
   )
-
   if (loading)
     return (
       <div style={{ background: theme.bg, minHeight: '100dvh' }}>
@@ -80,15 +87,13 @@ export function ProjectDetailPage({ id = '' }: { id?: string }) {
     const r = await shareMessage(`[프로토라이브] ${p.title}\n${p.description || ''}`.trim())
     if (r === 'clipboard') setToast('클립보드에 복사했어요.')
   }
+  const upvote = () => setToast('응원했어요! (토스 로그인 연동 시 반영)')
   const stats = [
-    p.signalScore != null ? { label: '평가점수', value: String(p.signalScore) } : null,
-    p.reviewSummary?.averageRating != null
-      ? { label: '평균 별점', value: p.reviewSummary.averageRating.toFixed(1) }
-      : null,
+    p.signalScore != null ? { label: '시그널', value: String(p.signalScore) } : null,
+    p.upvoteCount != null ? { label: '응원', value: String(p.upvoteCount) } : null,
     p.reviewSummary?.reviewCount != null
-      ? { label: '리뷰', value: String(p.reviewSummary.reviewCount) }
+      ? { label: '피드백', value: String(p.reviewSummary.reviewCount) }
       : null,
-    p.upvoteCount != null ? { label: '추천', value: String(p.upvoteCount) } : null,
   ]
     .filter(Boolean)
     .slice(0, 3) as { label: string; value: string }[]
@@ -97,23 +102,14 @@ export function ProjectDetailPage({ id = '' }: { id?: string }) {
     <div style={{ minHeight: '100dvh', background: theme.bg }}>
       {Header}
       <div className="rise" style={{ padding: '0 20px 110px' }}>
-        <div style={{ padding: '0 0 4px' }}>
-          <Cover
-            gradient={undefined}
-            src={p.thumbnail}
-            alt={p.title}
-            seed={p.title}
-            height={172}
-            radius={16}
-          />
-        </div>
+        <Cover src={coverUrl(p)} alt={p.title} height={190} radius={16} seed={p.title} />
         <div style={{ paddingTop: 16 }}>
           <div style={{ display: 'flex', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
             {p.category && <Badge accent>{p.category}</Badge>}
-            {p.maturity && <Badge>{p.maturity}</Badge>}
-            {p.tags?.slice(0, 3).map((t) => (
-              <Badge key={t}>{t}</Badge>
-            ))}
+            {p.maturity && <Badge>{MATURITY_LABEL[p.maturity] || p.maturity}</Badge>}
+            {p.stack && <Badge>{STACK_LABEL[p.stack] || p.stack}</Badge>}
+            {p.validation?.success && <Badge accent>✅ 라이브 검증 통과</Badge>}
+            {p.vibeCoded && <Badge>바이브코딩</Badge>}
           </div>
           <h1 style={{ fontSize: 23, fontWeight: 800, lineHeight: 1.3 }}>{p.title}</h1>
 
@@ -127,7 +123,7 @@ export function ProjectDetailPage({ id = '' }: { id?: string }) {
             <p
               style={{
                 fontSize: 15,
-                lineHeight: 1.75,
+                lineHeight: 1.78,
                 color: theme.text,
                 margin: '20px 0 0',
                 maxWidth: '72ch',
@@ -138,21 +134,73 @@ export function ProjectDetailPage({ id = '' }: { id?: string }) {
             </p>
           )}
 
-          {p.stack?.length ? (
+          {p.builtWith?.length ? (
             <div style={{ marginTop: 22 }}>
-              <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 10 }}>기술 스택</h2>
+              <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 10 }}>제작 도구</h2>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {p.stack.map((s) => (
-                  <Badge key={s}>{s}</Badge>
+                {p.builtWith.map((b) => (
+                  <Badge key={b} accent>
+                    {BUILT_WITH_LABEL[b] || b}
+                  </Badge>
                 ))}
               </div>
             </div>
           ) : null}
 
-          <div style={{ marginTop: 24 }}>
-            <Button style={{ width: '100%' }} onClick={share}>
+          {p.tags?.length ? (
+            <div style={{ marginTop: 22 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 10 }}>키워드</h2>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {p.tags.map((t) => (
+                  <Badge key={t}>{t}</Badge>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {p.eventSummary?.total ? (
+            <p style={{ marginTop: 20, fontSize: 13.5, color: theme.textMuted }}>
+              📈 누적 활동 {p.eventSummary.total}회
+            </p>
+          ) : null}
+
+          <div style={{ marginTop: 22, display: 'flex', gap: 10 }}>
+            <button
+              type="button"
+              onClick={upvote}
+              className="pressable"
+              style={{
+                flex: 1,
+                minHeight: 52,
+                borderRadius: 14,
+                border: `1px solid ${theme.border}`,
+                background: 'transparent',
+                color: theme.text,
+                fontSize: 15,
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              👍 응원하기
+            </button>
+            <button
+              type="button"
+              onClick={share}
+              className="pressable"
+              style={{
+                flex: 1,
+                minHeight: 52,
+                borderRadius: 14,
+                border: `1px solid ${theme.border}`,
+                background: 'transparent',
+                color: theme.text,
+                fontSize: 15,
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
               공유하기
-            </Button>
+            </button>
           </div>
         </div>
       </div>
@@ -170,11 +218,10 @@ export function ProjectDetailPage({ id = '' }: { id?: string }) {
           }}
         >
           <a href={p.liveUrl} target="_blank" rel="noopener noreferrer">
-            <Button style={{ width: '100%' }}>라이브 프로토타입 보고 평가하기</Button>
+            <Button style={{ width: '100%' }}>라이브 프로토타입 보기</Button>
           </a>
         </div>
       )}
-
       {toast && (
         <div
           role="status"
@@ -183,11 +230,13 @@ export function ProjectDetailPage({ id = '' }: { id?: string }) {
             bottom: 'calc(84px + env(safe-area-inset-bottom))',
             left: '50%',
             transform: 'translateX(-50%)',
-            background: 'rgba(0,0,0,0.82)',
+            background: 'rgba(0,0,0,0.86)',
             color: theme.text,
             padding: '10px 18px',
             borderRadius: 999,
-            fontSize: 14,
+            fontSize: 13.5,
+            maxWidth: '90%',
+            textAlign: 'center',
           }}
         >
           {toast}

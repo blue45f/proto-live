@@ -1,7 +1,7 @@
 import { Top } from '@toss/tds-mobile'
 import { useEffect, useMemo, useState } from 'react'
 
-import { fetchProjects, type Project } from '../lib/api'
+import { fetchProjects, coverUrl, MATURITY_LABEL, type Project } from '../lib/api'
 import { navigate } from '../router'
 import { theme, pageShell } from '../theme'
 import { SearchBar, Chips, Badge, Cover } from '../ui'
@@ -40,7 +40,7 @@ export function ProjectListPage() {
       const okCat = cat === ALL || p.category === cat
       const okQ =
         !query ||
-        [p.title, p.description, p.category, ...(p.tags || [])]
+        [p.title, p.description, p.category, ...(p.tags || []), p.stack]
           .filter(Boolean)
           .join(' ')
           .toLowerCase()
@@ -57,7 +57,7 @@ export function ProjectListPage() {
         title={<Top.TitleParagraph size={22}>🧪 프로토라이브</Top.TitleParagraph>}
         subtitleBottom={
           <Top.SubtitleParagraph size={15}>
-            프로토타입을 둘러보고 평가·피드백을 남겨요
+            메이커의 라이브 프로토타입을 발견하고 응원하세요
           </Top.SubtitleParagraph>
         }
       />
@@ -101,14 +101,8 @@ export function ProjectListPage() {
                 cursor: 'pointer',
               }}
             >
-              <div style={{ width: 56, flexShrink: 0 }}>
-                <Cover
-                  gradient={undefined}
-                  src={p.thumbnail}
-                  alt={p.title}
-                  height={56}
-                  radius={12}
-                />
+              <div style={{ width: 60, flexShrink: 0 }}>
+                <Cover src={coverUrl(p)} alt={p.title} height={60} radius={12} seed={p.title} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div
@@ -125,17 +119,16 @@ export function ProjectListPage() {
                 </div>
                 {(p.category || p.maturity) && (
                   <div style={{ fontSize: 13, color: theme.textMuted, marginTop: 2 }}>
-                    {[p.category, p.maturity].filter(Boolean).join(' · ')}
+                    {[p.category, p.maturity && (MATURITY_LABEL[p.maturity] || p.maturity)]
+                      .filter(Boolean)
+                      .join(' · ')}
                   </div>
                 )}
                 <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-                  {p.signalScore != null && <Badge accent>평가 {p.signalScore}</Badge>}
-                  {p.reviewSummary?.reviewCount ? (
-                    <Badge>리뷰 {p.reviewSummary.reviewCount}</Badge>
-                  ) : null}
-                  {p.tags?.slice(0, 1).map((t) => (
-                    <Badge key={t}>{t}</Badge>
-                  ))}
+                  {p.validation?.success && <Badge accent>✅ 검증</Badge>}
+                  {p.vibeCoded && <Badge>바이브코딩</Badge>}
+                  {p.signalScore != null && <Badge>시그널 {p.signalScore}</Badge>}
+                  {p.upvoteCount ? <Badge>👍 {p.upvoteCount}</Badge> : null}
                 </div>
               </div>
               <span
