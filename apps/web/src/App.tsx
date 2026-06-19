@@ -589,10 +589,7 @@ function AppShell() {
             </div>
           ) : isSupportView ? (
             <div className="lg:col-span-2">
-              <SupportView
-                contactEmail={session?.email}
-                originUrl={typeof window !== 'undefined' ? globalThis.location.href : ''}
-              />
+              <SupportView contactEmail={session?.email} />
             </div>
           ) : isMessagesView ? (
             <div className="lg:col-span-2">

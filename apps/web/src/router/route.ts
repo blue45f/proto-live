@@ -96,7 +96,7 @@ const MATCHERS: ReadonlyArray<(path: string, query: URLSearchParams) => AppRoute
       ? { ...MARKET_ROUTE, view: 'messages', conversationId: toFiniteId(match[1]) }
       : null
   },
-  // 인앱 문의: /support (TermsDesk 중앙 문의 접수 폼)
+  // 인앱 문의: /support (desk-platform 공개 문의 게시판)
   (path) =>
     lastSegment(path) === SUPPORT_PATH_SEGMENT ? { ...MARKET_ROUTE, view: 'support' } : null,
   // 등록 딥링크: /submit (피드 위에 등록 모달을 연다)

@@ -8,6 +8,10 @@
 interface ImportMetaEnv {
   readonly VITE_API_BASE_URL?: string
 
+  // desk-platform 공개 문의 게시판 REST 베이스 URL(미설정 시 라이브 기본값).
+  // 로컬 개발 시에만 desk-platform api(:6090) 등으로 오버라이드한다.
+  readonly VITE_DESK_PLATFORM_URL?: string
+
   // DeskCloud 공개(pk_) SDK 엔드포인트 + publishable 키(선택, 미설정 시 'pk_demo').
   readonly VITE_SURVEYDESK_URL?: string
   readonly VITE_SURVEYDESK_PK?: string

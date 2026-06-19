@@ -67,22 +67,41 @@ describe('community: project discussion split routes', () => {
 })
 
 describe('community: in-app inquiry (support) view', () => {
-  it('submits an inquiry and shows the receipt', async () => {
-    const user = userEvent.setup()
-    const fetchSpy = vi.fn(
-      async () =>
-        new Response(
-          JSON.stringify({
-            id: 'inq_TEST',
-            siteSlug: 'proto-live',
-            category: 'bug',
-            status: 'new',
-            createdAt: '2026-06-12T00:00:00.000Z',
-          }),
-          { status: 201, headers: { 'Content-Type': 'application/json' } }
+  // desk-platform 공개 게시판: 마운트 시 목록(GET), 제출 시 등록(POST).
+  // 메서드로 분기해 GET 은 빈 목록, POST 는 생성된 Inquiry 를 돌려준다.
+  function stubInquiryFetch(onPost?: (init: RequestInit) => Response) {
+    const fetchSpy = vi.fn(async (_url: string, init?: RequestInit) => {
+      if ((init?.method ?? 'GET').toUpperCase() === 'POST') {
+        return (
+          onPost?.(init ?? {}) ??
+          new Response(
+            JSON.stringify({
+              id: 'inq_TEST',
+              appId: 'proto-live',
+              category: 'bug',
+              status: 'new',
+              title: '오류 화면 제보',
+              body: '상세 페이지에서 빈 화면이 뜹니다.',
+              authorName: null,
+              createdAt: '2026-06-12T00:00:00.000Z',
+              updatedAt: '2026-06-12T00:00:00.000Z',
+            }),
+            { status: 201, headers: { 'Content-Type': 'application/json' } }
+          )
         )
-    )
+      }
+      return new Response(
+        JSON.stringify({ appId: 'proto-live', items: [], limit: 20, offset: 0 }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      )
+    })
     vi.stubGlobal('fetch', fetchSpy)
+    return fetchSpy
+  }
+
+  it('submits an inquiry to the desk-platform board and confirms receipt', async () => {
+    const user = userEvent.setup()
+    const fetchSpy = stubInquiryFetch()
 
     setPath('/support')
     render(<App />)
@@ -98,21 +117,26 @@ describe('community: in-app inquiry (support) view', () => {
     await user.click(screen.getByRole('button', { name: '문의 보내기' }))
 
     expect(await screen.findByText('문의가 접수되었어요')).toBeInTheDocument()
-    expect(screen.getByText('inq_TEST')).toBeInTheDocument()
 
-    // 허니팟(website)은 빈 값으로, originUrl 은 location.href 로 전송된다.
-    const [, requestInit] = fetchSpy.mock.calls[0] as unknown as [string, RequestInit]
-    const payload = JSON.parse(String(requestInit.body))
+    // POST 호출: 허니팟(website)은 빈 값으로, originUrl 은 location.href 로 전송된다.
+    const postCall = fetchSpy.mock.calls.find(
+      ([, init]) => (init as RequestInit | undefined)?.method === 'POST'
+    ) as [string, RequestInit] | undefined
+    expect(postCall?.[0]).toContain('/api/v1/apps/proto-live/inquiries')
+    const payload = JSON.parse(String(postCall?.[1].body))
     expect(payload.website).toBe('')
     expect(payload.category).toBe('bug')
     expect(typeof payload.originUrl).toBe('string')
   })
 
-  it('falls back to an external support link when submission fails', async () => {
+  it('surfaces a server error message when submission fails', async () => {
     const user = userEvent.setup()
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => new Response('nope', { status: 500 }))
+    stubInquiryFetch(
+      () =>
+        new Response(JSON.stringify({ message: ['title: Too long'] }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        })
     )
 
     setPath('/support')
@@ -126,8 +150,7 @@ describe('community: in-app inquiry (support) view', () => {
     )
     await user.click(screen.getByRole('button', { name: '문의 보내기' }))
 
-    const fallback = await screen.findByRole('link', { name: /외부 지원 보드/ })
-    expect(fallback).toHaveAttribute('href', 'https://termsdesk.vercel.app/support/proto-live')
+    expect(await screen.findByText(/title: Too long/)).toBeInTheDocument()
   })
 })
 

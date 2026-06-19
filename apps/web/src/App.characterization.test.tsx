@@ -358,16 +358,29 @@ describe('App characterization: legal policy pages', () => {
 
   it('routes the footer 문의 link to the in-app inquiry view', async () => {
     const user = userEvent.setup()
+    // 공개 문의 게시판이 마운트 시 desk-platform 목록(GET)을 호출하므로, 테스트가
+    // 네트워크에 나가지 않도록 빈 목록을 돌려준다(라우팅만 검증).
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ appId: 'proto-live', items: [], limit: 20, offset: 0 }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })
+      )
+    )
     await renderAppLoaded()
 
     const supportLink = screen.getByRole('link', { name: '문의' })
-    // 외부 지원 보드 대신 내부 /support 인앱 문의 폼으로 연결된다(외부 폴백은 폼 안에서 제공).
+    // 외부 연락 수단 대신 내부 /support 공개 문의 게시판으로 연결된다.
     expect(supportLink).toHaveAttribute('href', '/support')
     expect(supportLink).not.toHaveAttribute('target', '_blank')
 
     await user.click(supportLink)
     expect(await screen.findByRole('heading', { name: '문의하기', level: 2 })).toBeInTheDocument()
     expect(globalThis.location.pathname).toBe('/support')
+    vi.unstubAllGlobals()
   })
 })
 
