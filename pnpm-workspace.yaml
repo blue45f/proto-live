@@ -11,11 +11,12 @@ onlyBuiltDependencies:
   - protobufjs
   - unrs-resolver
 allowBuilds:
+  '@firebase/util': false
   '@nestjs/core': true
   '@sentry/cli': true
   '@swc/core': true
   esbuild: true
-  protobufjs: true
+  protobufjs: false
   unrs-resolver: true
 
 minimumReleaseAgeExclude:

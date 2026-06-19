@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 
 import { DeskInboxBell } from './components/deskcloud/DeskInboxBell'
 import { SearchCommandPalette } from './components/deskcloud/SearchCommandPalette'
+import { MemberAuthControl } from './components/MemberAuthControl'
 import { LoginModal } from './components/modals/LoginModal'
 import { MatchModal } from './components/modals/MatchModal'
 import { PreviewModal } from './components/modals/PreviewModal'
@@ -17,6 +18,7 @@ import { ProjectDiligencePanel } from './domains/projects/ProjectDiligencePanel'
 import { resolveRoleLabel } from './infrastructure/local-auth'
 import { createAppQueryClient } from './infrastructure/queryClient'
 import { deskEnabled } from './lib/deskcloud'
+import { AuthProvider } from './lib/firebaseAuth'
 import { lazyRetry } from './lib/lazy-retry'
 import { POLICY_PAGES } from './lib/termsdesk'
 import { routePath } from './router/route'
@@ -59,9 +61,13 @@ const DiscussionHub = lazyRetry(() =>
 const queryClient = createAppQueryClient()
 
 export default function App() {
+  // AuthProvider(통합 회원 로그인)도 여기 둔다 — 테스트가 <App /> 를 직접 렌더하므로
+  // 프로덕션·테스트가 동일한 Firebase Auth 컨텍스트를 갖는다(헤더 MemberAuthControl 가 소비).
   return (
     <QueryClientProvider client={queryClient}>
-      <AppShell />
+      <AuthProvider>
+        <AppShell />
+      </AuthProvider>
     </QueryClientProvider>
   )
 }
@@ -528,6 +534,9 @@ function AppShell() {
                 <span className="sr-only">로그인</span>
               </button>
             )}
+            {/* 통합 회원 로그인(Firebase Auth) — 기존 테스트 계정/Google 세션 로그인과 별개.
+                이메일/비밀번호 + 게스트(익명) 옵션을 추가 제공한다(비파괴적). */}
+            <MemberAuthControl className="shrink-0" />
             {canAccessAdmin ? (
               <button
                 type="button"
