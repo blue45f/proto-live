@@ -23,6 +23,9 @@ interface ImportMetaEnv {
   readonly VITE_NOTIFYDESK_PK?: string
   readonly VITE_SEARCHDESK_URL?: string
   readonly VITE_SEARCHDESK_PK?: string
+  readonly VITE_ADDESK_URL?: string
+  readonly VITE_ADDESK_PK?: string
+  readonly VITE_ADDESK_SLOTS?: string
 }
 
 interface ImportMeta {
