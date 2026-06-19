@@ -17,25 +17,31 @@ export function ProofKpiRail({
 }) {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-      <Metric
-        icon={ShieldCheck}
-        label="확인된 라이브 빌드"
-        value={`${stats.verifiedProjects}/${stats.totalProjects}`}
-      />
-      <Metric
-        icon={TimerReset}
-        label="평균 열림 속도"
-        value={stats.averageResponseMs === null ? 'N/A' : `${stats.averageResponseMs}ms`}
-      />
-      <Metric
-        icon={Zap}
-        label="가장 빠른 응답"
-        value={
-          fastestResponseProject?.validation.responseTimeMs != null
-            ? `${fastestResponseProject.validation.responseTimeMs}ms`
-            : 'N/A'
-        }
-      />
+      <div className="motion-safe:animate-rise-in [--rise-delay:600ms]">
+        <Metric
+          icon={ShieldCheck}
+          label="확인된 라이브 빌드"
+          value={`${stats.verifiedProjects}/${stats.totalProjects}`}
+        />
+      </div>
+      <div className="motion-safe:animate-rise-in [--rise-delay:680ms]">
+        <Metric
+          icon={TimerReset}
+          label="평균 열림 속도"
+          value={stats.averageResponseMs === null ? 'N/A' : `${stats.averageResponseMs}ms`}
+        />
+      </div>
+      <div className="motion-safe:animate-rise-in [--rise-delay:760ms]">
+        <Metric
+          icon={Zap}
+          label="가장 빠른 응답"
+          value={
+            fastestResponseProject?.validation.responseTimeMs != null
+              ? `${fastestResponseProject.validation.responseTimeMs}ms`
+              : 'N/A'
+          }
+        />
+      </div>
     </div>
   )
 }

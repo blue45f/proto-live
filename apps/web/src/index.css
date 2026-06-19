@@ -663,6 +663,45 @@
   animation: modal-fade 160ms var(--ease-out-expo) both;
 }
 
+/* ============================================================
+   Home entrance choreography.
+   A single "rise-in" (fade + small translateY, transform/opacity
+   only) drives the hero's staggered entrance. Each element opts in
+   with `motion-safe:animate-rise-in` plus a `[--rise-delay:Nms]`
+   stagger. `both` fill keeps the element at its final position once
+   settled, so there is no layout shift; under prefers-reduced-motion
+   the global reset below collapses it to a 0.01ms no-op and the
+   content is simply present (no blank-on-no-JS — these are pure CSS).
+   ============================================================ */
+@keyframes protolive-rise-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@utility animate-rise-in {
+  animation: protolive-rise-in 560ms var(--ease-out-expo) both;
+  animation-delay: var(--rise-delay, 0ms);
+}
+
+/* The hero panel's verification bar grows from 0 to its target width
+   on first paint, so progress reads as "filling in" rather than just
+   appearing. Width is animated via a scaleX transform on an inner
+   layer (see .protolive-bar-fill) to stay on the compositor. */
+@keyframes protolive-bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
 /* @utility 로 등록해야 Tailwind v4 가 Radix 의 data-[state=open|closed]: 변형을
    생성한다(@layer 의 일반 클래스는 변형 없이 그대로 출력만 된다). */
 @utility animate-toast-in {
@@ -874,6 +913,144 @@
   50% {
     opacity: 1;
     transform: scale(1.15);
+  }
+}
+
+/* ============================================================
+   Home hero polish: confident composition + tasteful flair, all
+   within the maker-lounge identity (no gradient text, no
+   glassmorphism, no shimmer). Decorative accents are slow and
+   transform/opacity only; everything collapses under
+   prefers-reduced-motion via the global reset above.
+   ============================================================ */
+
+/* A soft, lazily-drifting sap-green aurora behind the hero copy —
+   adds depth without the forbidden blurred glow fields (it lives on
+   the hero's own surface, masked by overflow:hidden, low opacity). */
+.protolive-hero::after {
+  content: '';
+  position: absolute;
+  inset: -40% 30% auto -10%;
+  height: 130%;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(
+      42% 60% at 12% 18%,
+      color-mix(in oklch, var(--color-proof) 16%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      38% 52% at 80% 0%,
+      color-mix(in oklch, var(--color-signal) 12%, transparent),
+      transparent 72%
+    );
+  opacity: 0.7;
+  animation: protolive-hero-drift 18s ease-in-out infinite alternate;
+}
+
+.protolive-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes protolive-hero-drift {
+  from {
+    transform: translate3d(-2%, -1%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(3%, 2%, 0) scale(1.06);
+  }
+}
+
+/* The eyebrow badge carries a small breathing "live" dot so the
+   live-build promise is felt the instant the hero lands. */
+.protolive-live-dot {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+}
+
+.protolive-live-dot::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 999px;
+  background: color-mix(in oklch, var(--color-proof) 70%, transparent);
+  opacity: 0.5;
+  z-index: -1;
+  animation: protolive-signal-ping 2400ms var(--ease-out-expo) infinite;
+}
+
+/* Flow steps (01 공유 / 02 피드백 / 03 투자 연결) lift on hover and earn
+   a proof-tinted edge, so the three-beat story feels interactive. */
+.protolive-flow-step {
+  transition:
+    transform 200ms var(--ease-out-expo),
+    border-color 200ms var(--ease-out-expo),
+    box-shadow 200ms var(--ease-out-expo);
+}
+
+.protolive-flow-step:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in oklch, var(--color-proof) 42%, transparent);
+  box-shadow: 0 12px 26px color-mix(in oklch, var(--color-proof) 14%, transparent);
+}
+
+/* The numbered index in each step gets a gentle pop on step hover. */
+.protolive-flow-step .protolive-flow-index {
+  transition: transform 200ms var(--ease-out-expo);
+}
+
+.protolive-flow-step:hover .protolive-flow-index {
+  transform: scale(1.12);
+}
+
+/* Primary CTA: nudge the trailing arrow forward on hover (the button's
+   lift is already handled by the shared .protolive-btn rule). */
+.protolive-cta-arrow {
+  transition: transform 220ms var(--ease-out-expo);
+}
+
+.protolive-btn:hover .protolive-cta-arrow,
+.protolive-btn:focus-visible .protolive-cta-arrow {
+  transform: translateX(3px);
+}
+
+/* Hero status panel verification bar: an inner fill layer that grows
+   from scaleX(0) on mount. transform-origin keeps it anchored left. */
+.protolive-bar-fill {
+  transform-origin: left center;
+  animation: protolive-bar-grow 900ms var(--ease-out-expo) both;
+  animation-delay: var(--rise-delay, 520ms);
+}
+
+/* Header brand lockup settles in on load and the bolt tile reacts to
+   hover with a small lift + brighter shadow (press flattens it). */
+.protolive-shell .protolive-logo {
+  transition:
+    transform 200ms var(--ease-out-expo),
+    box-shadow 200ms var(--ease-out-expo);
+}
+
+.protolive-shell .protolive-logo:hover {
+  transform: translateY(-1px) rotate(-3deg);
+  box-shadow: 0 10px 24px color-mix(in oklch, var(--color-proof) 34%, transparent);
+}
+
+.protolive-shell .protolive-logo:active {
+  transform: translateY(0) rotate(0deg);
+}
+
+@media (max-width: 767px) {
+  /* Calmer hover on touch widths: keep the lift subtle, drop the drift
+     scale to avoid overflow jitter on small hero surfaces. */
+  .protolive-flow-step:hover {
+    transform: none;
+  }
+
+  .protolive-hero::after {
+    animation-duration: 24s;
   }
 }
 

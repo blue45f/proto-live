@@ -989,7 +989,7 @@ export function AdminDashboardView({
                 <span className="mb-1 block font-black text-stone-200">{field.label}</span>
                 <input
                   type="number"
-                  min={field.kind === 'percent' ? 0 : 0}
+                  min={0}
                   max={field.kind === 'percent' ? 100 : undefined}
                   step={field.kind === 'percent' ? 0.1 : 1000}
                   value={

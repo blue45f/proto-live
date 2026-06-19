@@ -334,23 +334,27 @@ export function MarketView(props: {
           <section className="protolive-hero overflow-hidden rounded-2xl p-5 sm:p-7">
             <div className="grid min-w-0 gap-5">
               <div className="min-w-0 max-w-3xl">
-                <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-lime-300/30 bg-lime-300/10 px-3 py-1 text-xs font-bold text-lime-200">
-                  <Radar className="h-3.5 w-3.5" />
+                <p className="mb-3 inline-flex items-center gap-2 rounded-full border border-lime-300/30 bg-lime-300/10 px-3 py-1 text-xs font-bold text-lime-200 motion-safe:animate-rise-in">
+                  <span className="protolive-live-dot h-3.5 w-3.5">
+                    <Radar className="h-3.5 w-3.5" />
+                  </span>
                   메이커 라운지 · 라이브 검증
                 </p>
-                <h2 className="overflow-wrap-anywhere text-2xl font-black leading-tight tracking-tight text-stone-50 sm:text-3xl">
+                <h2 className="overflow-wrap-anywhere text-2xl font-black leading-tight tracking-tight text-stone-50 motion-safe:animate-rise-in [--rise-delay:80ms] sm:text-3xl">
                   바이브코딩으로 만든 웹앱,
                   <br className="hidden sm:block" />
                   <span className="text-lime-300">살아있는 채로</span> 공유하고 피드백받으세요
                 </h2>
-                <p className="mt-3 max-w-[68ch] overflow-wrap-anywhere text-sm leading-6 text-stone-300">
+                <p className="mt-3 max-w-[68ch] overflow-wrap-anywhere text-sm leading-6 text-stone-300 motion-safe:animate-rise-in [--rise-delay:160ms]">
                   데모·프로토타입·갓 시작한 초기 빌드도 환영합니다. 진짜 떠 있는 빌드만 올라오고,
                   검증된 상위 빌드는 투자자에게 연결됩니다.
                 </p>
                 <div className="mt-6 grid gap-2.5 sm:grid-cols-3">
-                  <div className="protolive-flow-step min-w-0 rounded-xl border border-stone-800 bg-stone-950/40 px-4 py-3.5">
+                  <div className="protolive-flow-step min-w-0 rounded-xl border border-stone-800 bg-stone-950/40 px-4 py-3.5 motion-safe:animate-rise-in [--rise-delay:240ms]">
                     <div className="mb-3 flex items-center justify-between gap-2">
-                      <span className="text-xs font-black text-lime-200">01</span>
+                      <span className="protolive-flow-index text-xs font-black text-lime-200">
+                        01
+                      </span>
                       <Globe2 className="h-4 w-4 text-lime-200" />
                     </div>
                     <p className="text-sm font-black text-stone-50">공유</p>
@@ -358,9 +362,11 @@ export function MarketView(props: {
                       주소가 실제로 열리는지 서버가 먼저 자동 확인합니다.
                     </p>
                   </div>
-                  <div className="protolive-flow-step min-w-0 rounded-xl border border-stone-800 bg-stone-950/40 px-4 py-3.5">
+                  <div className="protolive-flow-step min-w-0 rounded-xl border border-stone-800 bg-stone-950/40 px-4 py-3.5 motion-safe:animate-rise-in [--rise-delay:320ms]">
                     <div className="mb-3 flex items-center justify-between gap-2">
-                      <span className="text-xs font-black text-lime-200">02</span>
+                      <span className="protolive-flow-index text-xs font-black text-lime-200">
+                        02
+                      </span>
                       <Activity className="h-4 w-4 text-lime-200" />
                     </div>
                     <p className="text-sm font-black text-stone-50">피드백</p>
@@ -368,9 +374,11 @@ export function MarketView(props: {
                       커뮤니티가 단계에 맞춰 리뷰·업보트를 남깁니다.
                     </p>
                   </div>
-                  <div className="protolive-flow-step min-w-0 rounded-xl border border-stone-800 bg-stone-950/40 px-4 py-3.5">
+                  <div className="protolive-flow-step min-w-0 rounded-xl border border-stone-800 bg-stone-950/40 px-4 py-3.5 motion-safe:animate-rise-in [--rise-delay:400ms]">
                     <div className="mb-3 flex items-center justify-between gap-2">
-                      <span className="text-xs font-black text-amber-200">03</span>
+                      <span className="protolive-flow-index text-xs font-black text-amber-200">
+                        03
+                      </span>
                       <Briefcase className="h-4 w-4 text-amber-200" />
                     </div>
                     <p className="text-sm font-black text-stone-50">투자 연결</p>
@@ -379,14 +387,14 @@ export function MarketView(props: {
                     </p>
                   </div>
                 </div>
-                <div className="mt-6 flex flex-wrap items-center gap-3">
+                <div className="mt-6 flex flex-wrap items-center gap-3 motion-safe:animate-rise-in [--rise-delay:480ms]">
                   <button
                     type="button"
                     onClick={onCreate}
                     className="protolive-btn protolive-btn-primary inline-flex min-h-11 items-center gap-2 rounded-xl bg-lime-300 px-5 text-sm font-black text-slate-950 transition hover:bg-lime-200 active:translate-y-px"
                   >
                     내 사이트 등록하기
-                    <ArrowRight className="h-4 w-4" />
+                    <ArrowRight className="protolive-cta-arrow h-4 w-4" />
                   </button>
                   <button
                     type="button"
@@ -397,7 +405,7 @@ export function MarketView(props: {
                   </button>
                 </div>
               </div>
-              <div className="protolive-market-status rounded-lg border border-stone-700/70 bg-stone-950/60 p-4 text-xs text-stone-400">
+              <div className="protolive-market-status rounded-lg border border-stone-700/70 bg-stone-950/60 p-4 text-xs text-stone-400 motion-safe:animate-rise-in [--rise-delay:560ms]">
                 <div className="mb-4 flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 font-black text-stone-100">
                     <Gauge className="h-4 w-4 text-lime-200" />
@@ -425,7 +433,7 @@ export function MarketView(props: {
                     </div>
                     <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-stone-800">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-lime-300 to-cyan-300"
+                        className="protolive-bar-fill h-full rounded-full bg-gradient-to-r from-lime-300 to-cyan-300"
                         style={{ width: `${Math.max(4, Math.min(100, stats.verificationRate))}%` }}
                       />
                     </div>
