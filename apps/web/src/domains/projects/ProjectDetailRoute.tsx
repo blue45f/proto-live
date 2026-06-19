@@ -13,6 +13,7 @@ import React from 'react'
 import { ShareButton } from '../../components/ShareButton'
 import { eventCopy, reviewTypeCopy } from '../../lib/constants'
 import {
+  buildProjectShareUrl,
   formatRelativeTime,
   getResponseTimeTone,
   getValidationTone,
@@ -20,6 +21,7 @@ import {
 } from '../../lib/format'
 
 import { ProjectReviewWorkspace } from './ProjectReviewWorkspace'
+import { useRecentlyViewedStore } from './recentlyViewedStore'
 
 import type {
   Project,
@@ -108,10 +110,14 @@ export function ProjectDetailRoute({
   const reviewSummary = project.reviewSummary
   const latestReview = reviewSummary?.latest
   const tags = project.tags ?? []
-  const shareUrl =
-    typeof window !== 'undefined'
-      ? `${globalThis.location.origin}/projects/${project.id}`
-      : `/projects/${project.id}`
+  const shareUrl = buildProjectShareUrl(project.id)
+  const recordView = useRecentlyViewedStore((state) => state.recordView)
+
+  // 상세 진입을 "최근 본 사이트" 이력에 남긴다(피드 사이드바 레일에서 빠른 복귀용).
+  // 카드 클릭·딥링크·알림 등 모든 상세 진입이 이 컴포넌트를 거치므로 한 곳에서만 기록한다.
+  React.useEffect(() => {
+    recordView({ id: project.id, title: project.title, category: project.category })
+  }, [project.id, project.title, project.category, recordView])
 
   // 프로젝트 상세에 JSON-LD 구조화 데이터를 주입한다(검색 리치 결과 + 공유 미리보기 보강).
   // 크롤러가 JS를 실행하는 경우(Google)에 인식된다. 언마운트/프로젝트 변경 시 정리.

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { formatChallengeDday } from './format'
+import { buildProjectShareUrl, formatChallengeDday } from './format'
 
 describe('formatChallengeDday', () => {
   beforeEach(() => {
@@ -29,5 +29,16 @@ describe('formatChallengeDday', () => {
 
   it('returns null for unparseable dates so the banner can skip the chip', () => {
     expect(formatChallengeDday('not-a-date')).toBeNull()
+  })
+})
+
+describe('buildProjectShareUrl', () => {
+  it('builds an absolute detail URL on the current origin (browser env)', () => {
+    // jsdom 환경이라 window.location.origin 이 존재한다 — 상세 라우트와 동일한 경로.
+    expect(buildProjectShareUrl(42)).toBe(`${globalThis.location.origin}/projects/42`)
+  })
+
+  it('matches the canonical detail route path segment', () => {
+    expect(buildProjectShareUrl(7).endsWith('/projects/7')).toBe(true)
   })
 })

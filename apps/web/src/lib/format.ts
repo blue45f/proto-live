@@ -392,3 +392,16 @@ export function upsertProject(projects: Project[], nextProject: Project) {
   if (!exists) return [nextProject, ...projects]
   return projects.map((project) => (project.id === nextProject.id ? nextProject : project))
 }
+
+/**
+ * 프로젝트 상세 공유 URL. 브라우저에서는 절대 URL(origin 포함)로, SSR/비브라우저
+ * 환경에서는 상대 경로로 만든다. 상세 라우트(`/projects/:id`)와 동일한 경로를 쓰며
+ * 상세 뷰와 피드 카드 공유 버튼이 같은 규칙을 공유하도록 한 곳에 모은다.
+ */
+export function buildProjectShareUrl(projectId: number): string {
+  const path = `/projects/${projectId}`
+  if (typeof window === 'undefined') {
+    return path
+  }
+  return `${globalThis.location.origin}${path}`
+}

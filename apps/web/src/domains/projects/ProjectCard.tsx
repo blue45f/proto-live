@@ -1,5 +1,6 @@
 import { ArrowUpRight, ChevronUp, Star } from 'lucide-react'
 
+import { ShareButton } from '../../components/ShareButton'
 import {
   type ProjectListViewMode,
   buildToolLabel,
@@ -8,6 +9,7 @@ import {
   stackCopy,
 } from '../../lib/constants'
 import {
+  buildProjectShareUrl,
   formatRelativeTime,
   formatWon,
   getResponseTimeTone,
@@ -52,6 +54,7 @@ export function ProjectCard({
   const latestReview = project.reviewSummary?.latest
   const isCardView = viewMode === 'cards'
   const isReviewView = viewMode === 'reviews'
+  const shareUrl = buildProjectShareUrl(project.id)
   const committedRangeText =
     project.committedAmountMax > 0
       ? project.committedAmountMin > 0 && project.committedAmountMin !== project.committedAmountMax
@@ -241,7 +244,10 @@ export function ProjectCard({
           <button
             type="button"
             onClick={onOpenDetail}
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-lime-300 px-4 text-sm font-black text-slate-950 transition hover:bg-lime-200"
+            className={
+              'inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-lime-300 px-4 text-sm font-black text-slate-950 transition hover:bg-lime-200' +
+              (isCardView ? ' col-span-2' : '')
+            }
           >
             상세 보기
             <ArrowUpRight className="h-4 w-4" />
@@ -262,6 +268,11 @@ export function ProjectCard({
             <Star className={'h-4 w-4 ' + (isFavorite ? 'fill-amber-100' : '')} />
             저장
           </button>
+          <ShareButton
+            url={shareUrl}
+            title={project.title + ' · ProtoLive'}
+            triggerClassName="w-full justify-center"
+          />
         </div>
       </div>
     </article>

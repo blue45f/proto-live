@@ -28,6 +28,7 @@ import { ProjectCard } from '../../domains/projects/ProjectCard'
 import { ProjectDetailRoute } from '../../domains/projects/ProjectDetailRoute'
 import { ProjectSkeleton } from '../../domains/projects/ProjectSkeleton'
 import { ProofKpiRail } from '../../domains/projects/ProofKpiRail'
+import { RecentlyViewedRail } from '../../domains/projects/RecentlyViewedRail'
 import {
   type ProjectListViewMode,
   PROJECT_LIST_VIEW_OPTIONS,
@@ -164,6 +165,7 @@ export function MarketView(props: {
   onCreate: () => void
   onOpenAbout: () => void
   onOpenDetail: (project: Project) => void
+  onOpenProjectById: (projectId: number) => void
   onOpenMaker: (makerId: number) => void
   onOpenDiscussions?: () => void
   onToggleFavorite: (projectId: number) => void
@@ -266,6 +268,7 @@ export function MarketView(props: {
     onCreate,
     onOpenAbout,
     onOpenDetail,
+    onOpenProjectById,
     onOpenMaker,
     onOpenDiscussions,
     onToggleFavorite,
@@ -965,6 +968,9 @@ export function MarketView(props: {
       </section>
 
       <aside className="min-w-0 space-y-4">
+        {/* 레일은 피드 탐색 보조 도구라 상세를 읽는 동안에는 숨긴다(상세 제목과의
+            중복 노출도 막는다). */}
+        {!detailProjectId && <RecentlyViewedRail onOpenProject={onOpenProjectById} />}
         <div className="rounded-xl border border-stone-800 bg-stone-950/65 p-4">
           <div className="mb-4 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">

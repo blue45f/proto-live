@@ -1,5 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query'
-import { Plus, RefreshCw, Zap, Users, Mail } from 'lucide-react'
+import { Keyboard, Plus, RefreshCw, Zap, Users, Mail } from 'lucide-react'
 import { Suspense, useEffect, useRef, useState } from 'react'
 
 import { DeskInboxBell } from './components/deskcloud/DeskInboxBell'
@@ -13,6 +13,7 @@ import { SubmitProjectModal } from './components/modals/SubmitProjectModal'
 import { NotificationBell } from './components/NotificationBell'
 import { MarketView } from './components/pages/MarketView'
 import { RouteFallback } from './components/RouteFallback'
+import { ShortcutsDialog } from './components/ShortcutsDialog'
 import ToastContainer from './components/ToastContainer'
 import { ProjectDiligencePanel } from './domains/projects/ProjectDiligencePanel'
 import { resolveRoleLabel } from './infrastructure/local-auth'
@@ -198,6 +199,10 @@ function AppShell() {
     moderatingReviewId,
     onlyVerified,
     openProjectDetail,
+    openProjectDetailById,
+    openShortcutsDialog,
+    closeShortcutsDialog,
+    isShortcutsOpen,
     makerProfileId,
     makerProfile,
     isMakerProfileLoading,
@@ -537,6 +542,15 @@ function AppShell() {
             {/* 통합 회원 로그인(Firebase Auth) — 기존 테스트 계정/Google 세션 로그인과 별개.
                 이메일/비밀번호 + 게스트(익명) 옵션을 추가 제공한다(비파괴적). */}
             <MemberAuthControl className="shrink-0" />
+            <button
+              type="button"
+              onClick={openShortcutsDialog}
+              className="protolive-btn-grid hidden min-h-11 min-w-11 place-items-center rounded-lg border border-stone-700/80 bg-stone-900/70 text-stone-300 transition hover:border-cyan-300/40 hover:text-cyan-100 sm:grid"
+              aria-label="키보드 단축키 도움말"
+              title="키보드 단축키 (?)"
+            >
+              <Keyboard className="h-4 w-4" />
+            </button>
             {canAccessAdmin ? (
               <button
                 type="button"
@@ -566,10 +580,14 @@ function AppShell() {
                 <span className="hidden lg:inline">프로토타입 등록</span>
               </button>
             ) : null}
-            <span className="hidden shrink-0 text-[10px] text-stone-500 2xl:block">
+            <button
+              type="button"
+              onClick={openShortcutsDialog}
+              className="hidden shrink-0 cursor-pointer rounded text-[10px] text-stone-500 transition hover:text-stone-300 2xl:block"
+            >
               단축키: / 검색{canSubmitProject ? ' · ⌘/Ctrl + N 등록' : ''}
-              {canAccessAdmin ? ' · ⌘/Ctrl + R 갱신' : ''}
-            </span>
+              {canAccessAdmin ? ' · ⌘/Ctrl + R 갱신' : ''} · ? 도움말
+            </button>
           </div>
         </div>
       </header>
@@ -829,6 +847,7 @@ function AppShell() {
               onCreate={openSubmitDialog}
               onOpenAbout={openAbout}
               onOpenDetail={openProjectDetail}
+              onOpenProjectById={openProjectDetailById}
               onOpenMaker={openMakerProfile}
               onOpenDiscussions={
                 detailProjectId !== null ? () => openDiscussionList(detailProjectId) : undefined
@@ -1058,6 +1077,16 @@ function AppShell() {
           설정된 환경에서만 핫키를 등록·마운트한다 — 미설정(기본)이면 앱의 인앱 검색
           (헤더 필터, `/` 단축키)만 남는다. 결과는 이 앱 라우터로 SPA 내비게이션한다. */}
       <SearchCommandPalette />
+
+      {/* 키보드 단축키 도움말. `?` 키 또는 헤더 버튼으로 열린다(이미 존재하던
+          전역 단축키를 한곳에 모아 발견 가능하게 만든다). */}
+      <ShortcutsDialog
+        open={isShortcutsOpen}
+        onClose={closeShortcutsDialog}
+        canSubmitProject={canSubmitProject}
+        canRefresh={canAccessAdmin}
+        searchPaletteEnabled={deskEnabled.search}
+      />
     </div>
   )
 }

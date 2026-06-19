@@ -1,3 +1,5 @@
+import { useRecentlyViewedStore } from '../domains/projects/recentlyViewedStore'
+
 import { makeApiMock } from './api-mock'
 
 // App 통합 테스트 공유 하네스. 여러 특성화(characterization) 스위트가 같은
@@ -15,6 +17,9 @@ export function setPath(path: string) {
 export function resetAppHarness() {
   setPath('/')
   localStorage.clear()
+  // 영속 zustand 스토어는 모듈 싱글턴이라 localStorage.clear() 로 인메모리 상태가
+  // 초기화되지 않는다. "최근 본 사이트" 이력이 테스트 간 누수되지 않도록 비운다.
+  useRecentlyViewedStore.getState().clearRecentlyViewed()
   Object.values(mockApi).forEach((fn) => fn.mockClear())
 }
 

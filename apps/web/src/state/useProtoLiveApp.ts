@@ -151,6 +151,7 @@ export function useProtoLiveApp() {
   const [session, setSession] = useState<AuthSession | null>(() => readSession())
   const [isSessionHydrating, setIsSessionHydrating] = useState(true)
   const [isLoginOpen, setIsLoginOpen] = useState(false)
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false)
   const testAccounts = useMemo<TestAccount[]>(() => listTestAccounts(), [])
   const testAccountsByRole = useMemo(() => {
     return {
@@ -1854,6 +1855,9 @@ export function useProtoLiveApp() {
     searchInputRef.current?.select()
   }, [])
 
+  const openShortcutsDialog = useCallback(() => setIsShortcutsOpen(true), [])
+  const closeShortcutsDialog = useCallback(() => setIsShortcutsOpen(false), [])
+
   const handleGlobalShortcut = useCallback(
     (event: KeyboardEvent) => {
       const target = event.target
@@ -1871,6 +1875,13 @@ export function useProtoLiveApp() {
       if (event.key === '/' && !event.ctrlKey && !event.metaKey && !event.altKey) {
         event.preventDefault()
         focusSearchInput()
+        return
+      }
+
+      // `?` 단축키 도움말 토글. (Shift+/ 라 event.key 는 '?' 로 들어온다.)
+      if (event.key === '?' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        event.preventDefault()
+        setIsShortcutsOpen((prev) => !prev)
         return
       }
 
@@ -2806,6 +2817,10 @@ export function useProtoLiveApp() {
     moderatingReviewId,
     onlyVerified,
     openProjectDetail,
+    openProjectDetailById,
+    openShortcutsDialog,
+    closeShortcutsDialog,
+    isShortcutsOpen,
     openSubmitDialog,
     orderedAdminRecommendations,
     pageSize,

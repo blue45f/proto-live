@@ -8,7 +8,16 @@ import { useState } from 'react'
  * - 링크 복사(clipboard) + X·LinkedIn 공유 인텐트(외부 키 불필요)
  * - 바깥 클릭·Esc 로 닫히고 포커스가 트리거로 복귀한다(Radix Popover)
  */
-export function ShareButton({ url, title }: { url: string; title: string }) {
+export function ShareButton({
+  url,
+  title,
+  triggerClassName,
+}: {
+  url: string
+  title: string
+  /** 트리거에 덧붙일 클래스(예: 그리드 셀을 꽉 채울 때 `w-full justify-center`). */
+  triggerClassName?: string
+}) {
   const [copied, setCopied] = useState(false)
 
   const canSystemShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
@@ -33,7 +42,12 @@ export function ShareButton({ url, title }: { url: string; title: string }) {
 
   return (
     <Popover.Root>
-      <Popover.Trigger className="protolive-share inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-stone-700 px-3 text-xs font-black text-stone-300 transition hover:border-lime-300/50 hover:text-lime-100">
+      <Popover.Trigger
+        className={
+          'protolive-share inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg border border-stone-700 px-3 text-xs font-black text-stone-300 transition hover:border-lime-300/50 hover:text-lime-100' +
+          (triggerClassName ? ' ' + triggerClassName : '')
+        }
+      >
         <Share2 className="h-3.5 w-3.5" />
         공유
       </Popover.Trigger>
