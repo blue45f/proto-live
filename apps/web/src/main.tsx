@@ -10,9 +10,12 @@ import './index.css'
 // 독립 스타일 가이드는 가장 가벼운 방식 — pathname 분기 — 으로 App 대신 마운트한다.
 // React 청크에서 분리해 메인 번들을 늘리지 않는다.
 const DesignSystemPage = lazy(() => import('./components/pages/DesignSystemPage'))
+const SitemapPage = lazy(() => import('./components/pages/SitemapPage'))
 
 const isDesignRoute =
   typeof window !== 'undefined' && globalThis.location.pathname.replace(/\/+$/, '') === '/design'
+const isSitemapRoute =
+  typeof window !== 'undefined' && globalThis.location.pathname.replace(/\/+$/, '') === '/sitemap'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -20,6 +23,10 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       {isDesignRoute ? (
         <Suspense fallback={<RouteFallback />}>
           <DesignSystemPage />
+        </Suspense>
+      ) : isSitemapRoute ? (
+        <Suspense fallback={<RouteFallback />}>
+          <SitemapPage />
         </Suspense>
       ) : (
         <App />

@@ -380,7 +380,7 @@ function AppShell() {
                   ProtoLive
                 </h1>
                 <span className="protolive-badge whitespace-nowrap rounded-full border border-lime-400/30 bg-lime-300/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.18em] text-lime-200">
-                  공유·피드백·투자
+                  BETA
                 </span>
               </div>
               {/* 640~1023px: nowrap 부제가 max-content로 브랜드 존을 키워 우측 액션 존을
@@ -1065,9 +1065,8 @@ function AppShell() {
             >
               문의
             </a>
-            {/* 살아있는 디자인 시스템 가이드. pathname 분기로 마운트되는 독립 페이지라 일반 링크. */}
-            <a href="/design" className="rounded px-1 py-0.5 transition hover:text-stone-100">
-              디자인 시스템
+            <a href="/sitemap" className="rounded px-1 py-0.5 transition hover:text-stone-100">
+              사이트맵
             </a>
           </nav>
         </div>
