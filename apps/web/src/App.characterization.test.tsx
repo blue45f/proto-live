@@ -398,8 +398,8 @@ describe('App characterization: header/footer mid-breakpoint contract', () => {
     )
     expect(subtitle).toHaveClass('truncate', 'max-w-64', 'lg:max-w-none')
 
-    // 브랜드 배지는 폭 압박에서 두 줄 알약으로 꺾이지 않는다(CJK 중간 개행 방지).
-    expect(screen.getByText('공유·피드백·투자')).toHaveClass('whitespace-nowrap')
+    // 브랜드 배지는 폭 압박에서 두 줄 알약으로 꺾이지 않는다.
+    expect(screen.getByText('BETA')).toHaveClass('whitespace-nowrap')
 
     // 헤더 줄바꿈 정의: 중간 폭은 graceful wrap, 데스크톱(lg+)만 한 줄 고정.
     const header = screen
