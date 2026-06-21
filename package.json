@@ -10,11 +10,11 @@
   },
   "scripts": {
     "dev": "./scripts/dev.sh",
-    "build": "pnpm -r --if-present run build",
-    "lint": "eslint .",
+    "build": "pnpm exec turbo run build",
+    "lint": "eslint . && pnpm exec turbo run lint",
     "lint:fix": "eslint . --fix",
-    "typecheck": "pnpm -r --if-present run typecheck",
-    "test": "pnpm -r --if-present run test",
+    "typecheck": "pnpm exec turbo run typecheck",
+    "test": "pnpm exec turbo run test --concurrency=1",
     "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,md,yml,yaml,html,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,json,md,yml,yaml,html,css}\"",
     "validate:architecture": "node scripts/validate-architecture.mjs",
@@ -49,6 +49,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.0.7",
     "prettier": "^3.8.4",
+    "turbo": "^2.9.18",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.61.0"
   },
