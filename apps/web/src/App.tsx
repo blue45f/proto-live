@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 
 import { DeskInboxBell } from './components/deskcloud/DeskInboxBell'
 import { SearchCommandPalette } from './components/deskcloud/SearchCommandPalette'
+import { IntroSplashScreen } from './components/IntroSplashScreen'
 import { MemberAuthControl } from './components/MemberAuthControl'
 import { LoginModal } from './components/modals/LoginModal'
 import { MatchModal } from './components/modals/MatchModal'
@@ -351,6 +352,7 @@ function AppShell() {
 
   return (
     <div className="protolive-shell min-h-screen bg-base text-stone-100">
+      <IntroSplashScreen />
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-cyan-300 focus:px-4 focus:py-2 focus:font-bold focus:text-slate-950"
@@ -1028,7 +1030,10 @@ function AppShell() {
 
       <footer className="protolive-footer border-t border-stone-800/70 bg-stone-950 px-4 py-4 text-xs text-stone-300 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-3 text-center sm:justify-between">
-          <span>ProtoLive © TermsDesk 포트폴리오</span>
+          <span>
+            © {new Date().getFullYear()} ProtoLive (Beta) · TermsDesk 포트폴리오. All rights
+            reserved.
+          </span>
           <nav aria-label="법적 고지 링크" className="flex flex-wrap justify-center gap-4">
             {/* 약관/개인정보처리방침은 내부 페이지(TermsDesk 게시본 렌더). 지원 보드만 외부 유지. */}
             <a

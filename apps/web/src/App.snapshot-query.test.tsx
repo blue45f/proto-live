@@ -40,7 +40,7 @@ describe('App snapshot react-query migration', () => {
     setPath('/admin')
     render(<App />)
 
-    await screen.findByText('투자 딜 성사율을 높이는 운영 정책을 수익 가정 기반으로 설계하세요.')
+    await screen.findByRole('heading', { name: /운영 정책을 수익 가정 기반으로 설계하세요/i })
 
     // 운영 뷰: admin 번들(대시보드/수익/신고/감사) 은 가져오되, 시장 목록은 게이트로 막힌다.
     expect(api.fetchAdminDashboard).toHaveBeenCalled()
