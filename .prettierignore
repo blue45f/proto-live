@@ -16,3 +16,5 @@ apps/web/og-card.html
 **/components/deskcloud/**
 
 apps/toss
+.turbo
+data

@@ -2,7 +2,7 @@
 
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const args = new Set(process.argv.slice(2))
 const isDryRun = args.has('--dry-run')
@@ -14,6 +14,29 @@ const BACKEND_DIR =
   existsSync(join(ROOT, 'package.json')) && existsSync(ROOT_BACKEND_DIR)
     ? ROOT_BACKEND_DIR
     : dirname(SCRIPT_DIR)
+
+function loadEnvFile(envPath) {
+  if (!existsSync(envPath)) return
+  const content = readFileSync(envPath, 'utf8')
+  for (const line of content.split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed || trimmed.startsWith('#')) continue
+    const match = trimmed.match(/^([^=]+)=(.*)$/)
+    if (!match) continue
+    const key = match[1].trim()
+    let val = match[2].trim()
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1)
+    }
+    if (process.env[key] === undefined) {
+      process.env[key] = val
+    }
+  }
+}
+if (process.env.NODE_ENV !== 'test' && process.env.PROTOLIVE_TEST !== 'true') {
+  loadEnvFile(join(BACKEND_DIR, '.env'))
+}
+
 const FIXTURE_PATH =
   process.env.TEST_ACCOUNTS_FIXTURE_PATH ?? join(BACKEND_DIR, 'fixtures', 'test-accounts.json')
 const DEFAULT_STORE_PATH = join(BACKEND_DIR, 'data', 'protolive-store.json')
@@ -155,9 +178,38 @@ function seedAccounts(state, fixtureAccounts) {
   }
 }
 
-function main() {
+async function main() {
   const fixtureAccounts = loadFixtureAccounts()
-  const beforeState = loadStoreState()
+
+  let beforeState
+  const isPostgres = !!process.env.DATABASE_URL
+  let pgStore = null
+  let deserializeState = null
+
+  if (isPostgres) {
+    const distStore = join(
+      BACKEND_DIR,
+      'dist',
+      'src',
+      'projects',
+      'store',
+      'postgres-projects-store.js'
+    )
+    const distSerialize = join(BACKEND_DIR, 'dist', 'src', 'projects', 'projects.store.js')
+    if (!existsSync(distStore) || !existsSync(distSerialize)) {
+      throw new Error(
+        'dist 빌드가 없습니다. 먼저 `pnpm --filter protolive-backend build` 후 다시 시도하세요.'
+      )
+    }
+    const { PostgresProjectsStore } = await import(pathToFileURL(distStore).href)
+    const { deserializeState: ds } = await import(pathToFileURL(distSerialize).href)
+    deserializeState = ds
+    pgStore = new PostgresProjectsStore(process.env.DATABASE_URL)
+    beforeState = await pgStore.load()
+  } else {
+    beforeState = loadStoreState()
+  }
+
   // Capture the count before seedAccounts mutates beforeState in place.
   const beforeCount = beforeState.users.length
   const { state: nextState, seeded } = seedAccounts(beforeState, fixtureAccounts)
@@ -170,20 +222,29 @@ function main() {
   }
 
   if (isDryRun) {
-    console.log(`드라이 런 실행: 파일이 변경되지 않습니다.`)
+    console.log(`드라이 런 실행: 파일/DB가 변경되지 않습니다.`)
     console.log(`예상 변경 사용자 수: ${seeded.length}`)
     return
   }
 
-  writeStoreState(nextState)
+  const target = isPostgres ? 'Postgres' : '파일 스토어'
+  if (isPostgres) {
+    pgStore.save(nextState)
+    await pgStore.flush()
+  } else {
+    writeStoreState(nextState)
+  }
 
   const uniqueSeeded = [...new Set(seeded)]
   console.log(
-    `테스트 계정 시드 완료: ${uniqueSeeded.length}개 계정 동기화, 사용자 수 ${beforeCount} → ${afterCount}`
+    `테스트 계정 시드 완료(${target}): ${uniqueSeeded.length}개 계정 동기화, 사용자 수 ${beforeCount} → ${afterCount}`
   )
   uniqueSeeded.forEach((email) => {
     console.log(`- ${email}`)
   })
 }
 
-main()
+main().catch((error) => {
+  console.error(`시드 실패: ${error.message}`)
+  process.exit(1)
+})

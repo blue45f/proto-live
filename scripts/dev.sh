@@ -34,6 +34,27 @@ find_available_port() {
   printf '%s\n' "$port"
 }
 
+# Load apps/api/.env if it exists to import DATABASE_URL, etc.
+if [ -f apps/api/.env ]; then
+  while IFS= read -r line || [ -n "$line" ]; do
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    [[ "$line" =~ ^[[:space:]]*$ ]] && continue
+    
+    key="${line%%=*}"
+    val="${line#*=}"
+    
+    # Remove surrounding quotes
+    val="${val#\"}"
+    val="${val%\"}"
+    val="${val#\'}"
+    val="${val%\'}"
+    
+    if ! env | grep -q "^$key="; then
+      export "$key"="$val"
+    fi
+  done < apps/api/.env
+fi
+
 requested_backend_port="${BACKEND_PORT:-3003}"
 requested_frontend_port="${FRONTEND_PORT:-4174}"
 

@@ -11,11 +11,16 @@ function runSeedScript(options: { fixturePath: string; storePath: string; dryRun
     args.push('--dry-run')
   }
 
+  const childEnv = { ...process.env }
+  delete childEnv.DATABASE_URL
+
   return spawnSync(process.execPath, args, {
     cwd: process.cwd(),
     encoding: 'utf8',
     env: {
-      ...process.env,
+      ...childEnv,
+      NODE_ENV: 'test',
+      PROTOLIVE_TEST: 'true',
       PROJECT_STORE_PATH: options.storePath,
       TEST_ACCOUNTS_FIXTURE_PATH: options.fixturePath,
     },
