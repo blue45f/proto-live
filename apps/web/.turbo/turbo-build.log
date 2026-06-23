@@ -22,7 +22,7 @@ dist/assets/DesignSystemPage-ByDV4PhP.js     28.54 kB │ gzip:   8.78 kB
 dist/assets/AdminDashboardView-BZLxhVzX.js   41.96 kB │ gzip:   8.17 kB
 dist/assets/index-DPwFi5P0.js               791.43 kB │ gzip: 248.98 kB
 
-✓ built in 2.46s
+✓ built in 2.51s
 [plugin builtin:vite-reporter] 
 (!) Some chunks are larger than 500 kB after minification. Consider:
 - Using dynamic import() to code-split the application
